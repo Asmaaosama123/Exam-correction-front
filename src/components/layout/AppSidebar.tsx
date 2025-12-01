@@ -69,7 +69,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
       className={cn("border-l", className)}
     >
       <SidebarContent>
-        <SidebarGroup className="md:pt-18">
+        <SidebarGroup className="md:pt-16">
           <SidebarGroupLabel className="px-2 ">
             القائمة الرئيسية
           </SidebarGroupLabel>

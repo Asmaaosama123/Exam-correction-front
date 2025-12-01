@@ -1,14 +1,5 @@
 import { useState } from "react";
-import {
-  Users,
-  Search,
-  Plus,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Mail,
-  Phone,
-} from "lucide-react";
+import { Users, Search, Plus, Edit, Trash2, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -102,7 +93,9 @@ export default function Students() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">الطلاب النشطون</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                الطلاب النشطون
+              </CardTitle>
               <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
@@ -116,7 +109,9 @@ export default function Students() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">طلاب جدد هذا الشهر</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                طلاب جدد هذا الشهر
+              </CardTitle>
               <Users className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
@@ -132,9 +127,7 @@ export default function Students() {
         <Card>
           <CardHeader>
             <CardTitle>قائمة الطلاب</CardTitle>
-            <CardDescription>
-              عرض وإدارة جميع الطلاب المسجلين
-            </CardDescription>
+            <CardDescription>عرض وإدارة جميع الطلاب المسجلين</CardDescription>
           </CardHeader>
           <CardContent>
             {/* Search Bar */}
@@ -239,4 +232,3 @@ export default function Students() {
     </MainLayout>
   );
 }
-

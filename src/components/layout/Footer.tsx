@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 interface FooterProps {
   className?: string;
@@ -17,24 +18,24 @@ export default function Footer({ className }: FooterProps) {
             </p>
           </div>
           <div className="flex items-center gap-6">
-            <a
-              href="/privacy"
+            <Link
+              to="/privacy"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               سياسة الخصوصية
-            </a>
-            <a
-              href="/terms"
+            </Link>
+            <Link
+              to="/terms"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               الشروط والأحكام
-            </a>
-            <a
-              href="/contact"
+            </Link>
+            <Link
+              to="/contact"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               اتصل بنا
-            </a>
+            </Link>
           </div>
         </div>
       </div>

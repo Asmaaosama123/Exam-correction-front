@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 interface LogoProps {
   className?: string;
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
   showText?: boolean;
 }
 
@@ -12,6 +12,8 @@ const sizeClasses = {
   md: "h-8 w-8",
   lg: "h-10 w-10",
   xl: "h-12 w-12",
+  "2xl": "h-14 w-14",
+  "3xl": "h-16 w-16",
 };
 
 export default function Logo({

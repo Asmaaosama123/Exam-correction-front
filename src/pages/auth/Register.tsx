@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   UserPlus,
   Mail,
@@ -8,7 +8,7 @@ import {
   EyeOff,
   GraduationCap,
   User,
-  Phone,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,28 +20,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useRegister } from "@/hooks/use-auth";
 
 export default function Register() {
-  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
-    phone: "",
     password: "",
-    confirmPassword: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const registerMutation = useRegister();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      alert("كلمات المرور غير متطابقة");
-      return;
-    }
-    // TODO: Implement register logic
-    console.log("Register:", formData);
-    navigate("/dashboard");
+    await registerMutation.mutateAsync(formData);
   };
 
   return (
@@ -70,21 +64,42 @@ export default function Register() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name Field */}
+              {/* First Name Field */}
               <div className="space-y-2">
-                <Label htmlFor="name">الاسم الكامل</Label>
+                <Label htmlFor="firstName">الاسم الأول</Label>
                 <div className="relative">
                   <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    id="name"
+                    id="firstName"
                     type="text"
-                    placeholder="أدخل اسمك الكامل"
-                    value={formData.name}
+                    placeholder="أدخل اسمك الأول"
+                    value={formData.firstName}
                     onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+                      setFormData({ ...formData, firstName: e.target.value })
                     }
                     className="pr-10"
                     required
+                    disabled={registerMutation.isPending}
+                  />
+                </div>
+              </div>
+
+              {/* Last Name Field */}
+              <div className="space-y-2">
+                <Label htmlFor="lastName">اسم العائلة</Label>
+                <div className="relative">
+                  <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="أدخل اسم العائلة"
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
+                    className="pr-10"
+                    required
+                    disabled={registerMutation.isPending}
                   />
                 </div>
               </div>
@@ -105,26 +120,7 @@ export default function Register() {
                     className="pr-10"
                     required
                     dir="ltr"
-                  />
-                </div>
-              </div>
-
-              {/* Phone Field */}
-              <div className="space-y-2">
-                <Label htmlFor="phone">رقم الهاتف</Label>
-                <div className="relative">
-                  <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="05xxxxxxxx"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    className="pr-10"
-                    required
-                    dir="ltr"
+                    disabled={registerMutation.isPending}
                   />
                 </div>
               </div>
@@ -144,46 +140,15 @@ export default function Register() {
                     }
                     className="pr-10"
                     required
+                    disabled={registerMutation.isPending}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    disabled={registerMutation.isPending}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password Field */}
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
-                <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    className="pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showConfirmPassword ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
                       <Eye className="h-4 w-4" />
@@ -199,6 +164,7 @@ export default function Register() {
                   type="checkbox"
                   className="mt-1 h-4 w-4 rounded border-input text-primary focus:ring-primary"
                   required
+                  disabled={registerMutation.isPending}
                 />
                 <Label htmlFor="terms" className="text-sm font-normal">
                   أوافق على{" "}
@@ -213,9 +179,23 @@ export default function Register() {
               </div>
 
               {/* Submit Button */}
-              <Button type="submit" className="w-full" size="lg">
-                <UserPlus className="h-4 w-4 ml-2" />
-                إنشاء الحساب
+              <Button
+                type="submit"
+                className="w-full"
+                size="lg"
+                disabled={registerMutation.isPending}
+              >
+                {registerMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                    جاري إنشاء الحساب...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 ml-2" />
+                    إنشاء الحساب
+                  </>
+                )}
               </Button>
             </form>
 

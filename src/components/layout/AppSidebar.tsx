@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 import ControleTheme from "@/components/ui/ControleTheme";
 import { cn } from "@/lib/utils";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const menuItems = [
   {
@@ -59,7 +60,20 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ className }: AppSidebarProps) {
-  const [activeItem, setActiveItem] = React.useState("/dashboard");
+  const [activeItem, setActiveItem] = React.useState("");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  React.useEffect(() => {
+    if (location.pathname.includes(activeItem)) {
+      setActiveItem(location.pathname);
+    }
+  }, [location.pathname, activeItem]);
+
+  const handleClick = (href: string) => {
+    setActiveItem(href);
+    navigate(href);
+  };
 
   return (
     <Sidebar
@@ -69,7 +83,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
       className={cn("border-l", className)}
     >
       <SidebarContent>
-        <SidebarGroup className="md:pt-16">
+        <SidebarGroup className="md:pt-18">
           <SidebarGroupLabel className="px-2 ">
             القائمة الرئيسية
           </SidebarGroupLabel>
@@ -82,24 +96,20 @@ export function AppSidebar({ className }: AppSidebarProps) {
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
+                      onClick={() => {
+                        handleClick(item.href);
+                      }}
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
                       className="w-full justify-start gap-3"
                     >
-                      <a
-                        href={item.href}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setActiveItem(item.href);
-                        }}
-                        className="flex items-center gap-3"
-                      >
+                      <div className="flex items-center gap-3">
                         <Icon className="h-5 w-5 ml-2" />
                         <span className="group-data-[collapsible=icon]:hidden">
                           {item.title}
                         </span>
-                      </a>
+                      </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );

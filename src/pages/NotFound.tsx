@@ -1,25 +1,15 @@
-import { Home, HelpCircle, AlertCircle } from "lucide-react";
+import { Home, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { MainLayout } from "@/components/layout/MainLayout";
+import Logo from "@/components/ui/Logo";
 
-interface NotFoundProps {
-  className?: string;
-}
-
-export default function NotFound({ className }: NotFoundProps) {
+export default function NotFound() {
   return (
-    <main
-      className={cn(
-        "flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-6 py-24 sm:py-32",
-        className
-      )}
-    >
+    <MainLayout>
       <div className="text-center">
         {/* 404 Badge */}
         <div className="mb-6 inline-flex items-center justify-center">
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-accent">
-            <AlertCircle className="h-12 w-12 text-primary" />
-          </div>
+          <Logo size="3xl" />
         </div>
 
         {/* Error Code */}
@@ -62,6 +52,6 @@ export default function NotFound({ className }: NotFoundProps) {
           </a>
         </p>
       </div>
-    </main>
+    </MainLayout>
   );
 }

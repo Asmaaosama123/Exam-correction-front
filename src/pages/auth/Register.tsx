@@ -1,15 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  UserPlus,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  GraduationCap,
-  User,
-  Loader2,
-} from "lucide-react";
+import { UserPlus, Mail, Lock, Eye, EyeOff, User, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useRegister } from "@/hooks/use-auth";
+import Logo from "@/components/ui/Logo";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
@@ -42,16 +34,8 @@ export default function Register() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         {/* Logo and Header */}
-        <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary">
-            <GraduationCap className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h2 className="mt-6 text-3xl font-bold text-foreground">
-            إنشاء حساب جديد
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            املأ البيانات التالية لإنشاء حسابك
-          </p>
+        <div className="flex justify-center">
+          <Logo size="3xl" />
         </div>
 
         {/* Register Form */}

@@ -102,7 +102,7 @@ export function AppSidebar({ className }: AppSidebarProps) {
                       asChild
                       isActive={isActive}
                       tooltip={item.title}
-                      className="w-full justify-start gap-3"
+                      className="w-full cursor-pointer justify-start gap-3"
                     >
                       <div className="flex items-center gap-3">
                         <Icon className="h-5 w-5 ml-2" />

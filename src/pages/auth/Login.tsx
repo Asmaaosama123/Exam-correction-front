@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { LogIn, Mail, Lock, Eye, EyeOff, GraduationCap, Loader2 } from "lucide-react";
+import { LogIn, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useLogin } from "@/hooks/use-auth";
+import Logo from "@/components/ui/Logo";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -31,16 +32,8 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         {/* Logo and Header */}
-        <div className="text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary">
-            <GraduationCap className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h2 className="mt-6 text-3xl font-bold text-foreground">
-            تسجيل الدخول
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            أدخل بياناتك للوصول إلى حسابك
-          </p>
+        <div className="flex justify-center">
+          <Logo size="3xl" />
         </div>
 
         {/* Login Form */}

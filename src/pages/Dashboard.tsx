@@ -1,12 +1,11 @@
+import { Users, FileCheck, CheckSquare, TrendingUp, Clock } from "lucide-react";
 import {
-  LayoutDashboard,
-  Users,
-  FileCheck,
-  CheckSquare,
-  TrendingUp,
-  Clock,
-} from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { cn } from "@/lib/utils";
 
@@ -72,7 +71,6 @@ export default function Dashboard() {
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-6">
-        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">لوحة التحكم</h1>
           <p className="text-muted-foreground mt-2">
@@ -80,7 +78,6 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => {
             const Icon = stat.icon;
@@ -106,9 +103,7 @@ export default function Dashboard() {
           })}
         </div>
 
-        {/* Main Content Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          {/* Recent Activities */}
           <Card className="col-span-4">
             <CardHeader>
               <CardTitle>النشاطات الأخيرة</CardTitle>
@@ -142,7 +137,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
           <Card className="col-span-3">
             <CardHeader>
               <CardTitle>إجراءات سريعة</CardTitle>
@@ -192,4 +186,3 @@ export default function Dashboard() {
     </MainLayout>
   );
 }
-

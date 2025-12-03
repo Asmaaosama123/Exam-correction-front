@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import {
-  GraduationCap,
   Users,
   FileCheck,
   CheckSquare,
@@ -16,6 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { useAuth } from "@/hooks/use-auth";
+import Logo from "@/components/ui/Logo";
 
 const features = [
   {
@@ -45,30 +46,46 @@ const features = [
 ];
 
 export default function Home() {
+  const { data: user } = useAuth();
+  const isAuthenticated = !!user;
+
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-8 p-6">
         {/* Hero Section */}
         <div className="mx-auto w-full max-w-4xl text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary">
-            <GraduationCap className="h-10 w-10 text-primary-foreground" />
+          <div className="flex justify-center">
+            <Logo size="3xl" />
           </div>
           <h1 className="mt-6 text-4xl font-bold text-foreground sm:text-5xl">
-            مرحباً بك في نظام إدارة الامتحانات
+            {isAuthenticated
+              ? `مرحباً ${user.firstName || ""} في نظام إدارة الامتحانات`
+              : "مرحباً بك في نظام إدارة الامتحانات"}
           </h1>
           <p className="mt-4 text-lg text-muted-foreground sm:text-xl">
             نظام متكامل لإدارة وتصحيح الامتحانات باستخدام الذكاء الاصطناعي
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button size="lg" asChild>
-              <Link to="/dashboard">
-                ابدأ الآن
-                <ArrowLeft className="h-4 w-4 ml-2" />
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" asChild>
-              <Link to="/login">تسجيل الدخول</Link>
-            </Button>
+            {isAuthenticated ? (
+              <Button size="lg" asChild>
+                <Link to="/dashboard">
+                  الذهاب إلى لوحة التحكم
+                  <ArrowLeft className="h-4 w-4 ml-2" />
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Button size="lg" asChild>
+                  <Link to="/register">
+                    ابدأ الآن
+                    <ArrowLeft className="h-4 w-4 ml-2" />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" asChild>
+                  <Link to="/login">تسجيل الدخول</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
 

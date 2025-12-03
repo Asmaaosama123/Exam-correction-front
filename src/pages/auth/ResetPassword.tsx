@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Lock, Loader2, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Lock, Loader2, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AuthLayout } from "@/components/layout/AuthLayout";
 import { useResetPassword } from "@/hooks/use-auth";
+import { getFieldErrors } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import Logo from "@/components/ui/Logo";
 
 export default function ResetPassword() {
@@ -25,6 +28,12 @@ export default function ResetPassword() {
   });
 
   const resetPasswordMutation = useResetPassword();
+  const error = resetPasswordMutation.error;
+
+  // Get field-specific errors
+  const passwordErrors = getFieldErrors(error, "newpassword") || getFieldErrors(error, "password");
+  const codeErrors = getFieldErrors(error, "code");
+  const emailErrors = getFieldErrors(error, "email");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,89 +45,120 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div className="flex justify-center">
-          <Logo size="3xl" />
-        </div>
+    <AuthLayout>
+      <div className="flex flex-1 items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+        <div className="w-full max-w-md space-y-8">
+          <div className="flex justify-center">
+            <Logo size="3xl" />
+          </div>
 
-        {/* Reset Password Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>كلمة مرور جديدة</CardTitle>
-            <CardDescription>
-              أدخل رمز التحقق الذي تم إرساله إلى{" "}
-              <span className="font-semibold text-primary">{email}</span>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* New Password Field */}
-              <div className="space-y-2">
-                <Label htmlFor="newpassword">كلمة المرور الجديدة</Label>
-                <div className="relative">
-                  <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="newpassword"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={formData.newpassword}
-                    onChange={(e) =>
-                      setFormData({ ...formData, newpassword: e.target.value })
-                    }
-                    className="pr-10"
-                    required
-                    disabled={resetPasswordMutation.isPending}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    disabled={resetPasswordMutation.isPending}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
+          {/* Reset Password Form */}
+          <Card>
+            <CardHeader>
+              <CardTitle>كلمة مرور جديدة</CardTitle>
+              <CardDescription>
+                أدخل رمز التحقق الذي تم إرساله إلى{" "}
+                <span className="font-semibold text-primary">{email}</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* New Password Field */}
+                <div className="space-y-2">
+                  <Label htmlFor="newpassword">كلمة المرور الجديدة</Label>
+                  <div className="relative">
+                    <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="newpassword"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={formData.newpassword}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          newpassword: e.target.value,
+                        })
+                      }
+                      className={cn(
+                        "pr-10",
+                        passwordErrors.length > 0 && "border-destructive"
+                      )}
+                      required
+                      disabled={resetPasswordMutation.isPending}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      disabled={resetPasswordMutation.isPending}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  {passwordErrors.length > 0 && (
+                    <div className="flex items-start gap-2 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      <div className="flex flex-col gap-1">
+                        {passwordErrors.map((err, idx) => (
+                          <span key={idx}>{err}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(codeErrors.length > 0 || emailErrors.length > 0) && (
+                    <div className="flex items-start gap-2 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      <div className="flex flex-col gap-1">
+                        {codeErrors.map((err, idx) => (
+                          <span key={idx}>{err}</span>
+                        ))}
+                        {emailErrors.map((err, idx) => (
+                          <span key={idx}>{err}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
+                  disabled={resetPasswordMutation.isPending}
+                >
+                  {resetPasswordMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                      جاري إعادة التعيين...
+                    </>
+                  ) : (
+                    <>
+                      إعادة تعيين كلمة المرور
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              {/* Back to Login Link */}
+              <div className="mt-6 text-center text-sm">
+                <Link
+                  to="/login"
+                  className="font-medium text-primary hover:underline flex items-center justify-center gap-2"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  العودة إلى تسجيل الدخول
+                </Link>
               </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-                disabled={resetPasswordMutation.isPending}
-              >
-                {resetPasswordMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                    جاري إعادة التعيين...
-                  </>
-                ) : (
-                  <>
-                    إعادة تعيين كلمة المرور
-                    <ArrowRight className="h-4 w-4 mr-2" />
-                  </>
-                )}
-              </Button>
-            </form>
-
-            {/* Back to Login Link */}
-            <div className="mt-6 text-center text-sm">
-              <Link
-                to="/login"
-                className="font-medium text-primary hover:underline flex items-center justify-center gap-2"
-              >
-                <ArrowRight className="h-4 w-4" />
-                العودة إلى تسجيل الدخول
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

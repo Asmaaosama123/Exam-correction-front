@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { authApi } from "@/lib/auth-api";
-import { getErrorMessage } from "@/lib/api";
+import { getErrorMessage, getAllFieldErrors } from "@/lib/api";
 import type {
   RegisterRequest,
   LoginRequest,
@@ -24,18 +24,20 @@ const tokenStorage = {
   setToken: (token: string) => localStorage.setItem(STORAGE_KEYS.TOKEN, token),
   getToken: () => localStorage.getItem(STORAGE_KEYS.TOKEN),
   removeToken: () => localStorage.removeItem(STORAGE_KEYS.TOKEN),
-  
-  setRefreshToken: (token: string) => localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token),
+
+  setRefreshToken: (token: string) =>
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token),
   getRefreshToken: () => localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN),
   removeRefreshToken: () => localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
-  
-  setUser: (user: unknown) => localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user)),
+
+  setUser: (user: unknown) =>
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user)),
   getUser: () => {
     const user = localStorage.getItem(STORAGE_KEYS.USER);
     return user ? JSON.parse(user) : null;
   },
   removeUser: () => localStorage.removeItem(STORAGE_KEYS.USER),
-  
+
   clear: () => {
     tokenStorage.removeToken();
     tokenStorage.removeRefreshToken();
@@ -43,60 +45,44 @@ const tokenStorage = {
   },
 };
 
-/**
- * Hook for user registration
- */
 export function useRegister() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
     onSuccess: (response) => {
-      // Store tokens if provided
       if (response.token) {
         tokenStorage.setToken(response.token);
       }
       if (response.refreshToken) {
         tokenStorage.setRefreshToken(response.refreshToken);
       }
-      if (response.userId) {
+      if (response.id) {
         tokenStorage.setUser({
-          id: response.userId,
+          id: response.id,
           email: response.email,
           firstName: response.firstName,
           lastName: response.lastName,
         });
       }
 
-      queryClient.invalidateQueries({ queryKey: ["auth"] });
-      
-      toast.success("تم إنشاء الحساب بنجاح", {
-        description: response.userId 
-          ? "يرجى التحقق من بريدك الإلكتروني لإكمال التسجيل"
-          : "تم تسجيل الدخول تلقائياً",
-      });
+      // queryClient.invalidateQueries({ queryKey: ["auth"] });
 
-      if (response.userId && !response.token) {
-        // Navigate to verification page if email verification is required
-        navigate("/verify-email", { 
-          state: { userId: response.userId, email: response.email } 
-        });
-      } else {
-        navigate("/dashboard");
-      }
+      toast.success("تم إنشاء الحساب بنجاح");
+
+      navigate("/login");
     },
     onError: (error) => {
-      toast.error("فشل إنشاء الحساب", {
-        description: getErrorMessage(error),
-      });
+      // Only show toast if there are no field-specific errors
+      const fieldErrors = getAllFieldErrors(error);
+      if (Object.keys(fieldErrors).length === 0) {
+        toast.error("فشل إنشاء الحساب", {
+          description: getErrorMessage(error),
+        });
+      }
     },
   });
 }
 
-/**
- * Hook for user login
- */
 export function useLogin() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -111,9 +97,9 @@ export function useLogin() {
       if (response.refreshToken) {
         tokenStorage.setRefreshToken(response.refreshToken);
       }
-      if (response.userId) {
+      if (response.id) {
         tokenStorage.setUser({
-          id: response.userId,
+          id: response.id,
           email: response.email,
           firstName: response.firstName,
           lastName: response.lastName,
@@ -121,17 +107,29 @@ export function useLogin() {
       }
 
       queryClient.invalidateQueries({ queryKey: ["auth"] });
-      
+
       toast.success("تم تسجيل الدخول بنجاح", {
         description: `مرحباً ${response.firstName || ""}`,
       });
 
-      navigate("/dashboard");
+      // Check if there's a return URL from AuthGuard
+      const returnUrl = sessionStorage.getItem("returnUrl") || "/dashboard";
+
+      if (returnUrl && returnUrl !== "/login") {
+        sessionStorage.removeItem("returnUrl");
+        navigate(returnUrl, { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     },
     onError: (error) => {
-      toast.error("فشل تسجيل الدخول", {
-        description: getErrorMessage(error),
-      });
+      // Only show toast if there are no field-specific errors
+      const fieldErrors = getAllFieldErrors(error);
+      if (Object.keys(fieldErrors).length === 0) {
+        toast.error("فشل تسجيل الدخول", {
+          description: getErrorMessage(error),
+        });
+      }
     },
   });
 }
@@ -147,7 +145,7 @@ export function useVerifyEmail() {
     mutationFn: (data: VerifyEmailRequest) => authApi.verifyEmail(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth"] });
-      
+
       toast.success("تم التحقق من البريد الإلكتروني بنجاح", {
         description: "يمكنك الآن تسجيل الدخول",
       });
@@ -174,9 +172,13 @@ export function useForgetPassword() {
       });
     },
     onError: (error) => {
-      toast.error("فشل إرسال رابط إعادة التعيين", {
-        description: getErrorMessage(error),
-      });
+      // Only show toast if there are no field-specific errors
+      const fieldErrors = getAllFieldErrors(error);
+      if (Object.keys(fieldErrors).length === 0) {
+        toast.error("فشل إرسال رابط إعادة التعيين", {
+          description: getErrorMessage(error),
+        });
+      }
     },
   });
 }
@@ -197,9 +199,13 @@ export function useResetPassword() {
       navigate("/login");
     },
     onError: (error) => {
-      toast.error("فشل إعادة تعيين كلمة المرور", {
-        description: getErrorMessage(error),
-      });
+      // Only show toast if there are no field-specific errors
+      const fieldErrors = getAllFieldErrors(error);
+      if (Object.keys(fieldErrors).length === 0) {
+        toast.error("فشل إعادة تعيين كلمة المرور", {
+          description: getErrorMessage(error),
+        });
+      }
     },
   });
 }
@@ -239,11 +245,11 @@ export function useAuth() {
     queryFn: () => {
       const user = tokenStorage.getUser();
       const token = tokenStorage.getToken();
-      
+
       if (!user || !token) {
         return null;
       }
-      
+
       return {
         ...user,
         isAuthenticated: true,
@@ -262,12 +268,12 @@ export function useLogout() {
 
   return () => {
     tokenStorage.clear();
+    queryClient.invalidateQueries({ queryKey: ["auth"] });
     queryClient.clear();
     toast.success("تم تسجيل الخروج بنجاح");
-    navigate("/login");
+    navigate("/");
   };
 }
 
 // Export token storage for use in other parts of the app
 export { tokenStorage };
-

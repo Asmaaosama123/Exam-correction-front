@@ -11,6 +11,7 @@ import Reports from "@/pages/Reports";
 import { Routes, Route } from "react-router-dom";
 import Privacy from "@/pages/terms/Privacy";
 import Terms from "@/pages/terms/Terms";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 const routes = [
   {
@@ -39,23 +40,32 @@ const routes = [
   },
   {
     path: "/dashboard",
-    element: <Dashboard />,
+    element: (
+      <AuthGuard>
+        <Dashboard />
+      </AuthGuard>
+    ),
   },
   {
     path: "/students",
-    element: <Students />,
+    element: (
+      <AuthGuard>
+        <Students />
+      </AuthGuard>
+    ),
   },
-
   {
     path: "/reports",
-    element: <Reports />,
+    element: (
+      <AuthGuard>
+        <Reports />
+      </AuthGuard>
+    ),
   },
-
   {
     path: "/privacy",
     element: <Privacy />,
   },
-
   {
     path: "/terms",
     element: <Terms />,

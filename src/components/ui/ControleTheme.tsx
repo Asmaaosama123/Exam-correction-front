@@ -2,38 +2,55 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export default function ControleTheme() {
-  const { setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Avoid hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const toggleTheme = () => {
+    // If theme is system or not set, start with light
+    if (!theme || theme === "system") {
+      setTheme("light");
+    } else if (theme === "light") {
+      setTheme("dark");
+    } else {
+      setTheme("light");
+    }
+  };
+
+  // Use resolvedTheme to get the actual theme (handles system theme)
+  // Show loading state until mounted to avoid flash
+  if (!mounted) {
+    return (
+      <Button variant="outline" size="icon" aria-label="تبديل السمة">
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
+        <span className="sr-only">تبديل السمة</span>
+      </Button>
+    );
+  }
+
+  const isDark = resolvedTheme === "dark";
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-          <span className="sr-only">تبديل السمة</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          فاتح
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          داكن
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          حسب النظام
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      variant="outline"
+      size="icon"
+      onClick={toggleTheme}
+      aria-label="تبديل السمة"
+    >
+      {isDark ? (
+        <Sun className="h-[1.2rem] w-[1.2rem] transition-all" />
+      ) : (
+        <Moon className="h-[1.2rem] w-[1.2rem] transition-all" />
+      )}
+      <span className="sr-only">تبديل السمة</span>
+    </Button>
   );
 }

@@ -1,15 +1,9 @@
-/**
- * Authentication Types
- * Single source of truth for all authentication-related types
- */
-
-// ==================== Request Types ====================
-
 export interface RegisterRequest {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
+  secretKey: string;
 }
 
 export interface LoginRequest {
@@ -43,7 +37,7 @@ export interface AuthResponse {
   token?: string;
   refreshToken?: string;
   expiresIn?: number;
-  userId?: string;
+  id?: string;
   email?: string;
   firstName?: string;
   lastName?: string;
@@ -61,12 +55,25 @@ export interface ApiError {
   description: string;
 }
 
-export interface ApiErrorResponse {
+// Validation error format from ASP.NET Core
+export interface ValidationErrorResponse {
+  type: string;
+  title: string;
+  status: number;
+  errors: Record<string, string[]>; // Field name -> array of error messages
+  traceId?: string;
+}
+
+// Legacy error format (array of errors)
+export interface LegacyApiErrorResponse {
   type: string;
   title: string;
   status: number;
   errors: ApiError[];
 }
+
+// Union type for API error responses
+export type ApiErrorResponse = ValidationErrorResponse | LegacyApiErrorResponse;
 
 // ==================== User Types ====================
 
@@ -99,4 +106,3 @@ export interface UseAuthReturn {
   resetPassword: (data: ResetPasswordRequest) => Promise<void>;
   refreshAuth: () => Promise<void>;
 }
-

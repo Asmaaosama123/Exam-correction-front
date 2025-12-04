@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { authApi } from "@/lib/auth-api";
 import { getErrorMessage, getAllFieldErrors } from "@/lib/api";
 import { joinFullName } from "@/lib/name-utils";
+import { authManager } from "@/lib/auth-manager";
 import type {
   RegisterRequest,
   LoginRequest,
@@ -13,30 +14,28 @@ import type {
   ResetPasswordRequest,
 } from "@/types/auth";
 
-// Storage keys
-const STORAGE_KEYS = {
-  TOKEN: "auth_token",
-  REFRESH_TOKEN: "auth_refresh_token",
-  USER: "auth_user",
-} as const;
-
-// Helper functions for token management
-// Note: User data is no longer stored in localStorage - always fetched from /api/profile/current
+// Token storage helper - now uses authManager
+// This is kept for backward compatibility with existing code
 const tokenStorage = {
-  setToken: (token: string) => localStorage.setItem(STORAGE_KEYS.TOKEN, token),
-  getToken: () => localStorage.getItem(STORAGE_KEYS.TOKEN),
-  removeToken: () => localStorage.removeItem(STORAGE_KEYS.TOKEN),
-
-  setRefreshToken: (token: string) =>
-    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token),
-  getRefreshToken: () => localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN),
-  removeRefreshToken: () => localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN),
-
-  clear: () => {
-    tokenStorage.removeToken();
-    tokenStorage.removeRefreshToken();
-    // Note: We don't store user data in localStorage anymore
+  setToken: (token: string) => {
+    const refreshToken = authManager.getRefreshToken() || "";
+    authManager.setTokens(token, refreshToken);
   },
+  getToken: () => authManager.getAccessToken(),
+  removeToken: () => {
+    authManager.clearTokens();
+  },
+
+  setRefreshToken: (token: string) => {
+    const accessToken = authManager.getAccessToken() || "";
+    authManager.setTokens(accessToken, token);
+  },
+  getRefreshToken: () => authManager.getRefreshToken(),
+  removeRefreshToken: () => {
+    authManager.clearTokens();
+  },
+
+  clear: () => authManager.clearTokens(),
 };
 
 export function useRegister() {
@@ -69,11 +68,12 @@ export function useLogin() {
       // Step 1: Call /Auth endpoint
       const loginResponse = await authApi.login(data);
 
-      // Step 2: Save tokens
-      if (loginResponse.token) {
+      // Step 2: Save tokens using authManager
+      if (loginResponse.token && loginResponse.refreshToken) {
+        authManager.setTokens(loginResponse.token, loginResponse.refreshToken);
+      } else if (loginResponse.token) {
         tokenStorage.setToken(loginResponse.token);
-      }
-      if (loginResponse.refreshToken) {
+      } else if (loginResponse.refreshToken) {
         tokenStorage.setRefreshToken(loginResponse.refreshToken);
       }
 
@@ -215,23 +215,22 @@ export function useResetPassword() {
  */
 /**
  * Hook to manually refresh access token
- * Note: Automatic refresh is handled by axios interceptor
+ * Note: Automatic refresh is handled by axios interceptor via authManager
  * This hook is available for manual refresh if needed
  */
 export function useRefreshToken() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: RefreshTokenRequest) => authApi.refreshToken(data),
-    onSuccess: (response) => {
-      // Update tokens in storage
-      if (response.token) {
-        tokenStorage.setToken(response.token);
+    mutationFn: async () => {
+      // Use authManager for refresh
+      const newToken = await authManager.refreshAccessToken();
+      if (!newToken) {
+        throw new Error("فشل تحديث الجلسة");
       }
-      if (response.refreshToken) {
-        tokenStorage.setRefreshToken(response.refreshToken);
-      }
-
+      return { token: newToken };
+    },
+    onSuccess: () => {
       // Invalidate auth queries to refresh user data from /api/profile/current
       queryClient.invalidateQueries({ queryKey: ["auth"] });
 
@@ -239,7 +238,7 @@ export function useRefreshToken() {
     },
     onError: (error) => {
       // If refresh fails, clear tokens and logout user
-      tokenStorage.clear();
+      authManager.logout(false); // Don't redirect, let component handle it
       queryClient.invalidateQueries({ queryKey: ["auth"] });
       queryClient.clear();
 
@@ -261,7 +260,7 @@ export function useAuth() {
   return useQuery({
     queryKey: ["auth", "user"],
     queryFn: async () => {
-      const token = tokenStorage.getToken();
+      const token = authManager.getAccessToken();
 
       // If no token, user is not authenticated
       if (!token) {
@@ -297,7 +296,7 @@ export function useAuth() {
         // Only clear tokens if we don't have cached data (real auth failure)
         // If we have cached data, it might be a temporary network issue
         if (!cachedData) {
-          tokenStorage.clear();
+          authManager.clearTokens();
           return null;
         }
         
@@ -324,7 +323,7 @@ export function useLogout() {
   const queryClient = useQueryClient();
 
   return () => {
-    tokenStorage.clear();
+    authManager.logout(false); // Don't redirect, we'll handle it manually
     queryClient.invalidateQueries({ queryKey: ["auth"] });
     queryClient.clear();
     toast.success("تم تسجيل الخروج بنجاح");
@@ -332,5 +331,5 @@ export function useLogout() {
   };
 }
 
-// Export token storage for use in other parts of the app
+// Export token storage for backward compatibility
 export { tokenStorage };

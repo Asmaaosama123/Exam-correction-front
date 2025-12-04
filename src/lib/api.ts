@@ -4,7 +4,7 @@ import axios, {
   type AxiosInstance,
 } from "axios";
 import type { ApiErrorResponse } from "@/types/auth";
-import { refreshAccessToken } from "./token-refresh";
+import { authManager } from "./auth-manager";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "https://localhost:7210";
@@ -19,7 +19,7 @@ export const api: AxiosInstance = axios.create({
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem("auth_token");
+    const token = authManager.getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -50,111 +50,64 @@ api.interceptors.response.use(
         _retry?: boolean;
       };
 
-      // Skip refresh for login and refresh-token endpoints (to prevent loops)
-      // Login endpoint is POST /Auth (exact match, no sub-path)
-      const requestUrl = originalRequest.url || "";
-      const isLoginEndpoint =
-        (requestUrl.endsWith("/Auth") || requestUrl.endsWith("/auth")) &&
-        originalRequest.method?.toLowerCase() === "post";
-      const isRefreshEndpoint =
-        requestUrl.includes("/Auth/refresh-token") ||
-        requestUrl.includes("/auth/refresh-token");
+      const requestUrl = originalRequest.url;
+      const requestMethod = originalRequest.method;
 
-      // Skip refresh for login endpoint - user should re-authenticate
-      if (isLoginEndpoint) {
+      // Skip refresh for auth endpoints (login, refresh-token) to prevent loops
+      if (authManager.shouldSkipRefresh(requestUrl, requestMethod)) {
         return Promise.reject({
           ...error.response.data,
           status: 401,
         });
       }
 
-      // Check if we have a refresh token available
-      const refreshToken = localStorage.getItem("auth_refresh_token");
-      const hasRefreshToken = !!refreshToken;
+      // If already retried, don't retry again
+      if (originalRequest._retry) {
+        // Already attempted refresh, tokens are invalid
+        authManager.logout();
+        return Promise.reject({
+          ...error.response.data,
+          status: 401,
+        });
+      }
 
-      // Attempt token refresh if:
-      // 1. Not already retried
-      // 2. Not the refresh endpoint itself
-      // 3. Not the login endpoint
-      // 4. We have a refresh token available
-      if (
-        !originalRequest._retry &&
-        !isRefreshEndpoint &&
-        !isLoginEndpoint &&
-        hasRefreshToken
-      ) {
-        originalRequest._retry = true;
+      // Check if we have tokens to attempt refresh
+      if (!authManager.hasTokens()) {
+        // No tokens available, redirect to login
+        authManager.logout();
+        return Promise.reject({
+          ...error.response.data,
+          status: 401,
+        });
+      }
 
-        try {
-          // Attempt to refresh the token
-          const newToken = await refreshAccessToken();
+      // Mark request as retried to prevent infinite loops
+      originalRequest._retry = true;
 
-          if (newToken) {
-            // Update the authorization header with new token
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            }
+      try {
+        // Attempt to refresh the token
+        // This will queue concurrent requests and only refresh once
+        const newToken = await authManager.refreshAccessToken();
 
-            // Retry the original request with new token
-            return api(originalRequest);
-          } else {
-            // Refresh failed - tokens are invalid or expired
-            // Clear authentication data
-            localStorage.removeItem("auth_token");
-            localStorage.removeItem("auth_refresh_token");
-
-            // Store flag to show toast after redirect
-            const currentPath = window.location.pathname;
-            if (currentPath !== "/login" && currentPath !== "/register") {
-              sessionStorage.setItem("returnUrl", currentPath);
-              sessionStorage.setItem("showUnauthorizedToast", "true");
-            }
-
-            // Redirect to login page
-            window.location.href = "/login";
-
-            return Promise.reject({
-              ...error.response.data,
-              status: 401,
-            });
-          }
-        } catch {
-          // Refresh failed with an error - tokens are invalid
-          // Clear authentication data
-          localStorage.removeItem("auth_token");
-          localStorage.removeItem("auth_refresh_token");
-
-          // Store flag to show toast after redirect
-          const currentPath = window.location.pathname;
-          if (currentPath !== "/login" && currentPath !== "/register") {
-            sessionStorage.setItem("returnUrl", currentPath);
-            sessionStorage.setItem("showUnauthorizedToast", "true");
+        if (newToken) {
+          // Refresh successful - update authorization header and retry original request
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
           }
 
-          // Redirect to login page
-          window.location.href = "/login";
-
+          // Retry the original request with new token
+          return api(originalRequest);
+        } else {
+          // Refresh failed - tokens are invalid or expired
+          authManager.logout();
           return Promise.reject({
             ...error.response.data,
             status: 401,
           });
         }
-      } else {
-        // No refresh token available or already retried - proceed with logout
-        // Clear authentication data
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("auth_refresh_token");
-
-        // Store flag to show toast after redirect
-        const currentPath = window.location.pathname;
-        if (currentPath !== "/login" && currentPath !== "/register") {
-          sessionStorage.setItem("returnUrl", currentPath);
-          sessionStorage.setItem("showUnauthorizedToast", "true");
-        }
-
-        // Redirect to login page
-        window.location.href = "/login";
-
+      } catch {
+        // Refresh failed with an error - tokens are invalid
+        authManager.logout();
         return Promise.reject({
           ...error.response.data,
           status: 401,
@@ -162,7 +115,7 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle API errors
+    // Handle other API errors
     const errorResponse = error.response.data;
 
     // Return structured error

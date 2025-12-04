@@ -4,6 +4,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import Logo from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
 import { useAuth, useLogout } from "@/hooks/use-auth";
+import { joinFullName } from "@/lib/name-utils";
 import { Link } from "react-router-dom";
 import {
   DropdownMenu,
@@ -57,7 +58,7 @@ export default function Header({
                 <Button variant="ghost" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
                   <span className="hidden md:inline">
-                    {user.firstName || user.email}
+                    {joinFullName(user.firstName, user.lastName) || user.email}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
@@ -65,7 +66,7 @@ export default function Header({
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {user.firstName} {user.lastName}
+                      {joinFullName(user.firstName, user.lastName) || user.email}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
                       {user.email}

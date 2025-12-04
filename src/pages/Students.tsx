@@ -1,5 +1,17 @@
-import { useState } from "react";
-import { Users, Search, Plus, Edit, Trash2, Mail, Phone } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Users,
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  Mail,
+  Phone,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,69 +22,125 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { cn } from "@/lib/utils";
-
-// Mock data
-const students = [
-  {
-    id: 1,
-    name: "أحمد محمد العلي",
-    email: "ahmed@example.com",
-    phone: "0501234567",
-    grade: "الصف الثالث الثانوي",
-    status: "نشط",
-  },
-  {
-    id: 2,
-    name: "فاطمة عبدالله السالم",
-    email: "fatima@example.com",
-    phone: "0502345678",
-    grade: "الصف الثاني الثانوي",
-    status: "نشط",
-  },
-  {
-    id: 3,
-    name: "خالد سعد الدوسري",
-    email: "khalid@example.com",
-    phone: "0503456789",
-    grade: "الصف الأول الثانوي",
-    status: "غير نشط",
-  },
-  {
-    id: 4,
-    name: "سارة علي القحطاني",
-    email: "sara@example.com",
-    phone: "0504567890",
-    grade: "الصف الثالث الثانوي",
-    status: "نشط",
-  },
-];
+import { useGetStudents, useDeleteStudent } from "@/hooks/use-students";
+import { useGetClasses } from "@/hooks/use-classes";
+import { StudentFormDialog } from "@/components/students/StudentFormDialog";
+import { DeleteStudentDialog } from "@/components/students/DeleteStudentDialog";
+import { ImportStudentsDialog } from "@/components/students/ImportStudentsDialog";
+import { ExportStudentsDialog } from "@/components/students/ExportStudentsDialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export default function Students() {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredStudents = students.filter(
-    (student) =>
-      student.name.includes(searchQuery) ||
-      student.email.includes(searchQuery) ||
-      student.phone.includes(searchQuery)
+  const [selectedClassId, setSelectedClassId] = useState<string | undefined>(
+    undefined
   );
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize] = useState(10);
+  const [searchValue, setSearchValue] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<string | null>(null);
+  const [deletingStudent, setDeletingStudent] = useState<{
+    id: string;
+    classId?: string;
+  } | null>(null);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchValue);
+      setPageNumber(1); // Reset to first page on search
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchValue]);
+
+  const { data: classesData, isLoading: isLoadingClasses } = useGetClasses();
+
+  const { data, isLoading, error } = useGetStudents({
+    classId: selectedClassId,
+    pageNumber,
+    pageSize,
+    SearchValue: debouncedSearch || undefined,
+  });
+
+  const deleteMutation = useDeleteStudent();
+
+  const handleEdit = (studentId: string) => {
+    setEditingStudent(studentId);
+  };
+
+  const handleDelete = (studentId: string, className?: string) => {
+    // Find classId from className if available, or use selectedClassId
+    let classIdForDelete = selectedClassId;
+    if (!classIdForDelete && className && classesData) {
+      const foundClass = classesData.find((c) => c.name === className);
+      if (foundClass) {
+        classIdForDelete = foundClass.id;
+      }
+    }
+    setDeletingStudent({
+      id: studentId,
+      classId: classIdForDelete,
+    });
+  };
+
+  const handleAddSuccess = () => {
+    setIsAddDialogOpen(false);
+  };
+
+  const handleEditSuccess = () => {
+    setEditingStudent(null);
+  };
+
+  const handleDeleteSuccess = () => {
+    setDeletingStudent(null);
+  };
+
+  const totalStudents = data?.items.length || 0;
+  const totalPages = data?.totalPages || 0;
 
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">الطلاب</h1>
             <p className="text-muted-foreground mt-2">
               إدارة بيانات الطلاب المسجلين في النظام
             </p>
           </div>
-          <Button>
-            <Plus className="h-4 w-4 ml-2" />
-            إضافة طالب جديد
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsExportDialogOpen(true)}
+            >
+              <Download className="h-4 w-4 ml-2" />
+              تصدير الطلاب
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsImportDialogOpen(true)}
+            >
+              <Upload className="h-4 w-4 ml-2" />
+              استيراد من Excel
+            </Button>
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="h-4 w-4 ml-2" />
+              إضافة طالب جديد
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -85,40 +153,56 @@ export default function Students() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{students.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                طالب مسجل في النظام
-              </p>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{totalStudents}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    طالب في هذه الصفحة
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                الطلاب النشطون
+                إجمالي الصفحات
               </CardTitle>
               <Users className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {students.filter((s) => s.status === "نشط").length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                طالب نشط حالياً
-              </p>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{totalPages}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    صفحة متاحة
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                طلاب جدد هذا الشهر
+                الصفحة الحالية
               </CardTitle>
               <Users className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                +5 من الشهر الماضي
-              </p>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <>
+                  <div className="text-2xl font-bold">{pageNumber}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    من {totalPages}
+                  </p>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -130,105 +214,242 @@ export default function Students() {
             <CardDescription>عرض وإدارة جميع الطلاب المسجلين</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Search Bar */}
-            <div className="mb-6">
+            {/* Class Selector and Search Bar */}
+            <div className="mb-6 space-y-4">
+              {/* Class Selector */}
+              <div className="space-y-2">
+                <Label htmlFor="class-select">اختر الفصل</Label>
+                <Select
+                  value={selectedClassId || "all"}
+                  onValueChange={(value) => {
+                    setSelectedClassId(value === "all" ? undefined : value);
+                    setPageNumber(1); // Reset to first page when changing class
+                  }}
+                  disabled={isLoadingClasses}
+                >
+                  <SelectTrigger
+                    id="class-select"
+                    className="w-full sm:w-[300px]"
+                  >
+                    <SelectValue placeholder="اختر الفصل" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {isLoadingClasses ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        جاري التحميل...
+                      </div>
+                    ) : (
+                      <>
+                        <SelectItem value="all">جميع الفصول</SelectItem>
+                        {classesData && classesData.length > 0 ? (
+                          classesData.map((classItem) => (
+                            <SelectItem key={classItem.id} value={classItem.id}>
+                              {classItem.name} ({classItem.numberOfStudents}{" "}
+                              طالب)
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-sm text-muted-foreground">
+                            لا توجد فصول متاحة
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Search Bar */}
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="ابحث عن طالب بالاسم أو البريد الإلكتروني أو رقم الهاتف..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
                   className="pr-10"
                 />
               </div>
             </div>
 
             {/* Students Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground">
-                      الاسم
-                    </th>
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground">
-                      البريد الإلكتروني
-                    </th>
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground">
-                      رقم الهاتف
-                    </th>
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground">
-                      الصف
-                    </th>
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground">
-                      الحالة
-                    </th>
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground">
-                      الإجراءات
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map((student) => (
-                    <tr
-                      key={student.id}
-                      className="border-b transition-colors hover:bg-accent/50"
-                    >
-                      <td className="p-4">
-                        <div className="font-medium">{student.name}</div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          {student.email}
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Phone className="h-3 w-3" />
-                          {student.phone}
-                        </div>
-                      </td>
-                      <td className="p-4 text-sm">{student.grade}</td>
-                      <td className="p-4">
-                        <span
-                          className={cn(
-                            "inline-flex items-center rounded-full px-2 py-1 text-xs font-medium",
-                            student.status === "نشط"
-                              ? "bg-green-50 text-green-700"
-                              : "bg-gray-50 text-gray-700"
-                          )}
-                        >
-                          {student.status}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {filteredStudents.length === 0 && (
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex gap-4">
+                    <Skeleton className="h-12 flex-1" />
+                    <Skeleton className="h-12 flex-1" />
+                    <Skeleton className="h-12 flex-1" />
+                    <Skeleton className="h-12 w-24" />
+                  </div>
+                ))}
+              </div>
+            ) : error ? (
               <div className="py-12 text-center">
-                <Users className="mx-auto h-12 w-12 text-muted-foreground" />
-                <p className="mt-4 text-sm text-muted-foreground">
-                  لم يتم العثور على طلاب
+                <p className="text-sm text-destructive">
+                  حدث خطأ أثناء تحميل الطلاب. يرجى المحاولة مرة أخرى.
                 </p>
               </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">
+                          الاسم
+                        </th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">
+                          البريد الإلكتروني
+                        </th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">
+                          رقم الهاتف
+                        </th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">
+                          الصف
+                        </th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">
+                          الإجراءات
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data?.items.map((student) => (
+                        <tr
+                          key={student.id}
+                          className="border-b transition-colors hover:bg-accent/50"
+                        >
+                          <td className="p-4">
+                            <div className="font-medium">
+                              {student.fullName}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Mail className="h-3 w-3" />
+                              {student.email || "لا يوجد"}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Phone className="h-3 w-3" />
+                              {student.mobileNumber || "لا يوجد"}
+                            </div>
+                          </td>
+                          <td className="p-4 text-sm">
+                            {student.className || "-"}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(student.id)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  handleDelete(student.id, student.className)
+                                }
+                                disabled={deleteMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {data?.items.length === 0 && (
+                  <div className="py-12 text-center">
+                    <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <p className="mt-4 text-sm text-muted-foreground">
+                      {debouncedSearch
+                        ? "لم يتم العثور على طلاب بهذا البحث"
+                        : "لا يوجد طلاب مسجلين"}
+                    </p>
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-6 flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      الصفحة {pageNumber} من {totalPages}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
+                        disabled={!data?.hasPreviouspage || isLoading}
+                      >
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                        السابق
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setPageNumber((p) => Math.min(totalPages, p + 1))
+                        }
+                        disabled={!data?.hasNextPage || isLoading}
+                      >
+                        التالي
+                        <ChevronLeft className="h-4 w-4 mr-2" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialogs */}
+      <StudentFormDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        defaultClassId={selectedClassId}
+        onSuccess={handleAddSuccess}
+      />
+
+      {editingStudent && (
+        <StudentFormDialog
+          open={!!editingStudent}
+          onOpenChange={(open) => !open && setEditingStudent(null)}
+          defaultClassId={selectedClassId}
+          studentId={editingStudent}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
+      {deletingStudent && (
+        <DeleteStudentDialog
+          open={!!deletingStudent}
+          onOpenChange={(open) => !open && setDeletingStudent(null)}
+          studentId={deletingStudent.id}
+          classId={deletingStudent.classId}
+          studentData={data?.items.find((s) => s.id === deletingStudent.id)}
+          onSuccess={handleDeleteSuccess}
+        />
+      )}
+
+      <ImportStudentsDialog
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+      />
+
+      <ExportStudentsDialog
+        open={isExportDialogOpen}
+        onOpenChange={setIsExportDialogOpen}
+      />
     </MainLayout>
   );
 }

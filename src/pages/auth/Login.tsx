@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   LogIn,
@@ -9,6 +9,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,13 +36,29 @@ export default function Login() {
   const loginMutation = useLogin();
   const error = loginMutation.error;
 
+  // Check for unauthorized redirect and show toast
+  useEffect(() => {
+    const showUnauthorizedToast = sessionStorage.getItem("showUnauthorizedToast");
+    if (showUnauthorizedToast === "true") {
+      sessionStorage.removeItem("showUnauthorizedToast");
+      toast.error("انتهت صلاحية الجلسة", {
+        description: "يرجى تسجيل الدخول مرة أخرى للمتابعة",
+      });
+    }
+  }, []);
+
   // Get field-specific errors
   const emailErrors = getFieldErrors(error, "email");
   const passwordErrors = getFieldErrors(error, "password");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await loginMutation.mutateAsync(formData);
+    try {
+      await loginMutation.mutateAsync(formData);
+    } catch (error) {
+      // Error is handled by the mutation's onError callback
+      // This catch prevents the form from submitting and causing a page reload
+    }
   };
 
   return (

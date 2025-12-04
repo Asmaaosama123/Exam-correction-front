@@ -5,6 +5,7 @@ import {
   Download,
   Calendar,
   Filter,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { ExportStudentsDialog } from "@/components/students/ExportStudentsDialog";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const reportData = [
@@ -58,6 +61,8 @@ const chartData = [
 ];
 
 export default function Reports() {
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-6">
@@ -70,6 +75,13 @@ export default function Reports() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsExportDialogOpen(true)}
+            >
+              <Users className="h-4 w-4 ml-2" />
+              تصدير الطلاب
+            </Button>
             <Button variant="outline">
               <Filter className="h-4 w-4 ml-2" />
               تصفية
@@ -92,9 +104,7 @@ export default function Reports() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{reportData.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                تقرير متاح
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">تقرير متاح</p>
             </CardContent>
           </Card>
           <Card>
@@ -115,9 +125,7 @@ export default function Reports() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                معدل النجاح
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">معدل النجاح</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
@@ -190,7 +198,10 @@ export default function Reports() {
           <CardContent>
             <div className="flex items-end justify-between gap-2 h-64">
               {chartData.map((item, index) => (
-                <div key={index} className="flex flex-1 flex-col items-center gap-2">
+                <div
+                  key={index}
+                  className="flex flex-1 flex-col items-center gap-2"
+                >
                   <div className="relative flex w-full flex-col items-center justify-end">
                     <div
                       className={cn(
@@ -211,8 +222,29 @@ export default function Reports() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Last Activity Section - Commented out for future implementation */}
+        {/* 
+        <Card>
+          <CardHeader>
+            <CardTitle>النشاط الأخير</CardTitle>
+            <CardDescription>
+              آخر التقارير التي تم إنشاؤها أو تحميلها
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+            </div>
+          </CardContent>
+        </Card>
+        */}
       </div>
+
+      {/* Export Students Dialog */}
+      <ExportStudentsDialog
+        open={isExportDialogOpen}
+        onOpenChange={setIsExportDialogOpen}
+      />
     </MainLayout>
   );
 }
-

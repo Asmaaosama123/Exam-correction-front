@@ -7,6 +7,7 @@ import ResetPassword from "@/pages/auth/ResetPassword";
 import VerifyEmail from "@/pages/auth/VerifyEmail";
 import Dashboard from "@/pages/Dashboard";
 import Students from "@/pages/Students";
+import Classes from "@/pages/Classes";
 import Reports from "@/pages/Reports";
 import { Routes, Route } from "react-router-dom";
 import Privacy from "@/pages/terms/Privacy";
@@ -51,6 +52,14 @@ const routes = [
     element: (
       <AuthGuard>
         <Students />
+      </AuthGuard>
+    ),
+  },
+  {
+    path: "/classes",
+    element: (
+      <AuthGuard>
+        <Classes />
       </AuthGuard>
     ),
   },

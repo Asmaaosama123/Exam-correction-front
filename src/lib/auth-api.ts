@@ -31,8 +31,13 @@ export const authApi = {
   /**
    * Verify email with code
    */
-  verifyEmail: async (data: VerifyEmailRequest): Promise<VerifyEmailResponse> => {
-    const response = await api.post<VerifyEmailResponse>("/Auth/confirm-email", data);
+  verifyEmail: async (
+    data: VerifyEmailRequest
+  ): Promise<VerifyEmailResponse> => {
+    const response = await api.post<VerifyEmailResponse>(
+      "/Auth/confirm-email",
+      data
+    );
     return response.data;
   },
 
@@ -47,17 +52,34 @@ export const authApi = {
   /**
    * Request password reset
    */
-  forgetPassword: async (data: ForgetPasswordRequest): Promise<{ success: boolean; message?: string }> => {
-    const response = await api.post<{ success: boolean; message?: string }>("/Auth/forget-password", data);
+  forgetPassword: async (
+    data: ForgetPasswordRequest
+  ): Promise<{ success: boolean; message?: string }> => {
+    const response = await api.post<{ success: boolean; message?: string }>(
+      "/Auth/forget-password",
+      data
+    );
     return response.data;
   },
 
   /**
    * Reset password with code
    */
-  resetPassword: async (data: ResetPasswordRequest): Promise<{ success: boolean; message?: string }> => {
-    const response = await api.post<{ success: boolean; message?: string }>("/Auth/reset-password", data);
+  resetPassword: async (
+    data: ResetPasswordRequest
+  ): Promise<{ success: boolean; message?: string }> => {
+    const response = await api.post<{ success: boolean; message?: string }>(
+      "/Auth/reset-password",
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Get current user info (validate session)
+   */
+  getMe: async (): Promise<AuthResponse> => {
+    const response = await api.get<AuthResponse>("/api/profile/current");
     return response.data;
   },
 };
-

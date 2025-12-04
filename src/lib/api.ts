@@ -4,6 +4,7 @@ import axios, {
   type AxiosInstance,
 } from "axios";
 import type { ApiErrorResponse } from "@/types/auth";
+import { refreshAccessToken } from "./token-refresh";
 
 // API Base URL - should be moved to environment variables
 const API_BASE_URL =
@@ -37,13 +38,131 @@ api.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error: AxiosError<ApiErrorResponse>) => {
+  async (error: AxiosError<ApiErrorResponse>) => {
     // Handle network errors
     if (!error.response) {
       return Promise.reject({
         message: "خطأ في الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.",
         status: 0,
       });
+    }
+
+    // Handle 401 Unauthorized - Attempt token refresh before logout
+    if (error.response.status === 401) {
+      const originalRequest = error.config as InternalAxiosRequestConfig & {
+        _retry?: boolean;
+      };
+
+      // Skip refresh for login and refresh-token endpoints (to prevent loops)
+      // Login endpoint is POST /Auth (exact match, no sub-path)
+      const requestUrl = originalRequest.url || "";
+      const isLoginEndpoint =
+        (requestUrl.endsWith("/Auth") || requestUrl.endsWith("/auth")) &&
+        originalRequest.method?.toLowerCase() === "post";
+      const isRefreshEndpoint =
+        requestUrl.includes("/Auth/refresh-token") ||
+        requestUrl.includes("/auth/refresh-token");
+
+      // Skip refresh for login endpoint - user should re-authenticate
+      if (isLoginEndpoint) {
+        return Promise.reject({
+          ...error.response.data,
+          status: 401,
+        });
+      }
+
+      // Check if we have a refresh token available
+      const refreshToken = localStorage.getItem("auth_refresh_token");
+      const hasRefreshToken = !!refreshToken;
+
+      // Attempt token refresh if:
+      // 1. Not already retried
+      // 2. Not the refresh endpoint itself
+      // 3. Not the login endpoint
+      // 4. We have a refresh token available
+      if (
+        !originalRequest._retry &&
+        !isRefreshEndpoint &&
+        !isLoginEndpoint &&
+        hasRefreshToken
+      ) {
+        originalRequest._retry = true;
+
+        try {
+          // Attempt to refresh the token
+          const newToken = await refreshAccessToken();
+
+          if (newToken) {
+            // Update the authorization header with new token
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${newToken}`;
+            }
+
+            // Retry the original request with new token
+            return api(originalRequest);
+          } else {
+            // Refresh failed - tokens are invalid or expired
+            // Clear authentication data
+            localStorage.removeItem("auth_token");
+            localStorage.removeItem("auth_refresh_token");
+
+            // Store flag to show toast after redirect
+            const currentPath = window.location.pathname;
+            if (currentPath !== "/login" && currentPath !== "/register") {
+              sessionStorage.setItem("returnUrl", currentPath);
+              sessionStorage.setItem("showUnauthorizedToast", "true");
+            }
+
+            // Redirect to login page
+            window.location.href = "/login";
+
+            return Promise.reject({
+              ...error.response.data,
+              status: 401,
+            });
+          }
+        } catch {
+          // Refresh failed with an error - tokens are invalid
+          // Clear authentication data
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("auth_refresh_token");
+
+          // Store flag to show toast after redirect
+          const currentPath = window.location.pathname;
+          if (currentPath !== "/login" && currentPath !== "/register") {
+            sessionStorage.setItem("returnUrl", currentPath);
+            sessionStorage.setItem("showUnauthorizedToast", "true");
+          }
+
+          // Redirect to login page
+          window.location.href = "/login";
+
+          return Promise.reject({
+            ...error.response.data,
+            status: 401,
+          });
+        }
+      } else {
+        // No refresh token available or already retried - proceed with logout
+        // Clear authentication data
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("auth_refresh_token");
+
+        // Store flag to show toast after redirect
+        const currentPath = window.location.pathname;
+        if (currentPath !== "/login" && currentPath !== "/register") {
+          sessionStorage.setItem("returnUrl", currentPath);
+          sessionStorage.setItem("showUnauthorizedToast", "true");
+        }
+
+        // Redirect to login page
+        window.location.href = "/login";
+
+        return Promise.reject({
+          ...error.response.data,
+          status: 401,
+        });
+      }
     }
 
     // Handle API errors
@@ -182,6 +301,15 @@ function mapErrorCodeToField(errorCode: string): string | null {
   if (code.includes("secretkey") || code.includes("secret_key")) {
     return "secretKey";
   }
+  if (code.includes("mobilenumber") || code.includes("mobile_number")) {
+    return "mobileNumber";
+  }
+  if (code.includes("classid") || code.includes("class_id")) {
+    return "classId";
+  }
+  if (code.includes("file")) {
+    return "file";
+  }
 
   return null;
 }
@@ -199,9 +327,17 @@ export const getFieldErrors = (error: unknown, fieldName: string): string[] => {
       }
 
       // Try camelCase conversion (e.g., "SecretKey" -> "secretKey")
-      const camelCaseFieldName = fieldName.charAt(0).toLowerCase() + fieldName.slice(1);
+      const camelCaseFieldName =
+        fieldName.charAt(0).toLowerCase() + fieldName.slice(1);
       if (apiError.errors[camelCaseFieldName]) {
         return apiError.errors[camelCaseFieldName];
+      }
+
+      // Try PascalCase conversion (e.g., "lastName" -> "LastName")
+      const pascalCaseFieldName =
+        fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+      if (apiError.errors[pascalCaseFieldName]) {
+        return apiError.errors[pascalCaseFieldName];
       }
 
       // Try case-insensitive match

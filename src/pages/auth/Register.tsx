@@ -14,14 +14,14 @@ import {
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { useRegister } from "@/hooks/use-auth";
 import { getFieldErrors } from "@/lib/api";
+import { transformFullNameToSplit } from "@/lib/name-utils";
 import Logo from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    fullName: "",
     email: "",
     password: "",
     secretKey: "",
@@ -30,16 +30,19 @@ export default function Register() {
   const registerMutation = useRegister();
   const error = registerMutation.error;
 
-  // Get field-specific errors
+  // Get field-specific errors (map firstName/lastName errors to fullName)
   const firstNameErrors = getFieldErrors(error, "firstName");
   const lastNameErrors = getFieldErrors(error, "lastName");
+  const fullNameErrors = [...firstNameErrors, ...lastNameErrors];
   const emailErrors = getFieldErrors(error, "email");
   const passwordErrors = getFieldErrors(error, "password");
   const secretKeyErrors = getFieldErrors(error, "secretKey");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await registerMutation.mutateAsync(formData);
+    // Transform fullName to firstName/lastName before sending
+    const transformedData = transformFullNameToSplit(formData);
+    await registerMutation.mutateAsync(transformedData);
   };
 
   return (
@@ -61,73 +64,37 @@ export default function Register() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* First Name and Last Name Fields - Side by Side */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {/* First Name Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">الاسم الأول</Label>
-                    <div className="relative">
-                      <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        id="firstName"
-                        type="text"
-                        placeholder="أدخل اسمك الأول"
-                        value={formData.firstName}
-                        onChange={(e) =>
-                          setFormData({ ...formData, firstName: e.target.value })
-                        }
-                        className={cn(
-                          "pr-10",
-                          firstNameErrors.length > 0 && "border-destructive"
-                        )}
-                        required
-                        disabled={registerMutation.isPending}
-                      />
-                    </div>
-                    {firstNameErrors.length > 0 && (
-                      <div className="flex items-start gap-2 text-sm text-destructive">
-                        <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                        <div className="flex flex-col gap-1">
-                          {firstNameErrors.map((err, idx) => (
-                            <span key={idx}>{err}</span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                {/* Full Name Field */}
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">الاسم الكامل</Label>
+                  <div className="relative">
+                    <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="fullName"
+                      type="text"
+                      placeholder="أدخل اسمك الكامل"
+                      value={formData.fullName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, fullName: e.target.value })
+                      }
+                      className={cn(
+                        "pr-10",
+                        fullNameErrors.length > 0 && "border-destructive"
+                      )}
+                      required
+                      disabled={registerMutation.isPending}
+                    />
                   </div>
-
-                  {/* Last Name Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">اسم العائلة</Label>
-                    <div className="relative">
-                      <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        id="lastName"
-                        type="text"
-                        placeholder="أدخل اسم العائلة"
-                        value={formData.lastName}
-                        onChange={(e) =>
-                          setFormData({ ...formData, lastName: e.target.value })
-                        }
-                        className={cn(
-                          "pr-10",
-                          lastNameErrors.length > 0 && "border-destructive"
-                        )}
-                        required
-                        disabled={registerMutation.isPending}
-                      />
-                    </div>
-                    {lastNameErrors.length > 0 && (
-                      <div className="flex items-start gap-2 text-sm text-destructive">
-                        <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                        <div className="flex flex-col gap-1">
-                          {lastNameErrors.map((err, idx) => (
-                            <span key={idx}>{err}</span>
-                          ))}
-                        </div>
+                  {fullNameErrors.length > 0 && (
+                    <div className="flex items-start gap-2 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                      <div className="flex flex-col gap-1">
+                        {fullNameErrors.map((err, idx) => (
+                          <span key={idx}>{err}</span>
+                        ))}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Email Field */}

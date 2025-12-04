@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   LayoutDashboard,
   Users,
+  GraduationCap,
   FileCheck,
   FileText,
   CheckSquare,
@@ -27,6 +28,11 @@ const menuItems = [
     title: "لوحة التحكم",
     icon: LayoutDashboard,
     href: "/dashboard",
+  },
+  {
+    title: "الفصول",
+    icon: GraduationCap,
+    href: "/classes",
   },
   {
     title: "الطلاب",

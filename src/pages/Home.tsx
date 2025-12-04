@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/hooks/use-auth";
+import { joinFullName } from "@/lib/name-utils";
 import Logo from "@/components/ui/Logo";
 
 const features = [
@@ -59,7 +60,7 @@ export default function Home() {
           </div>
           <h1 className="mt-6 text-4xl font-bold text-foreground sm:text-5xl">
             {isAuthenticated
-              ? `مرحباً ${user.firstName || ""} في نظام إدارة الامتحانات`
+              ? `مرحباً ${joinFullName(user.firstName, user.lastName) || user.email || ""} في نظام إدارة الامتحانات`
               : "مرحباً بك في نظام إدارة الامتحانات"}
           </h1>
           <p className="mt-4 text-lg text-muted-foreground sm:text-xl">

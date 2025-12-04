@@ -6,11 +6,9 @@ import axios, {
 import type { ApiErrorResponse } from "@/types/auth";
 import { refreshAccessToken } from "./token-refresh";
 
-// API Base URL - should be moved to environment variables
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "https://localhost:7210";
 
-// Create axios instance
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -19,7 +17,6 @@ export const api: AxiosInstance = axios.create({
   timeout: 30000,
 });
 
-// Request interceptor - Add auth token to requests
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("auth_token");

@@ -10,7 +10,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useExportStudents } from "@/hooks/use-students";
 import { useGetClasses } from "@/hooks/use-classes";
 import { cn } from "@/lib/utils";
@@ -25,8 +31,7 @@ export function ExportStudentsDialog({
   open,
   onOpenChange,
 }: ExportStudentsDialogProps) {
-  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
-  const [exportAll, setExportAll] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState<string>("all");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("excel");
   const { data: classesData, isLoading: isLoadingClasses } = useGetClasses();
   const exportMutation = useExportStudents();
@@ -34,36 +39,18 @@ export function ExportStudentsDialog({
   // Reset state when dialog opens/closes
   useEffect(() => {
     if (!open) {
-      setSelectedClassIds([]);
-      setExportAll(false);
+      setSelectedClassId("all");
       setExportFormat("excel");
     }
   }, [open]);
 
-  const handleClassToggle = (classId: string) => {
-    if (exportAll) {
-      // If "all" is selected, deselect it first
-      setExportAll(false);
-    }
-    setSelectedClassIds((prev) =>
-      prev.includes(classId)
-        ? prev.filter((id) => id !== classId)
-        : [...prev, classId]
-    );
-  };
-
-  const handleExportAllToggle = (checked: boolean) => {
-    setExportAll(checked);
-    if (checked) {
-      setSelectedClassIds([]);
-    }
-  };
-
   const handleSubmit = async () => {
-    // If exportAll is true, use all class IDs
-    const classIds = exportAll && classesData
-      ? classesData.map((c) => c.id)
-      : selectedClassIds;
+    const classIds =
+      selectedClassId === "all" && classesData
+        ? classesData.map((c) => c.id)
+        : selectedClassId === "all"
+        ? []
+        : [selectedClassId];
 
     await exportMutation.mutateAsync(
       { classIds, format: exportFormat },
@@ -75,7 +62,7 @@ export function ExportStudentsDialog({
     );
   };
 
-  const canSubmit = exportAll || selectedClassIds.length > 0;
+  const canSubmit = selectedClassId !== "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -90,61 +77,30 @@ export function ExportStudentsDialog({
         <div className="space-y-6 py-4">
           {/* Class Selection */}
           <div className="space-y-3">
-            <Label>اختر الفصول</Label>
-            
-            {/* Export All Option */}
-            <div className="flex items-center space-x-2 space-x-reverse rounded-lg border p-3">
-              <Checkbox
-                id="export-all"
-                checked={exportAll}
-                onCheckedChange={handleExportAllToggle}
-                disabled={isLoadingClasses || exportMutation.isPending}
-              />
-              <label
-                htmlFor="export-all"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-              >
-                تصدير جميع الطلاب من جميع الفصول
-              </label>
-            </div>
-
-            {/* Individual Classes */}
-            {!exportAll && (
-              <div className="max-h-60 overflow-y-auto space-y-2 rounded-lg border p-3">
+            <Label>اختر الفصل</Label>
+            <Select
+              value={selectedClassId}
+              onValueChange={setSelectedClassId}
+              disabled={isLoadingClasses || exportMutation.isPending}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="اختر الفصل" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">جميع الفصول</SelectItem>
                 {isLoadingClasses ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    <span className="mr-2 text-sm text-muted-foreground">
-                      جاري تحميل الفصول...
-                    </span>
-                  </div>
-                ) : classesData && classesData.length > 0 ? (
-                  classesData.map((classItem) => (
-                    <div
-                      key={classItem.id}
-                      className="flex items-center space-x-2 space-x-reverse"
-                    >
-                      <Checkbox
-                        id={`class-${classItem.id}`}
-                        checked={selectedClassIds.includes(classItem.id)}
-                        onCheckedChange={() => handleClassToggle(classItem.id)}
-                        disabled={exportMutation.isPending}
-                      />
-                      <label
-                        htmlFor={`class-${classItem.id}`}
-                        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                      >
-                        {classItem.name} ({classItem.numberOfStudents} طالب)
-                      </label>
-                    </div>
-                  ))
+                  <SelectItem value="loading" disabled>
+                    جاري التحميل...
+                  </SelectItem>
                 ) : (
-                  <div className="py-4 text-center text-sm text-muted-foreground">
-                    لا توجد فصول متاحة
-                  </div>
+                  classesData?.map((classItem) => (
+                    <SelectItem key={classItem.id} value={classItem.id}>
+                      {classItem.name} ({classItem.numberOfStudents} طالب)
+                    </SelectItem>
+                  ))
                 )}
-              </div>
-            )}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Export Format Selection */}

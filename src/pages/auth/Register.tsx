@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { UserPlus, Mail, Lock, Eye, EyeOff, User, Loader2, AlertCircle, Key } from "lucide-react";
+import {
+  UserPlus,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  User,
+  Loader2,
+  AlertCircle,
+  Key,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +30,7 @@ import { cn } from "@/lib/utils";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -183,7 +194,7 @@ export default function Register() {
                     <Key className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="secretKey"
-                      type="text"
+                      type={showSecret ? "text" : "password"}
                       placeholder="أدخل المفتاح السري"
                       value={formData.secretKey}
                       onChange={(e) =>
@@ -196,6 +207,18 @@ export default function Register() {
                       required
                       disabled={registerMutation.isPending}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      disabled={registerMutation.isPending}
+                    >
+                      {showSecret ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                   {secretKeyErrors.length > 0 && (
                     <div className="flex items-start gap-2 text-sm text-destructive">

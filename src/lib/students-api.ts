@@ -15,10 +15,9 @@ import type {
 
 // Students API endpoints
 export const studentsApi = {
-  /**
-   * Get all students with pagination and filtering
-   */
-  getStudents: async (params: GetStudentsRequest): Promise<GetStudentsResponse> => {
+  getStudents: async (
+    params: GetStudentsRequest
+  ): Promise<GetStudentsResponse> => {
     const queryParams = new URLSearchParams({
       pageNumber: String(params.pageNumber || 1),
       pageSize: String(params.pageSize || 10),
@@ -38,10 +37,9 @@ export const studentsApi = {
     return response.data;
   },
 
-  /**
-   * Get a single student by ID
-   */
-  getStudent: async (params: GetStudentRequest): Promise<GetStudentResponse> => {
+  getStudent: async (
+    params: GetStudentRequest
+  ): Promise<GetStudentResponse> => {
     const queryParams = new URLSearchParams({
       classId: params.classId,
     });
@@ -52,9 +50,6 @@ export const studentsApi = {
     return response.data;
   },
 
-  /**
-   * Add a new student
-   */
   addStudent: async (
     classId: string,
     data: AddStudentRequest
@@ -70,10 +65,6 @@ export const studentsApi = {
     return response.data;
   },
 
-  /**
-   * Update an existing student
-   * Note: classId and isDisabled are now included in the request body
-   */
   updateStudent: async (
     studentId: string,
     data: UpdateStudentRequest
@@ -85,9 +76,6 @@ export const studentsApi = {
     return response.data;
   },
 
-  /**
-   * Delete a student
-   */
   deleteStudent: async (studentId: string): Promise<DeleteStudentResponse> => {
     const response = await api.delete<DeleteStudentResponse>(
       `/api/students/${studentId}`
@@ -96,9 +84,6 @@ export const studentsApi = {
     return response.data || { success: true };
   },
 
-  /**
-   * Import students from Excel file
-   */
   importStudents: async (file: File): Promise<ImportStudentsResponse> => {
     const formData = new FormData();
     formData.append("file", file);
@@ -115,12 +100,9 @@ export const studentsApi = {
     return response.data;
   },
 
-  /**
-   * Export students to PDF
-   * Uses GET request with query parameters: /api/Reports/report-students-pdf?classIds={id1}&classIds={id2}
-   * If classIds array is empty, calls endpoint without query params (exports all students)
-   */
-  exportStudentsToPdf: async (data: ExportStudentsRequest): Promise<{ blob: Blob; filename: string }> => {
+  exportStudentsToPdf: async (
+    data: ExportStudentsRequest
+  ): Promise<{ blob: Blob; filename: string }> => {
     // Build query string with multiple classIds parameters
     const queryParams = new URLSearchParams();
     if (data.classIds.length > 0) {
@@ -129,10 +111,10 @@ export const studentsApi = {
       });
     }
 
-    // Build URL with or without query parameters
-    const url = data.classIds.length > 0
-      ? `/api/Reports/report-students-pdf?${queryParams.toString()}`
-      : "/api/Reports/report-students-pdf";
+    const url =
+      data.classIds.length > 0
+        ? `/api/Reports/report-students-pdf?${queryParams.toString()}`
+        : "/api/Reports/report-students-pdf";
 
     const response = await api.get<Blob>(url, {
       responseType: "blob",
@@ -140,10 +122,14 @@ export const studentsApi = {
 
     // Extract filename from Content-Disposition header if available
     const contentDisposition = response.headers["content-disposition"];
-    let filename = `students_export_${new Date().toISOString().split("T")[0]}.pdf`;
-    
+    let filename = `students_export_${
+      new Date().toISOString().split("T")[0]
+    }.pdf`;
+
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      const filenameMatch = contentDisposition.match(
+        /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+      );
       if (filenameMatch && filenameMatch[1]) {
         filename = filenameMatch[1].replace(/['"]/g, "");
       }
@@ -152,12 +138,9 @@ export const studentsApi = {
     return { blob: response.data, filename };
   },
 
-  /**
-   * Export students to Excel
-   * Uses GET request with query parameters: /api/Reports/report-students-excel?classIds={id1}&classIds={id2}
-   * If classIds array is empty, calls endpoint without query params (exports all students)
-   */
-  exportStudentsToExcel: async (data: ExportStudentsRequest): Promise<{ blob: Blob; filename: string }> => {
+  exportStudentsToExcel: async (
+    data: ExportStudentsRequest
+  ): Promise<{ blob: Blob; filename: string }> => {
     // Build query string with multiple classIds parameters
     const queryParams = new URLSearchParams();
     if (data.classIds.length > 0) {
@@ -167,9 +150,10 @@ export const studentsApi = {
     }
 
     // Build URL with or without query parameters
-    const url = data.classIds.length > 0
-      ? `/api/Reports/report-students-excel?${queryParams.toString()}`
-      : "/api/Reports/report-students-excel";
+    const url =
+      data.classIds.length > 0
+        ? `/api/Reports/report-students-excel?${queryParams.toString()}`
+        : "/api/Reports/report-students-excel";
 
     const response = await api.get<Blob>(url, {
       responseType: "blob",
@@ -177,10 +161,14 @@ export const studentsApi = {
 
     // Extract filename from Content-Disposition header if available
     const contentDisposition = response.headers["content-disposition"];
-    let filename = `students_export_${new Date().toISOString().split("T")[0]}.xlsx`;
-    
+    let filename = `students_export_${
+      new Date().toISOString().split("T")[0]
+    }.xlsx`;
+
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      const filenameMatch = contentDisposition.match(
+        /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+      );
       if (filenameMatch && filenameMatch[1]) {
         filename = filenameMatch[1].replace(/['"]/g, "");
       }
@@ -189,4 +177,3 @@ export const studentsApi = {
     return { blob: response.data, filename };
   },
 };
-

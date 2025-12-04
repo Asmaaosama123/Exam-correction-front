@@ -5,6 +5,20 @@ import { getErrorMessage, getAllFieldErrors } from "@/lib/api";
 import type { AddClassRequest, UpdateClassRequest } from "@/types/classes";
 
 /**
+ * Helper function to download a blob file
+ */
+function downloadBlob(blob: Blob, filename: string) {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+/**
  * Hook to get all classes
  */
 export function useGetClasses() {
@@ -114,6 +128,36 @@ export function useDeleteClass() {
     },
     onError: (error) => {
       toast.error("فشل حذف الفصل", {
+        description: getErrorMessage(error),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to export classes to PDF or Excel
+ */
+export function useExportClasses() {
+  return useMutation({
+    mutationFn: async (format: "pdf" | "excel") => {
+      if (format === "pdf") {
+        const { blob, filename } = await classesApi.exportClassesToPdf();
+        downloadBlob(blob, filename);
+        return blob;
+      } else {
+        const { blob, filename } = await classesApi.exportClassesToExcel();
+        downloadBlob(blob, filename);
+        return blob;
+      }
+    },
+    onSuccess: (_, format) => {
+      const formatName = format === "pdf" ? "PDF" : "Excel";
+      toast.success("تم التصدير بنجاح", {
+        description: `تم تصدير بيانات الفصول بصيغة ${formatName}`,
+      });
+    },
+    onError: (error) => {
+      toast.error("فشل التصدير", {
         description: getErrorMessage(error),
       });
     },

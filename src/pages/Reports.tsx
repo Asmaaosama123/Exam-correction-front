@@ -17,8 +17,9 @@ import {
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useState } from "react";
 import { ExportStudentsDialog } from "@/components/students/ExportStudentsDialog";
+import { ExportClassesDialog } from "@/components/classes/ExportClassesDialog";
 import { useExportStudents } from "@/hooks/use-students";
-import { useGetClasses } from "@/hooks/use-classes";
+import { useGetClasses, useExportClasses } from "@/hooks/use-classes";
 
 const trackDownloads = (type: string) => {
   const downloads = localStorage.getItem("downloads");
@@ -65,7 +66,8 @@ const reportData = [
 export default function Reports() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
   const { data: classesData } = useGetClasses();
-  const exportMutation = useExportStudents();
+  const exportStudentsMutation = useExportStudents();
+  const exportClassesMutation = useExportClasses();
 
   // Load download counts from localStorage
   const getDownloadCount = (reportTitle: string) => {
@@ -82,11 +84,12 @@ export default function Reports() {
   };
 
   const handleDownload = async (reportTitle: string) => {
-    // For "تصدير الطلاب | تقارير الطلاب", export all students as Excel
+    // For "تصدير الطلاب | تقارير الطلاب", open dialog to select format
     if (reportTitle === "تصدير الطلاب | تقارير الطلاب") {
-      const classIds = classesData ? classesData.map((c) => c.id) : [];
-      await exportMutation.mutateAsync({ classIds, format: "excel" });
-      trackDownloads(reportTitle);
+      setOpenDialog(reportTitle);
+    } else if (reportTitle === "تصدير الفصول") {
+      // For "تصدير الفصول", open dialog to select format
+      setOpenDialog(reportTitle);
     } else {
       // For other reports, open the dialog
       setOpenDialog(reportTitle);
@@ -112,6 +115,10 @@ export default function Reports() {
             const Icon = report.icon;
             const isStudentsReport =
               report.title === "تصدير الطلاب | تقارير الطلاب";
+            const isClassesReport = report.title === "تصدير الفصول";
+            const isExporting =
+              (exportStudentsMutation.isPending && isStudentsReport) ||
+              (exportClassesMutation.isPending && isClassesReport);
             return (
               <Card
                 key={report.title}
@@ -130,9 +137,9 @@ export default function Reports() {
                         e.stopPropagation();
                         handleDownload(report.title);
                       }}
-                      disabled={exportMutation.isPending && isStudentsReport}
+                      disabled={isExporting}
                     >
-                      {exportMutation.isPending && isStudentsReport ? (
+                      {isExporting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Download className="h-4 w-4" />
@@ -156,9 +163,9 @@ export default function Reports() {
                       e.stopPropagation();
                       handleDownload(report.title);
                     }}
-                    disabled={exportMutation.isPending && isStudentsReport}
+                    disabled={isExporting}
                   >
-                    {exportMutation.isPending && isStudentsReport ? (
+                    {isExporting ? (
                       <>
                         <Loader2 className="h-4 w-4 ml-2 animate-spin" />
                         جاري التحميل...
@@ -180,6 +187,16 @@ export default function Reports() {
         {openDialog === "تصدير الطلاب | تقارير الطلاب" && (
           <ExportStudentsDialog
             open={openDialog === "تصدير الطلاب | تقارير الطلاب"}
+            onOpenChange={(open) => {
+              if (!open) setOpenDialog(null);
+            }}
+          />
+        )}
+
+        {/* Export Classes Dialog */}
+        {openDialog === "تصدير الفصول" && (
+          <ExportClassesDialog
+            open={openDialog === "تصدير الفصول"}
             onOpenChange={(open) => {
               if (!open) setOpenDialog(null);
             }}

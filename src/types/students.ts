@@ -11,6 +11,7 @@ export interface Student {
   email: string | null;
   mobileNumber: string | null;
   className?: string;
+  isDisabled?: boolean;
 }
 
 // ==================== Request Types ====================
@@ -37,6 +38,8 @@ export interface UpdateStudentRequest {
   fullName: string;
   email?: string | null;
   mobileNumber?: string | null;
+  classId: string;
+  isDisabled: boolean;
 }
 
 // ==================== Response Types ====================

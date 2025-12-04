@@ -66,13 +66,14 @@ export function useAddStudent(classId?: string) {
 
 /**
  * Hook to update an existing student
+ * Note: classId and isDisabled are now included in the data object
  */
 export function useUpdateStudent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ studentId, classId, data }: { studentId: string; classId: string; data: UpdateStudentRequest }) =>
-      studentsApi.updateStudent(studentId, classId, data),
+    mutationFn: ({ studentId, data }: { studentId: string; data: UpdateStudentRequest }) =>
+      studentsApi.updateStudent(studentId, data),
     onSuccess: (response, variables) => {
       // Invalidate specific student and list queries
       queryClient.invalidateQueries({ queryKey: ["students", variables.studentId] });

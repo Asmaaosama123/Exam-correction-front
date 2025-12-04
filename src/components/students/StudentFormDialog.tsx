@@ -3,6 +3,7 @@ import { User, Mail, Phone, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { AddStudentRequest } from "@/types/students";
+import type { AddStudentRequest, UpdateStudentRequest } from "@/types/students";
 
 interface StudentFormDialogProps {
   open: boolean;
@@ -51,10 +52,12 @@ export function StudentFormDialog({
     fullName: string;
     email: string;
     mobileNumber: string;
+    isDisabled: boolean;
   }>({
     fullName: "",
     email: "",
     mobileNumber: "",
+    isDisabled: false,
   });
   const hasInitializedClass = useRef(false);
   const hasInitializedForm = useRef(false);
@@ -116,6 +119,7 @@ export function StudentFormDialog({
             fullName: studentData.fullName,
             email: studentData.email || "",
             mobileNumber: studentData.mobileNumber || "",
+            isDisabled: studentData.isDisabled ?? false,
           });
         } else if (!isEditMode) {
           hasInitializedForm.current = true;
@@ -123,6 +127,7 @@ export function StudentFormDialog({
             fullName: "",
             email: "",
             mobileNumber: "",
+            isDisabled: false,
           });
         }
       });
@@ -142,24 +147,36 @@ export function StudentFormDialog({
   const emailErrors = getFieldErrors(error, "email");
   const mobileNumberErrors = getFieldErrors(error, "mobileNumber");
   const classIdErrors = getFieldErrors(error, "classId");
+  const isDisabledErrors = getFieldErrors(error, "isDisabled");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedClassId) {
-      return; // Don't submit if no class selected
+      return;
     }
 
-    // Prepare data with null values for empty optional fields
-    const submitData: AddStudentRequest = {
-      fullName: formData.fullName,
-      email: formData.email && formData.email.trim() !== "" ? formData.email.trim() : null,
-      mobileNumber: formData.mobileNumber && formData.mobileNumber.trim() !== "" ? formData.mobileNumber.trim() : null,
-    };
-
     if (isEditMode && studentId) {
+      // For update, include classId and isDisabled in the request body
+      const updateData: UpdateStudentRequest = {
+        fullName: formData.fullName,
+        email:
+          formData.email && formData.email.trim() !== ""
+            ? formData.email.trim()
+            : null,
+        mobileNumber:
+          formData.mobileNumber && formData.mobileNumber.trim() !== ""
+            ? formData.mobileNumber.trim()
+            : null,
+        classId: selectedClassId,
+        isDisabled: formData.isDisabled,
+      };
+
       await updateMutation.mutateAsync(
-        { studentId, classId: selectedClassId, data: submitData },
+        {
+          studentId,
+          data: updateData,
+        },
         {
           onSuccess: () => {
             onSuccess?.();
@@ -168,8 +185,24 @@ export function StudentFormDialog({
         }
       );
     } else {
+      // For add, use AddStudentRequest (no classId or isDisabled in body)
+      const addData: AddStudentRequest = {
+        fullName: formData.fullName,
+        email:
+          formData.email && formData.email.trim() !== ""
+            ? formData.email.trim()
+            : null,
+        mobileNumber:
+          formData.mobileNumber && formData.mobileNumber.trim() !== ""
+            ? formData.mobileNumber.trim()
+            : null,
+      };
+
       await addMutation.mutateAsync(
-        { data: submitData, classId: selectedClassId },
+        {
+          data: addData,
+          classId: selectedClassId,
+        },
         {
           onSuccess: () => {
             onSuccess?.();
@@ -288,7 +321,7 @@ export function StudentFormDialog({
                   placeholder="example@email.com"
                   value={formData.email || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value || null })
+                    setFormData({ ...formData, email: e.target.value || "" })
                   }
                   className={cn(
                     "pr-10",
@@ -321,7 +354,10 @@ export function StudentFormDialog({
                   placeholder="966532410939"
                   value={formData.mobileNumber || ""}
                   onChange={(e) =>
-                    setFormData({ ...formData, mobileNumber: e.target.value || null })
+                    setFormData({
+                      ...formData,
+                      mobileNumber: e.target.value || "",
+                    })
                   }
                   className={cn(
                     "pr-10",
@@ -342,6 +378,41 @@ export function StudentFormDialog({
                 </div>
               )}
             </div>
+
+            {/* Is Disabled Field - Only shown in edit mode */}
+            {isEditMode && (
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <Checkbox
+                    id="isDisabled"
+                    checked={formData.isDisabled}
+                    onCheckedChange={(checked) =>
+                      setFormData({
+                        ...formData,
+                        isDisabled: checked === true,
+                      })
+                    }
+                    disabled={isPending}
+                  />
+                  <Label
+                    htmlFor="isDisabled"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    تعطيل الطالب
+                  </Label>
+                </div>
+                {isDisabledErrors.length > 0 && (
+                  <div className="flex items-start gap-2 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div className="flex flex-col gap-1">
+                      {isDisabledErrors.map((err, idx) => (
+                        <span key={idx}>{err}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <DialogFooter>
               <Button

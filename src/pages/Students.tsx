@@ -308,6 +308,9 @@ export default function Students() {
                           الصف
                         </th>
                         <th className="text-right p-4 text-sm font-medium text-muted-foreground">
+                          الحالة
+                        </th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">
                           الإجراءات
                         </th>
                       </tr>
@@ -337,6 +340,17 @@ export default function Students() {
                           </td>
                           <td className="p-4 text-sm">
                             {student.className || "-"}
+                          </td>
+                          <td className="p-4">
+                            {student.isDisabled ? (
+                              <span className="inline-flex items-center rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
+                                معطل
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-600">
+                                نشط
+                              </span>
+                            )}
                           </td>
                           <td className="p-4">
                             <div className="flex items-center gap-2">

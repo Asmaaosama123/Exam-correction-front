@@ -72,18 +72,14 @@ export const studentsApi = {
 
   /**
    * Update an existing student
+   * Note: classId and isDisabled are now included in the request body
    */
   updateStudent: async (
     studentId: string,
-    classId: string,
     data: UpdateStudentRequest
   ): Promise<UpdateStudentResponse> => {
-    const queryParams = new URLSearchParams({
-      classId,
-    });
-
     const response = await api.put<UpdateStudentResponse>(
-      `/api/students/${studentId}?${queryParams.toString()}`,
+      `/api/students/${studentId}`,
       data
     );
     return response.data;

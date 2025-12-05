@@ -22,9 +22,6 @@ const UnderConstructions = () => {
 
           {/* Main Icon and Title */}
           <div className="space-y-4">
-            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary/10">
-              <Wrench className="h-12 w-12 text-primary" />
-            </div>
             <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
               قيد الإنشاء
             </h1>
@@ -44,14 +41,14 @@ const UnderConstructions = () => {
                 هذه الصفحة قيد التطوير حالياً. سنكون جاهزين قريباً!
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            {/* <CardContent className="space-y-4">
               <div className="rounded-lg bg-muted/50 p-4">
                 <p className="text-sm text-muted-foreground">
                   نشكرك على صبرك. نحن نعمل بجد لإضافة ميزات جديدة وتحسين تجربة
                   المستخدم.
                 </p>
               </div>
-            </CardContent>
+            </CardContent> */}
           </Card>
 
           {/* Action Buttons */}

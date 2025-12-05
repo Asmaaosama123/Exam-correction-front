@@ -50,6 +50,24 @@ const routes = [
     ),
   },
   {
+    path: "/exams",
+    element: (
+      <AuthGuard>
+        {/* <Dashboard /> */}
+        <UnderConstructions />
+      </AuthGuard>
+    ),
+  },
+  {
+    path: "/submissions",
+    element: (
+      <AuthGuard>
+        {/* <Dashboard /> */}
+        <UnderConstructions />
+      </AuthGuard>
+    ),
+  },
+  {
     path: "/students",
     element: (
       <AuthGuard>

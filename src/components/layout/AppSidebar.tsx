@@ -5,7 +5,7 @@ import {
   GraduationCap,
   FileCheck,
   FileText,
-  CheckSquare,
+  // CheckSquare,
   BarChart3,
 } from "lucide-react";
 import {
@@ -49,11 +49,11 @@ const menuItems = [
     icon: FileText,
     href: "/submissions",
   },
-  {
-    title: "التصحيح والنتائج",
-    icon: CheckSquare,
-    href: "/grading",
-  },
+  // {
+  //   title: "التصحيح والنتائج",
+  //   icon: CheckSquare,
+  //   href: "/grading",
+  // },
   {
     title: "التقارير",
     icon: BarChart3,

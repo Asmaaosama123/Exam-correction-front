@@ -5,8 +5,8 @@ import type {
   UploadExamRequest,
   UploadExamResponse,
   GenerateStudentPapersRequest,
-  GenerateStudentPapersResponse,
 } from "@/types/exams";
+import { AxiosError } from "axios";
 
 // Exams API endpoints
 export const examsApi = {
@@ -37,9 +37,7 @@ export const examsApi = {
   /**
    * Upload a new exam with question paper PDF (no barcode coordinates)
    */
-  uploadExam: async (
-    data: UploadExamRequest
-  ): Promise<UploadExamResponse> => {
+  uploadExam: async (data: UploadExamRequest): Promise<UploadExamResponse> => {
     const formData = new FormData();
     formData.append("File", data.file);
     formData.append("Title", data.title);
@@ -58,30 +56,23 @@ export const examsApi = {
   },
 
   /**
-   * Generate student papers for a specific exam and class
+   * Generate and download student papers for a specific exam and class
+   * This endpoint generates the papers and returns a ZIP file for download
    */
-  generateStudentPapers: async (
+  generateAndDownloadExamPapers: async (
     data: GenerateStudentPapersRequest
-  ): Promise<GenerateStudentPapersResponse> => {
-    const response = await api.post<GenerateStudentPapersResponse>(
-      "/api/Exam/generate-exam",
-      {
+  ): Promise<{ blob: Blob; filename?: string }> => {
+    try {
+      const requestBody: GenerateStudentPapersRequest = {
         examId: data.examId,
         classId: data.classId,
-      }
-    );
-    return response.data;
-  },
+        x: data.x,
+        y: data.y,
+      };
 
-  /**
-   * Download all exam papers as ZIP file
-   */
-  downloadExamPapers: async (
-    examId: string
-  ): Promise<{ blob: Blob; filename: string }> => {
-    try {
-      const response = await api.get<Blob>(
-        `/api/Exam/${examId}/download-all`,
+      const response = await api.post<Blob>(
+        "/api/Exam/generate-download-exams",
+        requestBody,
         {
           responseType: "blob",
           validateStatus: (status) => status < 400, // Don't throw on 4xx/5xx
@@ -103,8 +94,8 @@ export const examsApi = {
             status: response.status,
             errors: [
               {
-                code: "DownloadError",
-                description: "فشل تحميل أوراق الامتحان",
+                code: "GenerateDownloadError",
+                description: "فشل إنشاء وتحميل أوراق الامتحان",
               },
             ],
           };
@@ -121,33 +112,16 @@ export const examsApi = {
           },
           isAxiosError: true,
           toJSON: () => ({}),
-        } as any;
-
-        // Re-throw through interceptor by calling api again with error status
-        // This ensures the interceptor processes it
+        } as AxiosError;
         throw axiosError;
       }
-
-      // Extract filename from Content-Disposition header if available
-      const contentDisposition = response.headers["content-disposition"];
-      let filename = `exam_papers_${examId}_${new Date().toISOString().split("T")[0]}.zip`;
-
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(
-          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-        );
-        if (filenameMatch && filenameMatch[1]) {
-          filename = filenameMatch[1].replace(/['"]/g, "");
-        }
-      }
+      const filename = data.examName || "download.zip";
 
       return { blob: response.data, filename };
-    } catch (error: any) {
-      // If it's already an axios error, re-throw it
-      if (error.isAxiosError || error.response) {
+    } catch (error) {
+      if (error instanceof AxiosError) {
         throw error;
       }
-      // Otherwise, wrap it in axios error format
       throw {
         response: {
           data: {
@@ -155,8 +129,10 @@ export const examsApi = {
             status: 500,
             errors: [
               {
-                code: "DownloadError",
-                description: error.message || "حدث خطأ أثناء تحميل أوراق الامتحان",
+                code: "GenerateDownloadError",
+                description:
+                  // @ts-expect-error - error is of type unknown
+                  error.message || "حدث خطأ أثناء إنشاء وتحميل أوراق الامتحان",
               },
             ],
           },
@@ -167,4 +143,3 @@ export const examsApi = {
     }
   },
 };
-

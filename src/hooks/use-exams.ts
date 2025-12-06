@@ -7,9 +7,6 @@ import type {
   GenerateStudentPapersRequest,
 } from "@/types/exams";
 
-/**
- * Hook to get all exams
- */
 export function useGetExams() {
   return useQuery({
     queryKey: ["exams"],
@@ -18,9 +15,6 @@ export function useGetExams() {
   });
 }
 
-/**
- * Hook to get a single exam by ID
- */
 export function useGetExam(examId: string | null) {
   return useQuery({
     queryKey: ["exams", examId],
@@ -33,9 +27,6 @@ export function useGetExam(examId: string | null) {
   });
 }
 
-/**
- * Hook to upload a new exam
- */
 export function useUploadExam() {
   const queryClient = useQueryClient();
 
@@ -65,9 +56,6 @@ export function useUploadExam() {
   });
 }
 
-/**
- * Hook to delete an exam
- */
 export function useDeleteExam() {
   const queryClient = useQueryClient();
 
@@ -86,61 +74,41 @@ export function useDeleteExam() {
 }
 
 /**
- * Hook to generate student papers
+ * Hook to generate and download student papers
  */
-export function useGenerateStudentPapers() {
+export function useGenerateAndDownloadExamPapers() {
   return useMutation({
-    mutationFn: (data: GenerateStudentPapersRequest) =>
-      examsApi.generateStudentPapers(data),
-    onSuccess: (response) => {
-      if (response.success !== false) {
-        toast.success("تم إنشاء أوراق الطلاب بنجاح", {
-          description: response.message || "تم إنشاء أوراق الطلاب بنجاح",
-        });
-      } else {
-        toast.error("فشل إنشاء أوراق الطلاب", {
-          description: response.message || "حدث خطأ أثناء إنشاء أوراق الطلاب",
-        });
-      }
-    },
-    onError: (error) => {
-      toast.error("فشل إنشاء أوراق الطلاب", {
-        description: getErrorMessage(error),
-      });
-    },
-  });
-}
+    mutationFn: async (data: GenerateStudentPapersRequest) => {
+      const { blob, filename } = await examsApi.generateAndDownloadExamPapers(
+        data
+      );
 
-/**
- * Hook to download exam papers
- */
-export function useDownloadExamPapers() {
-  return useMutation({
-    mutationFn: async (examId: string) => {
-      const { blob, filename } = await examsApi.downloadExamPapers(examId);
-
-      // Create download link and trigger download
+      // Create blob URL and trigger download with server-provided filename
       const url = window.URL.createObjectURL(blob);
+
+      // Use a temporary link to download with the server-provided filename
       const link = document.createElement("a");
       link.href = url;
-      link.download = filename;
+      link.download = filename || "download.zip"; // Use server filename
+      link.style.display = "none";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
 
-      return { success: true, filename };
+      // Clean up after download starts
+      setTimeout(() => window.URL.revokeObjectURL(url), 100);
+
+      return { success: true };
     },
-    onSuccess: (result) => {
-      toast.success("تم تحميل أوراق الامتحان بنجاح", {
-        description: `تم تحميل الملف: ${result.filename}`,
+    onSuccess: () => {
+      toast.success("تم إنشاء وتحميل أوراق الطلاب بنجاح", {
+        description: "تم تحميل الملف بنجاح",
       });
     },
     onError: (error) => {
-      toast.error("فشل تحميل أوراق الامتحان", {
+      toast.error("فشل إنشاء وتحميل أوراق الطلاب", {
         description: getErrorMessage(error),
       });
     },
   });
 }
-

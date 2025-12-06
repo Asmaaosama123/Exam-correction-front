@@ -25,13 +25,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteExamDialog } from "@/components/exams/DeleteExamDialog";
 import { UploadExamDialog } from "@/components/exams/UploadExamDialog";
 import { GeneratePapersDialog } from "@/components/exams/GeneratePapersDialog";
-import { DownloadExamPapersDialog } from "@/components/exams/DownloadExamPapersDialog";
 
 export default function Exams() {
   // Dialog State
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
-  const [isDownloadDialogOpen, setIsDownloadDialogOpen] = useState(false);
 
   // Table State
   const [searchValue, setSearchValue] = useState("");
@@ -113,7 +111,7 @@ export default function Exams() {
         </div>
 
         {/* Action Cards */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-2">
           {/* Upload Exam Card */}
           <Card
             className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
@@ -140,7 +138,7 @@ export default function Exams() {
             </CardContent>
           </Card>
 
-          {/* Generate Papers Card */}
+          {/* Generate and Download Papers Card */}
           <Card
             className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
             onClick={() => setIsGenerateDialogOpen(true)}
@@ -151,35 +149,9 @@ export default function Exams() {
                   <FileTextIcon className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle>إنشاء أوراق الطلاب</CardTitle>
+                  <CardTitle>إنشاء وتحميل أوراق الطلاب</CardTitle>
                   <CardDescription>
-                    اختر الامتحان والفصل لإنشاء أوراق الطلاب
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button className="w-full" variant="outline">
-                <Plus className="h-4 w-4 ml-2" />
-                إنشاء أوراق PDF
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Download Exam Papers Card */}
-          <Card
-            className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-            onClick={() => setIsDownloadDialogOpen(true)}
-          >
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <Download className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <CardTitle>تحميل أوراق الامتحان</CardTitle>
-                  <CardDescription>
-                    اختر الامتحان لتحميل جميع أوراق الطلاب
+                    اختر الامتحان والفصل لإنشاء وتحميل أوراق الطلاب
                   </CardDescription>
                 </div>
               </div>
@@ -187,7 +159,7 @@ export default function Exams() {
             <CardContent>
               <Button className="w-full" variant="outline">
                 <Download className="h-4 w-4 ml-2" />
-                تحميل أوراق PDF
+                إنشاء وتحميل أوراق PDF
               </Button>
             </CardContent>
           </Card>
@@ -365,12 +337,6 @@ export default function Exams() {
           open={isGenerateDialogOpen}
           onOpenChange={setIsGenerateDialogOpen}
           onSuccess={handleGenerateSuccess}
-        />
-
-        <DownloadExamPapersDialog
-          open={isDownloadDialogOpen}
-          onOpenChange={setIsDownloadDialogOpen}
-          onSuccess={() => {}}
         />
 
         {deletingExamId && (

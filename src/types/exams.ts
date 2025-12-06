@@ -25,26 +25,20 @@ export interface UploadExamRequest {
 export interface GenerateStudentPapersRequest {
   examId: string;
   classId: string;
-}
-
-export interface DownloadExamPapersRequest {
-  examId: string;
+  x: number; // X coordinate in PDF points (1 point = 1/72 inch)
+  y: number; // Y coordinate in PDF points (from bottom)
+  examName?: string;
 }
 
 // ==================== Response Types ====================
 
-export interface GetExamsResponse extends Array<Exam> {}
+export type GetExamsResponse = Exam[];
 
-export interface GetExamResponse extends Exam {}
+export type GetExamResponse = Exam;
 
 export interface UploadExamResponse {
   success: boolean;
   examId?: string;
-  message?: string;
-}
-
-export interface GenerateStudentPapersResponse {
-  success: boolean;
   message?: string;
 }
 
@@ -58,6 +52,4 @@ export const ExamErrorCode = {
   MaxFileSize: "File.MaxFileSize",
 } as const;
 
-export type ExamErrorCode =
-  (typeof ExamErrorCode)[keyof typeof ExamErrorCode];
-
+export type ExamErrorCode = (typeof ExamErrorCode)[keyof typeof ExamErrorCode];

@@ -39,7 +39,7 @@ export default function Header({
         className="mx-auto flex max-w-full items-center justify-between px-4 py-3 lg:px-6"
       >
         <div className="flex items-center gap-3">
-          {showSidebarTrigger && <SidebarTrigger />}
+          {showSidebarTrigger && user && <SidebarTrigger />}
           <Link to="/" className="flex items-center gap-2">
             <Logo
               size="lg"

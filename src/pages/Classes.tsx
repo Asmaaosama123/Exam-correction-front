@@ -265,7 +265,7 @@ export default function Classes() {
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Users className="h-4 w-4" />
                             <span>
-                              معرف الفصل: {classItem.id.slice(0, 8)}...
+                              معرف الفصل: {String(classItem.id).slice(0, 8)}...
                             </span>
                           </div>
                         </CardContent>
@@ -310,7 +310,7 @@ export default function Classes() {
                             </td>
                             <td className="p-4">
                               <code className="text-xs text-muted-foreground">
-                                {classItem.id.slice(0, 8)}...
+                                {String(classItem.id).slice(0, 8)}...
                               </code>
                             </td>
                             <td className="p-4">

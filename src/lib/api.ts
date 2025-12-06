@@ -165,6 +165,21 @@ function extractApiError(error: unknown): ApiErrorResponse | null {
     return error.response?.data || null;
   }
 
+  // Check if it's a custom error with response.data structure (e.g., from blob downloads)
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof (error as any).response === "object" &&
+    (error as any).response !== null &&
+    "data" in (error as any).response
+  ) {
+    const errorData = (error as any).response.data;
+    if (isApiErrorResponse(errorData)) {
+      return errorData;
+    }
+  }
+
   // Check if it's already an ApiErrorResponse (from interceptor)
   if (isApiErrorResponse(error)) {
     return error;

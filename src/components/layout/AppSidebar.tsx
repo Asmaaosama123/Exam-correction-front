@@ -7,6 +7,7 @@ import {
   FileText,
   // CheckSquare,
   BarChart3,
+  CheckSquare,
 } from "lucide-react";
 import {
   Sidebar,
@@ -40,20 +41,20 @@ const menuItems = [
     href: "/students",
   },
   {
+    title: "اعداد الاختبارات",
+    icon: FileText,
+    href: "https://www.example.com",
+  },
+  {
     title: "الاختبارات",
     icon: FileCheck,
     href: "/exams",
   },
   {
-    title: "تسليم الأوراق",
-    icon: FileText,
-    href: "/submissions",
+    title: "التصحيح والنتائج",
+    icon: CheckSquare,
+    href: "/grading",
   },
-  // {
-  //   title: "التصحيح والنتائج",
-  //   icon: CheckSquare,
-  //   href: "/grading",
-  // },
   {
     title: "التقارير",
     icon: BarChart3,

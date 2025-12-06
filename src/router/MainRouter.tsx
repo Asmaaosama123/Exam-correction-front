@@ -9,6 +9,7 @@ import VerifyEmail from "@/pages/auth/VerifyEmail";
 import Students from "@/pages/Students";
 import Classes from "@/pages/Classes";
 import Reports from "@/pages/Reports";
+import Exams from "@/pages/Exams";
 import { Routes, Route } from "react-router-dom";
 import Privacy from "@/pages/terms/Privacy";
 import Terms from "@/pages/terms/Terms";
@@ -53,8 +54,7 @@ const routes = [
     path: "/exams",
     element: (
       <AuthGuard>
-        {/* <Dashboard /> */}
-        <UnderConstructions />
+        <Exams />
       </AuthGuard>
     ),
   },

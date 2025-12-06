@@ -43,7 +43,7 @@ export default function Students() {
     undefined
   );
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
   const [searchValue, setSearchValue] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -64,6 +64,11 @@ export default function Students() {
 
     return () => clearTimeout(timer);
   }, [searchValue]);
+
+  // Reset to first page when page size changes
+  useEffect(() => {
+    setPageNumber(1);
+  }, [pageSize]);
 
   const { data: classesData, isLoading: isLoadingClasses } = useGetClasses();
 
@@ -391,33 +396,62 @@ export default function Students() {
                 )}
 
                 {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="mt-6 flex items-center justify-between">
-                    <div className="text-sm text-muted-foreground">
-                      الصفحة {pageNumber} من {totalPages}
+                {data && data.items.length > 0 && (
+                  <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                      {totalPages > 1 && (
+                        <div className="text-sm text-muted-foreground">
+                          الصفحة {pageNumber} من {totalPages}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="page-size" className="text-sm text-muted-foreground">
+                          عدد العناصر:
+                        </Label>
+                        <Select
+                          value={String(pageSize)}
+                          onValueChange={(value) => setPageSize(Number(value))}
+                        >
+                          <SelectTrigger
+                            id="page-size"
+                            className="w-20 h-8"
+                            disabled={isLoading}
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="5">5</SelectItem>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="20">20</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
-                        disabled={!data?.hasPreviouspage || isLoading}
-                      >
-                        <ChevronRight className="h-4 w-4 ml-2" />
-                        السابق
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          setPageNumber((p) => Math.min(totalPages, p + 1))
-                        }
-                        disabled={!data?.hasNextPage || isLoading}
-                      >
-                        التالي
-                        <ChevronLeft className="h-4 w-4 mr-2" />
-                      </Button>
-                    </div>
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
+                          disabled={!data?.hasPreviouspage || isLoading}
+                        >
+                          <ChevronRight className="h-4 w-4 ml-2" />
+                          السابق
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setPageNumber((p) => Math.min(totalPages, p + 1))
+                          }
+                          disabled={!data?.hasNextPage || isLoading}
+                        >
+                          التالي
+                          <ChevronLeft className="h-4 w-4 mr-2" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </>

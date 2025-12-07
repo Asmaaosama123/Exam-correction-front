@@ -12,6 +12,8 @@ export interface Exam {
   pdfPath: string;
   numberOfPages: number;
   createdAt: string;
+  barcodeAreaX?: number; // X coordinate in PDF points
+  barcodeAreaY?: number; // Y coordinate in PDF points (from bottom)
 }
 
 // ==================== Request Types ====================
@@ -20,14 +22,15 @@ export interface UploadExamRequest {
   title: string;
   subject: string;
   file: File;
+  x: number; // X coordinate in PDF points (1 point = 1/72 inch)
+  y: number; // Y coordinate in PDF points (from bottom)
 }
 
 export interface GenerateStudentPapersRequest {
   examId: string;
   classId: string;
-  x: number; // X coordinate in PDF points (1 point = 1/72 inch)
-  y: number; // Y coordinate in PDF points (from bottom)
   examName?: string;
+  className?: string;
 }
 
 // ==================== Response Types ====================

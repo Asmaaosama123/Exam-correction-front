@@ -10,6 +10,7 @@ import Students from "@/pages/Students";
 import Classes from "@/pages/Classes";
 import Reports from "@/pages/Reports";
 import Exams from "@/pages/Exams";
+import NewExam from "@/pages/exams/NewExam";
 import { Routes, Route } from "react-router-dom";
 import Privacy from "@/pages/terms/Privacy";
 import Terms from "@/pages/terms/Terms";
@@ -55,6 +56,14 @@ const routes = [
     element: (
       <AuthGuard>
         <Exams />
+      </AuthGuard>
+    ),
+  },
+  {
+    path: "/exams/new",
+    element: (
+      <AuthGuard>
+        <NewExam />
       </AuthGuard>
     ),
   },

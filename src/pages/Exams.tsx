@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Upload,
   Search,
@@ -23,12 +24,11 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { useGetExams } from "@/hooks/use-exams";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteExamDialog } from "@/components/exams/DeleteExamDialog";
-import { UploadExamDialog } from "@/components/exams/UploadExamDialog";
 import { GeneratePapersDialog } from "@/components/exams/GeneratePapersDialog";
 
 export default function Exams() {
+  const navigate = useNavigate();
   // Dialog State
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
 
   // Table State
@@ -60,10 +60,6 @@ export default function Exams() {
 
   const handleDeleteSuccess = () => {
     setDeletingExamId(null);
-  };
-
-  const handleUploadSuccess = () => {
-    // Dialog will close automatically, no need to do anything
   };
 
   const handleGenerateSuccess = () => {
@@ -115,7 +111,7 @@ export default function Exams() {
           {/* Upload Exam Card */}
           <Card
             className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
-            onClick={() => setIsUploadDialogOpen(true)}
+            onClick={() => navigate("/exams/new")}
           >
             <CardHeader>
               <div className="flex items-center gap-3">
@@ -327,12 +323,6 @@ export default function Exams() {
         </Card>
 
         {/* Dialogs */}
-        <UploadExamDialog
-          open={isUploadDialogOpen}
-          onOpenChange={setIsUploadDialogOpen}
-          onSuccess={handleUploadSuccess}
-        />
-
         <GeneratePapersDialog
           open={isGenerateDialogOpen}
           onOpenChange={setIsGenerateDialogOpen}

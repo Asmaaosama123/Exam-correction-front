@@ -7,6 +7,7 @@ import type {
   GenerateStudentPapersRequest,
 } from "@/types/exams";
 import { AxiosError } from "axios";
+import { formatArabicDate, sanitizeFilename } from "./utils";
 
 // Exams API endpoints
 export const examsApi = {
@@ -35,13 +36,15 @@ export const examsApi = {
   },
 
   /**
-   * Upload a new exam with question paper PDF (no barcode coordinates)
+   * Upload a new exam with question paper PDF and barcode coordinates
    */
   uploadExam: async (data: UploadExamRequest): Promise<UploadExamResponse> => {
     const formData = new FormData();
     formData.append("File", data.file);
     formData.append("Title", data.title);
     formData.append("Subject", data.subject);
+    formData.append("X", data.x.toString());
+    formData.append("Y", data.y.toString());
 
     const response = await api.post<UploadExamResponse>(
       "/api/Exam/upload-exam",
@@ -66,8 +69,6 @@ export const examsApi = {
       const requestBody: GenerateStudentPapersRequest = {
         examId: data.examId,
         classId: data.classId,
-        x: data.x,
-        y: data.y,
       };
 
       const response = await api.post<Blob>(
@@ -115,10 +116,30 @@ export const examsApi = {
         } as AxiosError;
         throw axiosError;
       }
-      const currentDate = new Date().toISOString().split("T")[0];
-      const currentTime = new Date().toISOString().split("T")[1].split(".")[0];
-      const filename =
-        data.examName + currentDate + currentTime || "download.zip";
+
+      // Extract filename from Content-Disposition header if available
+      const contentDisposition = response.headers["content-disposition"];
+      let filename: string | undefined = undefined;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(
+          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+        );
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, "");
+        }
+      }
+
+      // If no filename from server, generate one with Arabic date
+      if (!filename) {
+        const examName = data.examName || "امتحان";
+        const className = data.className || "فصل";
+        const dateStr = formatArabicDate(new Date());
+
+        const sanitizedExamName = sanitizeFilename(examName);
+        const sanitizedClassName = sanitizeFilename(className);
+        filename = `${sanitizedExamName}_${sanitizedClassName}_${dateStr}.zip`;
+      }
 
       return { blob: response.data, filename };
     } catch (error) {

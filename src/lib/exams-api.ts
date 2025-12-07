@@ -115,7 +115,10 @@ export const examsApi = {
         } as AxiosError;
         throw axiosError;
       }
-      const filename = data.examName || "download.zip";
+      const currentDate = new Date().toISOString().split("T")[0];
+      const currentTime = new Date().toISOString().split("T")[1].split(".")[0];
+      const filename =
+        data.examName + currentDate + currentTime || "download.zip";
 
       return { blob: response.data, filename };
     } catch (error) {

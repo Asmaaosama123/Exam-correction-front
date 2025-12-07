@@ -383,7 +383,7 @@ export default function NewExam() {
         {/* Barcode Selection - Full Width */}
         {selectedFile && (
           <div className="flex flex-col flex-1 min-h-0 w-full space-y-4">
-            <div className="flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center justify-between shrink-0">
               <Label>حدد موقع الباركود على الورقة *</Label>
               {barcodeArea && (
                 <Button
@@ -397,7 +397,7 @@ export default function NewExam() {
               )}
             </div>
             <div className="flex flex-col flex-1 min-h-0 border rounded-lg p-4 bg-muted/30">
-              <p className="text-xs text-muted-foreground mb-3 flex-shrink-0">
+              <p className="text-xs text-muted-foreground mb-3 shrink-0">
                 انقر أو اسحب على الورقة لتحديد موقع الباركود (الحجم:{" "}
                 {BARCODE_WIDTH}×{BARCODE_HEIGHT} بكسل)
               </p>
@@ -457,7 +457,7 @@ export default function NewExam() {
                 </div>
               </div>
               {barcodeArea && (
-                <div className="mt-3 text-xs text-muted-foreground text-center flex-shrink-0">
+                <div className="mt-3 text-xs text-muted-foreground text-center shrink-0">
                   <p>
                     الموقع: X = {Math.round(barcodeArea.x * (72 / 96))}pt, Y ={" "}
                     {Math.round(barcodeArea.y * (72 / 96))}pt (من الأسفل)

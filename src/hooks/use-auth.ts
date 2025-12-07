@@ -9,7 +9,6 @@ import type {
   RegisterRequest,
   LoginRequest,
   VerifyEmailRequest,
-  RefreshTokenRequest,
   ForgetPasswordRequest,
   ResetPasswordRequest,
 } from "@/types/auth";
@@ -92,19 +91,22 @@ export function useLogin() {
         lastName: userResponse.lastName || "",
         isAuthenticated: true,
       };
-      
+
       queryClient.setQueryData(["auth", "user"], userData);
 
-      const fullName = joinFullName(userResponse.firstName, userResponse.lastName);
+      const fullName = joinFullName(
+        userResponse.firstName,
+        userResponse.lastName
+      );
       toast.success("تم تسجيل الدخول بنجاح", {
         description: `مرحباً ${fullName || userResponse.email || ""}`,
       });
 
       // Step 4: Navigate to dashboard or return to last location
       // Check both "returnUrl" (from AuthGuard) and "returnTo" (from interceptor) for backward compatibility
-      const returnUrl = 
-        sessionStorage.getItem("returnUrl") || 
-        sessionStorage.getItem("returnTo") || 
+      const returnUrl =
+        sessionStorage.getItem("returnUrl") ||
+        sessionStorage.getItem("returnTo") ||
         "/dashboard";
 
       // Clean up both keys
@@ -207,13 +209,6 @@ export function useResetPassword() {
 }
 
 /**
- * Hook for token refresh
- */
-/**
- * Hook to manually refresh access token
- * Useful for components that need to refresh tokens proactively
- */
-/**
  * Hook to manually refresh access token
  * Note: Automatic refresh is handled by axios interceptor via authManager
  * This hook is available for manual refresh if needed
@@ -244,7 +239,9 @@ export function useRefreshToken() {
 
       // Show error toast
       toast.error("فشل تحديث الجلسة", {
-        description: getErrorMessage(error) || "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى",
+        description:
+          getErrorMessage(error) ||
+          "انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى",
       });
     },
   });
@@ -256,7 +253,7 @@ export function useRefreshToken() {
  */
 export function useAuth() {
   const queryClient = useQueryClient();
-  
+
   return useQuery({
     queryKey: ["auth", "user"],
     queryFn: async () => {
@@ -270,7 +267,7 @@ export function useAuth() {
       // Fetch user data from /api/profile/current
       try {
         const response = await authApi.getMe();
-        
+
         if (!response.id) {
           return null;
         }
@@ -282,7 +279,7 @@ export function useAuth() {
           lastName: response.lastName || "",
           isAuthenticated: true,
         };
-      } catch (error) {
+      } catch {
         // If /api/profile/current fails, check if we have cached data
         // This prevents clearing auth state if there's a temporary network issue
         const cachedData = queryClient.getQueryData<{
@@ -292,14 +289,14 @@ export function useAuth() {
           lastName: string;
           isAuthenticated: boolean;
         }>(["auth", "user"]);
-        
+
         // Only clear tokens if we don't have cached data (real auth failure)
         // If we have cached data, it might be a temporary network issue
         if (!cachedData) {
           authManager.clearTokens();
           return null;
         }
-        
+
         // Return cached data if available (might be temporary network issue)
         return cachedData;
       }

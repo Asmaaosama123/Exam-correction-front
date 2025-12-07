@@ -9,7 +9,6 @@ import {
   User,
   Loader2,
   AlertCircle,
-  Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,12 +29,10 @@ import { cn } from "@/lib/utils";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
-  const [showSecret, setShowSecret] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     password: "",
-    secretKey: "",
   });
 
   const registerMutation = useRegister();
@@ -47,7 +44,6 @@ export default function Register() {
   const fullNameErrors = [...firstNameErrors, ...lastNameErrors];
   const emailErrors = getFieldErrors(error, "email");
   const passwordErrors = getFieldErrors(error, "password");
-  const secretKeyErrors = getFieldErrors(error, "secretKey");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,51 +176,6 @@ export default function Register() {
                       <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                       <div className="flex flex-col gap-1">
                         {passwordErrors.map((err, idx) => (
-                          <span key={idx}>{err}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Secret Key Field */}
-                <div className="space-y-2">
-                  <Label htmlFor="secretKey">المفتاح السري</Label>
-                  <div className="relative">
-                    <Key className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="secretKey"
-                      type={showSecret ? "text" : "password"}
-                      placeholder="أدخل المفتاح السري"
-                      value={formData.secretKey}
-                      onChange={(e) =>
-                        setFormData({ ...formData, secretKey: e.target.value })
-                      }
-                      className={cn(
-                        "pr-10",
-                        secretKeyErrors.length > 0 && "border-destructive"
-                      )}
-                      required
-                      disabled={registerMutation.isPending}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSecret(!showSecret)}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      disabled={registerMutation.isPending}
-                    >
-                      {showSecret ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                  {secretKeyErrors.length > 0 && (
-                    <div className="flex items-start gap-2 text-sm text-destructive">
-                      <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                      <div className="flex flex-col gap-1">
-                        {secretKeyErrors.map((err, idx) => (
                           <span key={idx}>{err}</span>
                         ))}
                       </div>

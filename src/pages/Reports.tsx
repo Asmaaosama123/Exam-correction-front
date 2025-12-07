@@ -15,22 +15,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ExportStudentsDialog } from "@/components/students/ExportStudentsDialog";
 import { ExportClassesDialog } from "@/components/classes/ExportClassesDialog";
 import { useExportStudents } from "@/hooks/use-students";
-import { useGetClasses, useExportClasses } from "@/hooks/use-classes";
-
-const trackDownloads = (type: string) => {
-  const downloads = localStorage.getItem("downloads");
-  if (downloads) {
-    const downloadsObj = JSON.parse(downloads);
-    downloadsObj[type] = (downloadsObj[type] || 0) + 1;
-    localStorage.setItem("downloads", JSON.stringify(downloadsObj));
-  } else {
-    localStorage.setItem("downloads", JSON.stringify({ [type]: 1 }));
-  }
-};
+import { useExportClasses } from "@/hooks/use-classes";
 
 const reportData = [
   {
@@ -65,18 +54,53 @@ const reportData = [
 
 export default function Reports() {
   const [openDialog, setOpenDialog] = useState<string | null>(null);
-  const { data: classesData } = useGetClasses();
   const exportStudentsMutation = useExportStudents();
   const exportClassesMutation = useExportClasses();
 
-  // Load download counts from localStorage
-  const getDownloadCount = (reportTitle: string) => {
+  // Initialize download counts from localStorage
+  const getInitialDownloadCounts = (): Record<string, number> => {
     const downloads = localStorage.getItem("downloads");
-    if (downloads) {
-      const downloadsObj = JSON.parse(downloads);
-      return downloadsObj[reportTitle] || 0;
+    return downloads ? JSON.parse(downloads) : {};
+  };
+
+  const [downloadCounts, setDownloadCounts] = useState<Record<string, number>>(
+    getInitialDownloadCounts
+  );
+
+  // Reload counts when dialog closes
+  useEffect(() => {
+    if (!openDialog) {
+      // Use setTimeout to avoid synchronous setState in effect
+      const timer = setTimeout(() => {
+        const downloads = localStorage.getItem("downloads");
+        if (downloads) {
+          setDownloadCounts(JSON.parse(downloads));
+        } else {
+          setDownloadCounts({});
+        }
+      }, 0);
+      return () => clearTimeout(timer);
     }
-    return 0;
+  }, [openDialog]);
+
+  // Listen for storage changes (in case downloads happen in other tabs)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "downloads") {
+        const downloads = e.newValue;
+        if (downloads) {
+          setDownloadCounts(JSON.parse(downloads));
+        } else {
+          setDownloadCounts({});
+        }
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  const getDownloadCount = (reportTitle: string) => {
+    return downloadCounts[reportTitle] || 0;
   };
 
   const handleCardClick = (reportTitle: string) => {

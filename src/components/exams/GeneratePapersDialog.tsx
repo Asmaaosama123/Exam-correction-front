@@ -60,6 +60,19 @@ export function GeneratePapersDialog({
 
     generateMutation.mutate(request, {
       onSuccess: () => {
+        // Track download
+        const downloads = localStorage.getItem("downloads");
+        if (downloads) {
+          const downloadsObj = JSON.parse(downloads);
+          downloadsObj["تقارير المتحانات"] =
+            (downloadsObj["تقارير المتحانات"] || 0) + 1;
+          localStorage.setItem("downloads", JSON.stringify(downloadsObj));
+        } else {
+          localStorage.setItem(
+            "downloads",
+            JSON.stringify({ "تقارير المتحانات": 1 })
+          );
+        }
         setSelectedExam(null);
         setSelectedClassId("");
         onSuccess?.();

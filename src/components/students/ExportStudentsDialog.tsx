@@ -56,6 +56,19 @@ export function ExportStudentsDialog({
       { classIds, format: exportFormat },
       {
         onSuccess: () => {
+          // Track download
+          const downloads = localStorage.getItem("downloads");
+          if (downloads) {
+            const downloadsObj = JSON.parse(downloads);
+            downloadsObj["تصدير الطلاب | تقارير الطلاب"] =
+              (downloadsObj["تصدير الطلاب | تقارير الطلاب"] || 0) + 1;
+            localStorage.setItem("downloads", JSON.stringify(downloadsObj));
+          } else {
+            localStorage.setItem(
+              "downloads",
+              JSON.stringify({ "تصدير الطلاب | تقارير الطلاب": 1 })
+            );
+          }
           onOpenChange(false);
         },
       }

@@ -47,18 +47,6 @@ export function GeneratePapersDialog({
       toast.error("يرجى اختيار الامتحان والفصل");
       return;
     }
-
-    // Check if exam has barcode coordinates
-    if (
-      selectedExam.barcodeAreaX === undefined ||
-      selectedExam.barcodeAreaY === undefined
-    ) {
-      toast.error(
-        "هذا الامتحان لا يحتوي على إحداثيات الباركود. يرجى تحديث الامتحان."
-      );
-      return;
-    }
-
     // Get class name for filename
     const selectedClass = classes?.find((c) => c.id === selectedClassId);
     const className = selectedClass?.name || "";

@@ -8,6 +8,7 @@ import {
   Search,
   LayoutGrid,
   Table as TableIcon,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import { useGetClasses, useDeleteClass } from "@/hooks/use-classes";
 import { ClassFormDialog } from "@/components/classes/ClassFormDialog";
 import { DeleteClassDialog } from "@/components/classes/DeleteClassDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatArabicDate } from "@/lib/utils";
 
 export default function Classes() {
   const [searchValue, setSearchValue] = useState("");
@@ -263,9 +265,9 @@ export default function Classes() {
                         </CardHeader>
                         <CardContent>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Users className="h-4 w-4" />
+                            <Calendar className="h-4 w-4" />
                             <span>
-                              معرف الفصل: {String(classItem.id).slice(0, 8)}...
+                              {formatArabicDate(new Date(classItem.createdAt))}
                             </span>
                           </div>
                         </CardContent>
@@ -284,7 +286,7 @@ export default function Classes() {
                             عدد الطلاب
                           </th>
                           <th className="text-right p-4 text-sm font-medium text-muted-foreground">
-                            معرف الفصل
+                            تاريخ الإنشاء
                           </th>
                           <th className="text-right p-4 text-sm font-medium text-muted-foreground">
                             الإجراءات
@@ -309,9 +311,11 @@ export default function Classes() {
                               </div>
                             </td>
                             <td className="p-4">
-                              <code className="text-xs text-muted-foreground">
-                                {String(classItem.id).slice(0, 8)}...
-                              </code>
+                              <span className="text-xs text-muted-foreground">
+                                {formatArabicDate(
+                                  new Date(classItem.createdAt)
+                                )}
+                              </span>
                             </td>
                             <td className="p-4">
                               <div className="flex items-center gap-2">

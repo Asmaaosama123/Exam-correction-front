@@ -182,7 +182,6 @@ export default function Reports() {
                   </div>
                   <Button
                     className="w-full mt-4 hover:bg-primary hover:text-primary-foreground duration-300 hover:border-primary"
-                    variant="outline"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDownload(report.title);

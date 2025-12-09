@@ -38,7 +38,9 @@ export default function Login() {
 
   // Check for unauthorized redirect and show toast
   useEffect(() => {
-    const showUnauthorizedToast = sessionStorage.getItem("showUnauthorizedToast");
+    const showUnauthorizedToast = sessionStorage.getItem(
+      "showUnauthorizedToast"
+    );
     if (showUnauthorizedToast === "true") {
       sessionStorage.removeItem("showUnauthorizedToast");
       toast.error("انتهت صلاحية الجلسة", {
@@ -55,7 +57,7 @@ export default function Login() {
     e.preventDefault();
     try {
       await loginMutation.mutateAsync(formData);
-    } catch (error) {
+    } catch {
       // Error is handled by the mutation's onError callback
       // This catch prevents the form from submitting and causing a page reload
     }
@@ -162,24 +164,19 @@ export default function Login() {
                 </div>
 
                 {/* Remember Me & Forgot Password */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="remember"
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                      disabled={loginMutation.isPending}
-                    />
-                    <Label htmlFor="remember" className="text-sm font-normal">
-                      تذكرني
-                    </Label>
-                  </div>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm font-medium text-primary hover:underline"
+                <div className="flex items-center gap-2">
+                  <input
+                    id="remember"
+                    type="checkbox"
+                    className="h-4 w-4 rounded cursor-pointer border-input text-primary focus:ring-primary"
+                    disabled={loginMutation.isPending}
+                  />
+                  <Label
+                    htmlFor="remember"
+                    className="text-sm font-normal cursor-pointer"
                   >
-                    نسيت كلمة المرور؟
-                  </Link>
+                    تذكرني
+                  </Label>
                 </div>
 
                 {/* Submit Button */}

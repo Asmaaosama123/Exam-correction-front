@@ -5,13 +5,7 @@ import { authApi } from "@/lib/auth-api";
 import { getErrorMessage, getAllFieldErrors } from "@/lib/api";
 import { joinFullName } from "@/lib/name-utils";
 import { authManager } from "@/lib/auth-manager";
-import type {
-  RegisterRequest,
-  LoginRequest,
-  VerifyEmailRequest,
-  ForgetPasswordRequest,
-  ResetPasswordRequest,
-} from "@/types/auth";
+import type { RegisterRequest, LoginRequest } from "@/types/auth";
 
 // Token storage helper - now uses authManager
 // This is kept for backward compatibility with existing code
@@ -103,104 +97,14 @@ export function useLogin() {
       });
 
       // Step 4: Navigate to dashboard or return to last location
-      // Check both "returnUrl" (from AuthGuard) and "returnTo" (from interceptor) for backward compatibility
-      const returnUrl =
-        sessionStorage.getItem("returnUrl") ||
-        sessionStorage.getItem("returnTo") ||
-        "/dashboard";
-
-      // Clean up both keys
-      sessionStorage.removeItem("returnUrl");
-      sessionStorage.removeItem("returnTo");
-
-      // Navigate immediately - query data is already set, so AuthGuard will see the user
-      if (returnUrl && returnUrl !== "/login" && returnUrl !== "/register") {
-        navigate(returnUrl, { replace: true });
-      } else {
-        navigate("/dashboard", { replace: true });
-      }
+      const returnUrl = "/dashboard";
+      navigate(returnUrl, { replace: true });
     },
     onError: (error) => {
       // Only show toast if there are no field-specific errors
       const fieldErrors = getAllFieldErrors(error);
       if (Object.keys(fieldErrors).length === 0) {
         toast.error("فشل تسجيل الدخول", {
-          description: getErrorMessage(error),
-        });
-      }
-    },
-  });
-}
-
-/**
- * Hook for email verification
- */
-export function useVerifyEmail() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: VerifyEmailRequest) => authApi.verifyEmail(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["auth"] });
-
-      toast.success("تم التحقق من البريد الإلكتروني بنجاح", {
-        description: "يمكنك الآن تسجيل الدخول",
-      });
-
-      navigate("/login");
-    },
-    onError: (error) => {
-      toast.error("فشل التحقق من البريد الإلكتروني", {
-        description: getErrorMessage(error),
-      });
-    },
-  });
-}
-
-/**
- * Hook for password reset request
- */
-export function useForgetPassword() {
-  return useMutation({
-    mutationFn: (data: ForgetPasswordRequest) => authApi.forgetPassword(data),
-    onSuccess: () => {
-      toast.success("تم إرسال رابط إعادة تعيين كلمة المرور", {
-        description: "يرجى التحقق من بريدك الإلكتروني",
-      });
-    },
-    onError: (error) => {
-      // Only show toast if there are no field-specific errors
-      const fieldErrors = getAllFieldErrors(error);
-      if (Object.keys(fieldErrors).length === 0) {
-        toast.error("فشل إرسال رابط إعادة التعيين", {
-          description: getErrorMessage(error),
-        });
-      }
-    },
-  });
-}
-
-/**
- * Hook for password reset
- */
-export function useResetPassword() {
-  const navigate = useNavigate();
-
-  return useMutation({
-    mutationFn: (data: ResetPasswordRequest) => authApi.resetPassword(data),
-    onSuccess: () => {
-      toast.success("تم إعادة تعيين كلمة المرور بنجاح", {
-        description: "يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة",
-      });
-
-      navigate("/login");
-    },
-    onError: (error) => {
-      // Only show toast if there are no field-specific errors
-      const fieldErrors = getAllFieldErrors(error);
-      if (Object.keys(fieldErrors).length === 0) {
-        toast.error("فشل إعادة تعيين كلمة المرور", {
           description: getErrorMessage(error),
         });
       }

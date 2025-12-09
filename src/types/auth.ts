@@ -10,24 +10,9 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface VerifyEmailRequest {
-  userId: string;
-  code: string;
-}
-
 export interface RefreshTokenRequest {
   token: string;
   refreshtoken: string;
-}
-
-export interface ForgetPasswordRequest {
-  email: string;
-}
-
-export interface ResetPasswordRequest {
-  email: string;
-  code: string;
-  newpassword: string;
 }
 
 // ==================== Response Types ====================
@@ -40,11 +25,6 @@ export interface AuthResponse {
   email?: string;
   firstName?: string;
   lastName?: string;
-}
-
-export interface VerifyEmailResponse {
-  success: boolean;
-  message?: string;
 }
 
 // ==================== Error Types ====================
@@ -100,8 +80,5 @@ export interface UseAuthReturn {
   login: (credentials: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => void;
-  verifyEmail: (data: VerifyEmailRequest) => Promise<void>;
-  forgetPassword: (email: string) => Promise<void>;
-  resetPassword: (data: ResetPasswordRequest) => Promise<void>;
   refreshAuth: () => Promise<void>;
 }

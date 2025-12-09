@@ -9,6 +9,7 @@ export interface Class {
   id: string;
   name: string;
   numberOfStudents: number;
+  createdAt: string;
 }
 
 // ==================== Request Types ====================

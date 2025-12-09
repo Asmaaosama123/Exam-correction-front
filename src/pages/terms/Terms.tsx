@@ -85,12 +85,15 @@ export default function Terms() {
           <div className="mb-8">
             <Card>
               <CardHeader>
-                <CardTitle>مرحبًا بكم في نظام إدارة الاختبارات الإلكتروني</CardTitle>
+                <CardTitle>
+                  مرحبًا بكم في نظام إدارة الاختبارات الإلكتروني
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground leading-relaxed">
-                  باستخدامك لهذا النظام، فإنك توافق على الالتزام بالشروط والأحكام
-                  التالية. يرجى قراءة هذه الشروط بعناية قبل استخدام النظام.
+                  باستخدامك لهذا النظام، فإنك توافق على الالتزام بالشروط
+                  والأحكام التالية. يرجى قراءة هذه الشروط بعناية قبل استخدام
+                  النظام.
                 </p>
               </CardContent>
             </Card>
@@ -141,10 +144,12 @@ export default function Terms() {
                     لأي استفسار بخصوص شروط الاستخدام، يرجى التواصل معنا عبر:
                   </p>
                   <a
-                    href="mailto:support@examsystem.sa"
+                    href="https://api.whatsapp.com/send/?phone=966553576290&text&type=phone_number&app_absent=0"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="mt-2 inline-block font-medium text-primary hover:underline"
                   >
-                    support@examsystem.sa
+                    +966 55 357 6290
                   </a>
                 </div>
               </div>

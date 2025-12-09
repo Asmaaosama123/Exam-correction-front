@@ -10,6 +10,46 @@ import { useUploadExam } from "@/hooks/use-exams";
 import type { UploadExamRequest } from "@/types/exams";
 import { toast } from "sonner";
 
+// Type declaration for global PDF.js library
+interface PdfJsLib {
+  version: string;
+  GlobalWorkerOptions: {
+    workerSrc: string;
+  };
+  getDocument(src: { data: ArrayBuffer }): {
+    promise: Promise<{
+      getPage(pageNumber: number): Promise<{
+        getViewport(params: { scale: number }): {
+          width: number;
+          height: number;
+        };
+      }>;
+    }>;
+  };
+}
+
+declare global {
+  interface Window {
+    pdfjsLib?: PdfJsLib;
+    pdfjs?: PdfJsLib;
+  }
+}
+
+// Use PDF.js from global scope (loaded in index.html)
+const getPdfJs = (): PdfJsLib => {
+  const pdfjsLib = window.pdfjsLib || window.pdfjs;
+  if (!pdfjsLib) {
+    throw new Error("مكتبة PDF.js غير متوفرة. يرجى التأكد من تحميلها في HTML.");
+  }
+  // Configure worker if not already configured
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
+      pdfjsLib.version || "3.11.174"
+    }/pdf.worker.min.js`;
+  }
+  return pdfjsLib;
+};
+
 interface BarcodeArea {
   x: number;
   y: number; // Y from bottom
@@ -79,11 +119,47 @@ export default function NewExam() {
   const canvasWidth = pdfDimensions?.width || PAGE_SIZES.a4.width;
   const canvasHeight = pdfDimensions?.height || PAGE_SIZES.a4.height;
 
-  // Create PDF URL from selected file
+  // Create PDF URL from selected file and extract dimensions
   React.useEffect(() => {
     if (selectedFile) {
       const url = URL.createObjectURL(selectedFile);
       setPdfUrl(url);
+
+      // Extract PDF dimensions
+      const extractPdfDimensions = async () => {
+        try {
+          const pdfjs = getPdfJs();
+          const arrayBuffer = await selectedFile.arrayBuffer();
+          const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+          const page = await pdf.getPage(1); // Get first page
+          const viewport = page.getViewport({ scale: 1.0 });
+
+          // Convert PDF points to pixels at 96 DPI
+          // PDF uses 72 DPI, browser uses 96 DPI
+          // So we need to scale: 96/72 = 1.333...
+          const PIXELS_PER_POINT = 96 / 72;
+          const width = viewport.width * PIXELS_PER_POINT;
+          const height = viewport.height * PIXELS_PER_POINT;
+
+          setPdfDimensions({ width, height });
+          // Reset barcode area when dimensions change
+          setBarcodeArea(null);
+        } catch (error) {
+          console.error("Error extracting PDF dimensions:", error);
+          toast.error(
+            "فشل قراءة أبعاد الملف. سيتم استخدام الأبعاد الافتراضية."
+          );
+          // Fallback to A4 if extraction fails
+          setPdfDimensions({
+            width: PAGE_SIZES.a4.width,
+            height: PAGE_SIZES.a4.height,
+          });
+          setBarcodeArea(null);
+        }
+      };
+
+      extractPdfDimensions();
+
       return () => {
         URL.revokeObjectURL(url);
       };
@@ -313,7 +389,7 @@ export default function NewExam() {
         {/* Form Inputs Row */}
         <div className="grid gap-4 md:grid-cols-2">
           {/* Exam Title */}
-          <div>
+          <div className="flex flex-col gap-4">
             <div className="space-y-2">
               <Label htmlFor="examTitle">اسم الامتحان *</Label>
               <Input

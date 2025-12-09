@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
-import Header from "./header";
+import Header from "./Header";
 import Footer from "./Footer";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
@@ -45,4 +45,3 @@ export function MainLayout({ children, className }: MainLayoutProps) {
     </SidebarProvider>
   );
 }
-

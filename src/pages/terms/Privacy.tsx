@@ -134,8 +134,8 @@ export default function Privacy() {
               <CardContent>
                 <p className="text-muted-foreground leading-relaxed">
                   نحن ملتزمون بحماية خصوصية طلابنا ومعلمينا وفقًا لنظام حماية
-                  البيانات الشخصية في المملكة العربية السعودية. نؤمن بأهمية حماية
-                  معلوماتك الشخصية ونعمل بجد لضمان أمانها.
+                  البيانات الشخصية في المملكة العربية السعودية. نؤمن بأهمية
+                  حماية معلوماتك الشخصية ونعمل بجد لضمان أمانها.
                 </p>
               </CardContent>
             </Card>
@@ -192,14 +192,16 @@ export default function Privacy() {
                     للتواصل بخصوص الخصوصية
                   </h3>
                   <p className="text-muted-foreground mb-3">
-                    إذا كان لديك أي استفسار أو طلب بخصوص بياناتك الشخصية أو سياسة
-                    الخصوصية، يرجى التواصل معنا عبر:
+                    إذا كان لديك أي استفسار أو طلب بخصوص بياناتك الشخصية أو
+                    سياسة الخصوصية، يرجى التواصل معنا عبر:
                   </p>
                   <a
-                    href="mailto:privacy@examsystem.sa"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    href="https://api.whatsapp.com/send/?phone=966553576290&text&type=phone_number&app_absent=0"
                     className="inline-block font-medium text-primary hover:underline"
                   >
-                    privacy@examsystem.sa
+                    +966 55 357 6290
                   </a>
                   <p className="mt-4 text-sm text-muted-foreground italic">
                     جزاكم الله خيرًا على ثقتكم بنا.

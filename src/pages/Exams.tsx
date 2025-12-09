@@ -110,7 +110,7 @@ export default function Exams() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Upload Exam Card */}
           <Card
-            className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+            className="cursor-pointer transition-all hover:shadow-lg hover:bg-accent"
             onClick={() => navigate("/exams/new")}
           >
             <CardHeader>
@@ -127,7 +127,7 @@ export default function Exams() {
               </div>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
+              <Button className="w-full">
                 <Plus className="h-4 w-4 ml-2" />
                 رفع امتحان جديد
               </Button>
@@ -136,7 +136,7 @@ export default function Exams() {
 
           {/* Generate and Download Papers Card */}
           <Card
-            className="cursor-pointer transition-all hover:shadow-lg hover:border-primary/50"
+            className="cursor-pointer transition-all hover:shadow-lg hover:bg-accent"
             onClick={() => setIsGenerateDialogOpen(true)}
           >
             <CardHeader>
@@ -153,7 +153,7 @@ export default function Exams() {
               </div>
             </CardHeader>
             <CardContent>
-              <Button className="w-full" variant="outline">
+              <Button className="w-full">
                 <Download className="h-4 w-4 ml-2" />
                 إنشاء وتحميل أوراق PDF
               </Button>

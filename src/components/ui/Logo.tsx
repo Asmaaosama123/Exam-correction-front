@@ -37,11 +37,11 @@ export default function Logo({
       />
       {showText && (
         <div className="flex flex-col">
-          <span className="text-sm font-semibold text-foreground">
-            نظام إدارة الامتحانات
+          <span className="text-sm font-bold text-foreground">
+            وسيلة | تصحيح الامتحانات
           </span>
           <span className="text-xs text-muted-foreground">
-            Exam Management System
+            Wsylh | Grading System
           </span>
         </div>
       )}

@@ -99,7 +99,7 @@ export default function Home() {
                 <Logo size="3xl" />
               </div>
               <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
-                نظام إدارة الامتحانات الذكي
+                وسيلة | تصحيح الامتحانات
               </h1>
               <p className="mb-10 text-xl text-muted-foreground sm:text-2xl">
                 حل متكامل لإدارة وتصحيح الامتحانات باستخدام الذكاء الاصطناعي

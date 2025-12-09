@@ -43,7 +43,7 @@ const menuItems = [
   {
     title: "اعداد الاختبارات",
     icon: FileText,
-    href: "https://www.example.com",
+    href: "https://exams.wsyelhi.com",
   },
   {
     title: "الاختبارات",
@@ -78,6 +78,11 @@ export function AppSidebar({ className }: AppSidebarProps) {
   }, [location.pathname, activeItem]);
 
   const handleClick = (href: string) => {
+    // Check if it's an external URL
+    if (href.startsWith("http://") || href.startsWith("https://")) {
+      window.open(href, "_blank", "noopener,noreferrer");
+      return;
+    }
     setActiveItem(href);
     navigate(href);
   };

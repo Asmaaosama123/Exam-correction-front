@@ -7,7 +7,7 @@
 
 export interface Student {
   id: string;
-  nationalId: string;
+  nationalId?: string | null;
   fullName: string;
   email: string | null;
   mobileNumber: string | null;
@@ -32,14 +32,14 @@ export interface GetStudentRequest {
 
 export interface AddStudentRequest {
   fullName: string;
-  nationalId: string;
+  nationalId?: string | null;
   email?: string | null;
   mobileNumber?: string | null;
 }
 
 export interface UpdateStudentRequest {
   fullName: string;
-  nationalId: string;
+  nationalId?: string | null;
   email?: string | null;
   mobileNumber?: string | null;
   classId: string;
@@ -56,11 +56,17 @@ export interface GetStudentsResponse {
   hasNextPage: boolean;
 }
 
-export interface GetStudentResponse extends Student {}
+export interface GetStudentResponse extends Student {
+  nationalId?: string | null;
+}
 
-export interface AddStudentResponse extends Student {}
+export interface AddStudentResponse extends Student {
+  nationalId?: string | null;
+}
 
-export interface UpdateStudentResponse extends Student {}
+export interface UpdateStudentResponse extends Student {
+  nationalId?: string | null;
+}
 
 export interface DeleteStudentResponse {
   success: boolean;
@@ -87,4 +93,3 @@ export enum StudentErrorCode {
   NotAllowedExtension = "File.NotAllowedExtension",
   MaxFileSize = "File.MaxFileSize",
 }
-

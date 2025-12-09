@@ -165,7 +165,10 @@ export function StudentFormDialog({
       // For update, include classId and isDisabled in the request body
       const updateData: UpdateStudentRequest = {
         fullName: formData.fullName,
-        nationalId: formData.nationalId.trim(),
+        nationalId:
+          formData.nationalId && formData.nationalId.trim() !== ""
+            ? formData.nationalId.trim()
+            : null,
         email:
           formData.email && formData.email.trim() !== ""
             ? formData.email.trim()
@@ -194,7 +197,10 @@ export function StudentFormDialog({
       // For add, use AddStudentRequest (no classId or isDisabled in body)
       const addData: AddStudentRequest = {
         fullName: formData.fullName,
-        nationalId: formData.nationalId.trim(),
+        nationalId:
+          formData.nationalId && formData.nationalId.trim() !== ""
+            ? formData.nationalId.trim()
+            : null,
         email:
           formData.email && formData.email.trim() !== ""
             ? formData.email.trim()
@@ -334,7 +340,6 @@ export function StudentFormDialog({
                     "pr-10",
                     nationalIdErrors.length > 0 && "border-destructive"
                   )}
-                  required
                   disabled={isPending}
                 />
               </div>

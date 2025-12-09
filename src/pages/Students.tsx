@@ -362,7 +362,7 @@ export default function Students() {
                             <td className="p-4">
                               <div className="flex items-center gap-2 text-sm">
                                 <CreditCard className="h-3 w-3 text-muted-foreground" />
-                                {student.nationalId || "-"}
+                                {student.nationalId || "لا يوجد"}
                               </div>
                             </td>
                             <td className="p-4">

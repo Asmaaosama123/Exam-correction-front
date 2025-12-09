@@ -24,7 +24,14 @@ import { useGetClasses, useDeleteClass } from "@/hooks/use-classes";
 import { ClassFormDialog } from "@/components/classes/ClassFormDialog";
 import { DeleteClassDialog } from "@/components/classes/DeleteClassDialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatArabicDate } from "@/lib/utils";
+const formatClassDate = (value: string) =>
+  new Date(value).toLocaleDateString("ar-SA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 export default function Classes() {
   const [searchValue, setSearchValue] = useState("");
@@ -267,7 +274,7 @@ export default function Classes() {
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             <span>
-                              {formatArabicDate(new Date(classItem.createdAt))}
+                              {formatClassDate(classItem.createdAt)}
                             </span>
                           </div>
                         </CardContent>
@@ -312,9 +319,7 @@ export default function Classes() {
                             </td>
                             <td className="p-4">
                               <span className="text-xs text-muted-foreground">
-                                {formatArabicDate(
-                                  new Date(classItem.createdAt)
-                                )}
+                                {formatClassDate(classItem.createdAt)}
                               </span>
                             </td>
                             <td className="p-4">

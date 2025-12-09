@@ -1,14 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  LogIn,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
+import { LogIn, Lock, Eye, EyeOff, Loader2, AlertCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +21,7 @@ import Logo from "@/components/ui/Logo";
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    email: "",
+    phoneNumber: "",
     password: "",
   });
 
@@ -50,7 +42,7 @@ export default function Login() {
   }, []);
 
   // Get field-specific errors
-  const emailErrors = getFieldErrors(error, "email");
+  const phoneNumberErrors = getFieldErrors(error, "phoneNumber");
   const passwordErrors = getFieldErrors(error, "password");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,39 +69,38 @@ export default function Login() {
             <CardHeader>
               <CardTitle>مرحباً بعودتك</CardTitle>
               <CardDescription>
-                أدخل بريدك الإلكتروني وكلمة المرور للمتابعة
+                أدخل رقم الجوال وكلمة المرور للمتابعة
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Email Field */}
+                {/* Phone Number Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="email">البريد الإلكتروني</Label>
+                  <Label htmlFor="phoneNumber">رقم الجوال</Label>
                   <div className="relative">
-                    <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      autoComplete="email"
-                      id="email"
-                      type="email"
-                      placeholder="example@email.com"
-                      value={formData.email}
+                      autoComplete="tel"
+                      id="phoneNumber"
+                      type="tel"
+                      placeholder="05XXXXXXXX"
+                      value={formData.phoneNumber}
                       onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
+                        setFormData({ ...formData, phoneNumber: e.target.value })
                       }
                       className={cn(
                         "pr-10",
-                        emailErrors.length > 0 && "border-destructive"
+                        phoneNumberErrors.length > 0 && "border-destructive"
                       )}
                       required
-                      dir="ltr"
                       disabled={loginMutation.isPending}
                     />
                   </div>
-                  {emailErrors.length > 0 && (
+                  {phoneNumberErrors.length > 0 && (
                     <div className="flex items-start gap-2 text-sm text-destructive">
                       <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                       <div className="flex flex-col gap-1">
-                        {emailErrors.map((err, idx) => (
+                        {phoneNumberErrors.map((err, idx) => (
                           <span key={idx}>{err}</span>
                         ))}
                       </div>

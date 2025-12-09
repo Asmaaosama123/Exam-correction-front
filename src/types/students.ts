@@ -7,11 +7,13 @@
 
 export interface Student {
   id: string;
+  nationalId: string;
   fullName: string;
   email: string | null;
   mobileNumber: string | null;
   className?: string;
   isDisabled?: boolean;
+  createdAt?: string;
 }
 
 // ==================== Request Types ====================
@@ -30,12 +32,14 @@ export interface GetStudentRequest {
 
 export interface AddStudentRequest {
   fullName: string;
+  nationalId: string;
   email?: string | null;
   mobileNumber?: string | null;
 }
 
 export interface UpdateStudentRequest {
   fullName: string;
+  nationalId: string;
   email?: string | null;
   mobileNumber?: string | null;
   classId: string;

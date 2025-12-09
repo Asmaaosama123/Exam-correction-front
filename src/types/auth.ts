@@ -1,12 +1,12 @@
 export interface RegisterRequest {
-  email: string;
+  phoneNumber: string;
   password: string;
   firstName: string;
   lastName: string;
 }
 
 export interface LoginRequest {
-  email: string;
+  phoneNumber: string;
   password: string;
 }
 
@@ -22,6 +22,7 @@ export interface AuthResponse {
   refreshToken?: string;
   expiresIn?: number;
   id?: string;
+  phoneNumber?: string;
   email?: string;
   firstName?: string;
   lastName?: string;
@@ -58,7 +59,8 @@ export type ApiErrorResponse = ValidationErrorResponse | LegacyApiErrorResponse;
 
 export interface User {
   id: string;
-  email: string;
+  phoneNumber: string;
+  email?: string | null;
   firstName: string;
   lastName: string;
   emailVerified?: boolean;

@@ -58,7 +58,9 @@ export default function Header({
                 <Button variant="ghost" size="sm" className="gap-2">
                   <User className="h-4 w-4" />
                   <span className="hidden md:inline">
-                    {joinFullName(user.firstName, user.lastName) || user.email}
+                    {joinFullName(user.firstName, user.lastName) ||
+                      user.phoneNumber ||
+                      ""}
                   </span>
                 </Button>
               </DropdownMenuTrigger>
@@ -66,10 +68,12 @@ export default function Header({
                 <DropdownMenuLabel>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">
-                      {joinFullName(user.firstName, user.lastName) || user.email}
+                      {joinFullName(user.firstName, user.lastName) ||
+                        user.phoneNumber ||
+                        ""}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
+                      {user.phoneNumber}
                     </p>
                   </div>
                 </DropdownMenuLabel>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, startTransition } from "react";
-import { User, Mail, Phone, Loader2, AlertCircle } from "lucide-react";
+import { User, Mail, Phone, Loader2, AlertCircle, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,11 +50,13 @@ export function StudentFormDialog({
   );
   const [formData, setFormData] = useState<{
     fullName: string;
+    nationalId: string;
     email: string;
     mobileNumber: string;
     isDisabled: boolean;
   }>({
     fullName: "",
+    nationalId: "",
     email: "",
     mobileNumber: "",
     isDisabled: false,
@@ -117,6 +119,7 @@ export function StudentFormDialog({
           hasInitializedForm.current = true;
           setFormData({
             fullName: studentData.fullName,
+            nationalId: studentData.nationalId || "",
             email: studentData.email || "",
             mobileNumber: studentData.mobileNumber || "",
             isDisabled: studentData.isDisabled ?? false,
@@ -125,6 +128,7 @@ export function StudentFormDialog({
           hasInitializedForm.current = true;
           setFormData({
             fullName: "",
+            nationalId: "",
             email: "",
             mobileNumber: "",
             isDisabled: false,
@@ -144,6 +148,7 @@ export function StudentFormDialog({
 
   // Get field-specific errors
   const fullNameErrors = getFieldErrors(error, "fullName");
+  const nationalIdErrors = getFieldErrors(error, "nationalId");
   const emailErrors = getFieldErrors(error, "email");
   const mobileNumberErrors = getFieldErrors(error, "mobileNumber");
   const classIdErrors = getFieldErrors(error, "classId");
@@ -160,6 +165,7 @@ export function StudentFormDialog({
       // For update, include classId and isDisabled in the request body
       const updateData: UpdateStudentRequest = {
         fullName: formData.fullName,
+        nationalId: formData.nationalId.trim(),
         email:
           formData.email && formData.email.trim() !== ""
             ? formData.email.trim()
@@ -188,6 +194,7 @@ export function StudentFormDialog({
       // For add, use AddStudentRequest (no classId or isDisabled in body)
       const addData: AddStudentRequest = {
         fullName: formData.fullName,
+        nationalId: formData.nationalId.trim(),
         email:
           formData.email && formData.email.trim() !== ""
             ? formData.email.trim()
@@ -303,6 +310,39 @@ export function StudentFormDialog({
                   <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                   <div className="flex flex-col gap-1">
                     {fullNameErrors.map((err, idx) => (
+                      <span key={idx}>{err}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* National ID Field */}
+            <div className="space-y-2">
+              <Label htmlFor="nationalId">الرقم الوطني</Label>
+              <div className="relative">
+                <CreditCard className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="nationalId"
+                  type="text"
+                  placeholder="أدخل الرقم الوطني"
+                  value={formData.nationalId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, nationalId: e.target.value })
+                  }
+                  className={cn(
+                    "pr-10",
+                    nationalIdErrors.length > 0 && "border-destructive"
+                  )}
+                  required
+                  disabled={isPending}
+                />
+              </div>
+              {nationalIdErrors.length > 0 && (
+                <div className="flex items-start gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  <div className="flex flex-col gap-1">
+                    {nationalIdErrors.map((err, idx) => (
                       <span key={idx}>{err}</span>
                     ))}
                   </div>

@@ -37,7 +37,7 @@ export function useRegister() {
   return useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
     onSuccess: () => {
-      // Registration doesn't automatically log in - user needs to verify email first
+      // Registration doesn't automatically log in - user needs to log in after signup
       toast.success("تم إنشاء الحساب بنجاح");
       navigate("/login");
     },
@@ -88,6 +88,7 @@ export function useLogin() {
       // This ensures AuthGuard sees the user immediately after navigation
       const userData = {
         id: userResponse.id,
+        phoneNumber: userResponse.phoneNumber || "",
         email: userResponse.email || "",
         firstName: userResponse.firstName || "",
         lastName: userResponse.lastName || "",
@@ -101,7 +102,7 @@ export function useLogin() {
         userResponse.lastName
       );
       toast.success("تم تسجيل الدخول بنجاح", {
-        description: `مرحباً ${fullName || userResponse.email || ""}`,
+        description: `مرحباً ${fullName || userResponse.phoneNumber || ""}`,
       });
 
       // Step 4: Navigate to dashboard or return to last location
@@ -186,6 +187,7 @@ export function useAuth() {
 
         return {
           id: response.id,
+          phoneNumber: response.phoneNumber || "",
           email: response.email || "",
           firstName: response.firstName || "",
           lastName: response.lastName || "",
@@ -207,7 +209,8 @@ export function useAuth() {
         // This prevents clearing auth state if there's a temporary network issue
         const cachedData = queryClient.getQueryData<{
           id: string;
-          email: string;
+          phoneNumber: string;
+          email?: string | null;
           firstName: string;
           lastName: string;
           isAuthenticated: boolean;

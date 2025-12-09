@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   UserPlus,
-  Mail,
   Lock,
   Eye,
   EyeOff,
   User,
   Loader2,
   AlertCircle,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
-    email: "",
+    phoneNumber: "",
     password: "",
   });
 
@@ -42,14 +42,18 @@ export default function Register() {
   const firstNameErrors = getFieldErrors(error, "firstName");
   const lastNameErrors = getFieldErrors(error, "lastName");
   const fullNameErrors = [...firstNameErrors, ...lastNameErrors];
-  const emailErrors = getFieldErrors(error, "email");
+  const phoneNumberErrors = getFieldErrors(error, "phoneNumber");
   const passwordErrors = getFieldErrors(error, "password");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Transform fullName to firstName/lastName before sending
-    const transformedData = transformFullNameToSplit(formData);
-    await registerMutation.mutateAsync(transformedData);
+    const transformedName = transformFullNameToSplit(formData);
+    await registerMutation.mutateAsync({
+      ...transformedName,
+      phoneNumber: formData.phoneNumber,
+      password: formData.password,
+    });
   };
 
   return (
@@ -104,33 +108,32 @@ export default function Register() {
                   )}
                 </div>
 
-                {/* Email Field */}
+                {/* Phone Number Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="email">البريد الإلكتروني</Label>
+                  <Label htmlFor="phoneNumber">رقم الجوال</Label>
                   <div className="relative">
-                    <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="example@email.com"
-                      value={formData.email}
+                      id="phoneNumber"
+                      type="tel"
+                      placeholder="05XXXXXXXX"
+                      value={formData.phoneNumber}
                       onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
+                        setFormData({ ...formData, phoneNumber: e.target.value })
                       }
                       className={cn(
                         "pr-10",
-                        emailErrors.length > 0 && "border-destructive"
+                        phoneNumberErrors.length > 0 && "border-destructive"
                       )}
                       required
-                      dir="ltr"
                       disabled={registerMutation.isPending}
                     />
                   </div>
-                  {emailErrors.length > 0 && (
+                  {phoneNumberErrors.length > 0 && (
                     <div className="flex items-start gap-2 text-sm text-destructive">
                       <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                       <div className="flex flex-col gap-1">
-                        {emailErrors.map((err, idx) => (
+                        {phoneNumberErrors.map((err, idx) => (
                           <span key={idx}>{err}</span>
                         ))}
                       </div>

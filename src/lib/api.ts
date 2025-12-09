@@ -170,11 +170,12 @@ function extractApiError(error: unknown): ApiErrorResponse | null {
     typeof error === "object" &&
     error !== null &&
     "response" in error &&
-    typeof (error as any).response === "object" &&
-    (error as any).response !== null &&
-    "data" in (error as any).response
+    typeof (error as unknown as { response: unknown }).response === "object" &&
+    (error as unknown as { response: unknown }).response !== null &&
+    "data" in (error as unknown as { response: { data: unknown } }).response
   ) {
-    const errorData = (error as any).response.data;
+    const errorData = (error as unknown as { response: { data: unknown } })
+      .response.data;
     if (isApiErrorResponse(errorData)) {
       return errorData;
     }
@@ -268,6 +269,12 @@ function mapErrorCodeToField(errorCode: string): string | null {
   }
   if (code.includes("mobilenumber") || code.includes("mobile_number")) {
     return "mobileNumber";
+  }
+  if (code.includes("phonenumber") || code.includes("phone_number")) {
+    return "phoneNumber";
+  }
+  if (code.includes("nationalid") || code.includes("national_id")) {
+    return "nationalId";
   }
   if (code.includes("classid") || code.includes("class_id")) {
     return "classId";

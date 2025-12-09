@@ -68,7 +68,9 @@ export default function Home() {
           <div className="mx-auto w-full max-w-4xl text-center">
             <h1 className="text-4xl font-bold text-foreground sm:text-5xl">
               مرحباً{" "}
-              {joinFullName(user.firstName, user.lastName) || user.email || ""}
+              {joinFullName(user.firstName, user.lastName) ||
+                user.phoneNumber ||
+                ""}
             </h1>
             <p className="mt-4 text-lg text-muted-foreground sm:text-xl">
               نظام متكامل لإدارة وتصحيح الامتحانات باستخدام الذكاء الاصطناعي

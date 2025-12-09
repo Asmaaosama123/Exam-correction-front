@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  CreditCard,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,6 +68,7 @@ export default function Students() {
   }, [searchValue]);
 
   // Reset to first page when page size changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setPageNumber(1);
   }, [pageSize]);
@@ -268,7 +271,7 @@ export default function Students() {
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="ابحث عن طالب بالاسم أو البريد الإلكتروني أو رقم الهاتف..."
+                  placeholder="ابحث عن طالب بالاسم أو الرقم الوطني أو البريد الإلكتروني أو رقم الهاتف..."
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   className="pr-10"
@@ -283,6 +286,10 @@ export default function Students() {
                   <div key={i} className="flex gap-4">
                     <Skeleton className="h-12 flex-1" />
                     <Skeleton className="h-12 flex-1" />
+                    <Skeleton className="h-12 flex-1" />
+                    <Skeleton className="h-12 flex-1" />
+                    <Skeleton className="h-12 flex-1" />
+                    <Skeleton className="h-12 w-24" />
                     <Skeleton className="h-12 flex-1" />
                     <Skeleton className="h-12 w-24" />
                   </div>
@@ -304,6 +311,9 @@ export default function Students() {
                           الاسم
                         </th>
                         <th className="text-right p-4 text-sm font-medium text-muted-foreground">
+                          الرقم الوطني
+                        </th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">
                           البريد الإلكتروني
                         </th>
                         <th className="text-right p-4 text-sm font-medium text-muted-foreground">
@@ -316,70 +326,101 @@ export default function Students() {
                           الحالة
                         </th>
                         <th className="text-right p-4 text-sm font-medium text-muted-foreground">
+                          تاريخ الإضافة
+                        </th>
+                        <th className="text-right p-4 text-sm font-medium text-muted-foreground">
                           الإجراءات
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {data?.items.map((student) => (
-                        <tr
-                          key={student.id}
-                          className="border-b transition-colors hover:bg-accent/50"
-                        >
-                          <td className="p-4">
-                            <div className="font-medium">
-                              {student.fullName}
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Mail className="h-3 w-3" />
-                              {student.email || "لا يوجد"}
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Phone className="h-3 w-3" />
-                              {student.mobileNumber || "لا يوجد"}
-                            </div>
-                          </td>
-                          <td className="p-4 text-sm">
-                            {student.className || "-"}
-                          </td>
-                          <td className="p-4">
-                            {student.isDisabled ? (
-                              <span className="inline-flex items-center rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
-                                معطل
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-600">
-                                نشط
-                              </span>
-                            )}
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(student.id)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() =>
-                                  handleDelete(student.id, student.className)
-                                }
-                                disabled={deleteMutation.isPending}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {data?.items.map((student) => {
+                        // Format createdAt date
+                        const formattedDate = student.createdAt
+                          ? new Date(student.createdAt).toLocaleDateString(
+                              "ar-SA",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )
+                          : "-";
+
+                        return (
+                          <tr
+                            key={student.id}
+                            className="border-b transition-colors hover:bg-accent/50"
+                          >
+                            <td className="p-4">
+                              <div className="font-medium">
+                                {student.fullName}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2 text-sm">
+                                <CreditCard className="h-3 w-3 text-muted-foreground" />
+                                {student.nationalId || "-"}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Mail className="h-3 w-3" />
+                                {student.email || "لا يوجد"}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Phone className="h-3 w-3" />
+                                {student.mobileNumber || "لا يوجد"}
+                              </div>
+                            </td>
+                            <td className="p-4 text-sm">
+                              {student.className || "-"}
+                            </td>
+                            <td className="p-4">
+                              {student.isDisabled ? (
+                                <span className="inline-flex items-center rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
+                                  معطل
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-600">
+                                  نشط
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Calendar className="h-3 w-3" />
+                                {formattedDate}
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEdit(student.id)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() =>
+                                    handleDelete(student.id, student.className)
+                                  }
+                                  disabled={deleteMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -405,7 +446,10 @@ export default function Students() {
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <Label htmlFor="page-size" className="text-sm text-muted-foreground">
+                        <Label
+                          htmlFor="page-size"
+                          className="text-sm text-muted-foreground"
+                        >
                           عدد العناصر:
                         </Label>
                         <Select
@@ -433,7 +477,9 @@ export default function Students() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
+                          onClick={() =>
+                            setPageNumber((p) => Math.max(1, p - 1))
+                          }
                           disabled={!data?.hasPreviouspage || isLoading}
                         >
                           <ChevronRight className="h-4 w-4 ml-2" />

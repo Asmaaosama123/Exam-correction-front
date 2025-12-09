@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import axios from "axios";
 import { authApi } from "@/lib/auth-api";
 import { getErrorMessage, getAllFieldErrors } from "@/lib/api";
 import { joinFullName } from "@/lib/name-utils";
@@ -61,19 +62,26 @@ export function useLogin() {
       // Step 1: Call /Auth endpoint
       const loginResponse = await authApi.login(data);
 
-      // Step 2: Save tokens using authManager
-      if (loginResponse.token && loginResponse.refreshToken) {
-        authManager.setTokens(loginResponse.token, loginResponse.refreshToken);
-      } else if (loginResponse.token) {
-        tokenStorage.setToken(loginResponse.token);
-      } else if (loginResponse.refreshToken) {
-        tokenStorage.setRefreshToken(loginResponse.refreshToken);
+      // Step 2: Validate and save tokens using authManager
+      // Both tokens are required for proper authentication
+      if (!loginResponse.token || !loginResponse.refreshToken) {
+        throw new Error(
+          "Invalid login response: both access token and refresh token are required"
+        );
       }
 
-      // Step 3: Fetch /api/profile/current to get user data
-      const userResponse = await authApi.getMe();
+      authManager.setTokens(loginResponse.token, loginResponse.refreshToken);
 
-      return { loginResponse, userResponse };
+      // Step 3: Fetch /api/profile/current to get user data
+      // If this fails, clear tokens to prevent inconsistent state
+      try {
+        const userResponse = await authApi.getMe();
+        return { loginResponse, userResponse };
+      } catch (error) {
+        // If getMe fails, clear tokens and rethrow to prevent partial login state
+        authManager.clearTokens();
+        throw error;
+      }
     },
     onSuccess: ({ userResponse }) => {
       // Set user data directly in query cache to prevent race condition
@@ -183,8 +191,19 @@ export function useAuth() {
           lastName: response.lastName || "",
           isAuthenticated: true,
         };
-      } catch {
-        // If /api/profile/current fails, check if we have cached data
+      } catch (error) {
+        // Check if it's an authentication error (401/403) vs network error
+        const isAuthError =
+          axios.isAxiosError(error) &&
+          (error.response?.status === 401 || error.response?.status === 403);
+
+        if (isAuthError) {
+          // Authentication error - clear tokens and return null
+          authManager.clearTokens();
+          return null;
+        }
+
+        // Network error or other error - check if we have cached data
         // This prevents clearing auth state if there's a temporary network issue
         const cachedData = queryClient.getQueryData<{
           id: string;
@@ -194,15 +213,9 @@ export function useAuth() {
           isAuthenticated: boolean;
         }>(["auth", "user"]);
 
-        // Only clear tokens if we don't have cached data (real auth failure)
-        // If we have cached data, it might be a temporary network issue
-        if (!cachedData) {
-          authManager.clearTokens();
-          return null;
-        }
-
-        // Return cached data if available (might be temporary network issue)
-        return cachedData;
+        // Only return cached data if available (might be temporary network issue)
+        // If no cached data, return null to indicate unauthenticated state
+        return cachedData || null;
       }
     },
     retry: false, // Don't retry on failure - let interceptor handle 401

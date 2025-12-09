@@ -23,38 +23,23 @@ class AuthManager {
   private requestQueue: QueuedRequest[] = [];
   private isRefreshing = false;
 
-  /**
-   * Get access token from storage
-   */
   getAccessToken(): string | null {
     return localStorage.getItem(STORAGE_KEYS.TOKEN);
   }
 
-  /**
-   * Get refresh token from storage
-   */
   getRefreshToken(): string | null {
     return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
   }
 
-  /**
-   * Check if user has valid tokens
-   */
   hasTokens(): boolean {
     return !!(this.getAccessToken() && this.getRefreshToken());
   }
 
-  /**
-   * Set tokens in storage
-   */
   setTokens(token: string, refreshToken: string): void {
     localStorage.setItem(STORAGE_KEYS.TOKEN, token);
     localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
   }
 
-  /**
-   * Clear all tokens from storage
-   */
   clearTokens(): void {
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
@@ -77,8 +62,14 @@ class AuthManager {
     const currentToken = this.getAccessToken();
     const refreshToken = this.getRefreshToken();
 
-    // If no tokens, cannot refresh
-    if (!refreshToken || !currentToken) {
+    // Only refresh token is required for refresh
+    // Current token might be expired, but we still need it to send to backend
+    if (!refreshToken) {
+      return null;
+    }
+
+    // If no current token, cannot refresh (backend requires both)
+    if (!currentToken) {
       return null;
     }
 
@@ -170,44 +161,61 @@ class AuthManager {
   }
 
   /**
-   * Handle logout - clear tokens and redirect to login
+   * Handle logout - clear tokens and optionally redirect to login
+   *
+   * Note: This method uses window.location.href for redirects because it's called
+   * from the axios interceptor which doesn't have React Router access. Components
+   * should use the useLogout hook instead, which handles navigation via React Router.
+   *
+   * @param redirectToLogin - If true, redirects to login page. Defaults to true.
+   *                         Set to false when calling from React components that handle navigation themselves.
    */
   logout(redirectToLogin = true): void {
     this.clearTokens();
-    
+
     if (redirectToLogin) {
       const currentPath = window.location.pathname;
+      // Only redirect if not already on auth pages to avoid unnecessary navigation
       if (currentPath !== "/login" && currentPath !== "/register") {
         sessionStorage.setItem("returnUrl", currentPath);
         sessionStorage.setItem("showUnauthorizedToast", "true");
       }
+      // Use window.location.href here because this is called from axios interceptor
+      // which doesn't have React Router context. Components should use useLogout hook.
       window.location.href = "/login";
     }
   }
 
   /**
    * Check if a request URL should skip token refresh
+   * Auth endpoints (login, register, refresh-token) should not trigger token refresh
    */
-  shouldSkipRefresh(url: string | undefined, method: string | undefined): boolean {
+  shouldSkipRefresh(
+    url: string | undefined,
+    method: string | undefined
+  ): boolean {
     if (!url) return false;
 
     const normalizedUrl = url.toLowerCase();
     const normalizedMethod = method?.toLowerCase() || "";
 
-    // Skip refresh for login endpoint
+    // Skip refresh for login endpoint (POST /auth or POST /Auth)
     const isLoginEndpoint =
       (normalizedUrl.endsWith("/auth") || normalizedUrl.endsWith("/auth/")) &&
       normalizedMethod === "post";
+
+    // Skip refresh for register endpoint (POST /auth/register)
+    const isRegisterEndpoint =
+      normalizedUrl.includes("/auth/register") && normalizedMethod === "post";
 
     // Skip refresh for refresh-token endpoint itself
     const isRefreshEndpoint =
       normalizedUrl.includes("/auth/refresh-token") ||
       normalizedUrl.includes("/auth/refresh-token/");
 
-    return isLoginEndpoint || isRefreshEndpoint;
+    return isLoginEndpoint || isRegisterEndpoint || isRefreshEndpoint;
   }
 }
 
 // Export singleton instance
 export const authManager = new AuthManager();
-

@@ -108,7 +108,7 @@ export function GradingResultsTable() {
         <div className="grid gap-4 md:grid-cols-3">
           {/* Exam Filter */}
           <div className="space-y-2">
-            <Label htmlFor="exam-filter">تصفية حسب الامتحان</Label>
+            <Label htmlFor="exam-filter">تصفية حسب الاختبار</Label>
             <Select
               value={selectedExamId || "all"}
               onValueChange={(value) => {
@@ -117,7 +117,7 @@ export function GradingResultsTable() {
               disabled={isLoadingExams}
             >
               <SelectTrigger id="exam-filter">
-                <SelectValue placeholder="جميع الامتحانات" />
+                <SelectValue placeholder="جميع الاختبارات" />
               </SelectTrigger>
               <SelectContent>
                 {isLoadingExams ? (
@@ -126,7 +126,7 @@ export function GradingResultsTable() {
                   </div>
                 ) : (
                   <>
-                    <SelectItem value="all">جميع الامتحانات</SelectItem>
+                    <SelectItem value="all">جميع الاختبارات</SelectItem>
                     {examsData && examsData.length > 0 ? (
                       examsData.map((exam) => (
                         <SelectItem key={exam.id} value={String(exam.id)}>
@@ -135,7 +135,7 @@ export function GradingResultsTable() {
                       ))
                     ) : (
                       <div className="p-2 text-sm text-muted-foreground">
-                        لا توجد امتحانات متاحة
+                        لا توجد اختبارات متاحة
                       </div>
                     )}
                   </>
@@ -189,7 +189,7 @@ export function GradingResultsTable() {
               <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="search"
-                placeholder="ابحث عن امتحان أو طالب..."
+                placeholder="ابحث عن اختبار أو طالب..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
                 className="pr-10"
@@ -227,7 +227,7 @@ export function GradingResultsTable() {
                       اسم الطالب
                     </th>
                     <th className="text-right p-4 text-sm font-medium text-muted-foreground">
-                      الامتحان
+                      الاختبار
                     </th>
                     <th className="text-right p-4 text-sm font-medium text-muted-foreground">
                       المادة

@@ -36,19 +36,19 @@ export function useUploadExam() {
       queryClient.invalidateQueries({ queryKey: ["exams"] });
       // API returns success status or error message
       if (response.success !== false) {
-        toast.success("تم رفع الامتحان بنجاح", {
-          description: response.message || "تم حفظ الامتحان بنجاح",
+        toast.success("تم رفع الاختبار بنجاح", {
+          description: response.message || "تم حفظ الاختبار بنجاح",
         });
       } else {
-        toast.error("فشل رفع الامتحان", {
-          description: response.message || "حدث خطأ أثناء رفع الامتحان",
+        toast.error("فشل رفع الاختبار", {
+          description: response.message || "حدث خطأ أثناء رفع الاختبار",
         });
       }
     },
     onError: (error) => {
       const fieldErrors = getAllFieldErrors(error);
       if (Object.keys(fieldErrors).length === 0) {
-        toast.error("فشل رفع الامتحان", {
+        toast.error("فشل رفع الاختبار", {
           description: getErrorMessage(error),
         });
       }
@@ -63,10 +63,10 @@ export function useDeleteExam() {
     mutationFn: (examId: string) => examsApi.deleteExam(examId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["exams"] });
-      toast.success("تم حذف الامتحان بنجاح");
+      toast.success("تم حذف الاختبار بنجاح");
     },
     onError: (error) => {
-      toast.error("فشل حذف الامتحان", {
+      toast.error("فشل حذف الاختبار", {
         description: getErrorMessage(error),
       });
     },

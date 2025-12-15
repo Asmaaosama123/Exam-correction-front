@@ -50,6 +50,6 @@ export function useGetGradingResults(params: GetGradingResultsRequest) {
     queryKey: ["grading", "results", params],
     queryFn: () => gradingApi.getGradingResults(params),
     staleTime: 30 * 1000, // 30 seconds - grading results change frequently
-    keepPreviousData: true, // Keep previous data while fetching new page
+    placeholderData: (previousData) => previousData, // Keep previous data while fetching new page
   });
 }

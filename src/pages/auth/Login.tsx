@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { LogIn, Lock, Eye, EyeOff, Loader2, AlertCircle, Phone } from "lucide-react";
+import {
+  LogIn,
+  Lock,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  Mail,
+  Phone,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +29,7 @@ import Logo from "@/components/ui/Logo";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isEmailLogin, setIsEmailLogin] = useState(false);
   const [formData, setFormData] = useState({
     phoneNumber: "",
     password: "",
@@ -47,8 +57,40 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const identifier = formData.phoneNumber.trim();
+
+    if (!identifier) {
+      toast.error("بيانات الدخول غير صحيحة", {
+        description: "يرجى إدخال بيانات الدخول",
+      });
+      return;
+    }
+
+    if (isEmailLogin) {
+      const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+      if (!isValidEmail) {
+        toast.error("بريد إلكتروني غير صحيح", {
+          description: "يرجى إدخال بريد إلكتروني صحيح",
+        });
+        return;
+      }
+    } else {
+      const isValidPhone = /^0?\d{8,15}$/.test(identifier);
+      if (!isValidPhone) {
+        toast.error("رقم جوال غير صحيح", {
+          description: "يرجى إدخال رقم جوال صحيح",
+        });
+        return;
+      }
+    }
+
     try {
-      await loginMutation.mutateAsync(formData);
+      await loginMutation.mutateAsync({
+        phoneNumber: identifier,
+        password: formData.password,
+        isEmail: isEmailLogin,
+      });
     } catch {
       // Error is handled by the mutation's onError callback
       // This catch prevents the form from submitting and causing a page reload
@@ -69,24 +111,68 @@ export default function Login() {
             <CardHeader>
               <CardTitle>مرحباً بعودتك</CardTitle>
               <CardDescription>
-                أدخل رقم الجوال وكلمة المرور للمتابعة
+                أدخل بيانات الدخول وكلمة المرور للمتابعة
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Phone Number Field */}
+                {/* Login Mode Switch */}
+                <div className="flex justify-center">
+                  <div className="inline-flex items-center rounded-full bg-muted p-1 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setIsEmailLogin(true)}
+                      disabled={loginMutation.isPending}
+                      className={cn(
+                        "px-3 py-1 rounded-full transition-colors",
+                        isEmailLogin
+                          ? "bg-background text-primary shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      تسجيل باستخدام البريد الإلكتروني
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEmailLogin(false)}
+                      disabled={loginMutation.isPending}
+                      className={cn(
+                        "px-3 py-1 rounded-full transition-colors",
+                        !isEmailLogin
+                          ? "bg-background text-primary shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      تسجيل باستخدام رقم الجوال
+                    </button>
+                  </div>
+                </div>
+                {/* Email or Phone Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">رقم الجوال</Label>
+                  <Label htmlFor="phoneNumber">
+                    {isEmailLogin ? "البريد الإلكتروني" : "رقم الجوال"}
+                  </Label>
                   <div className="relative">
-                    <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-muted-foreground">
+                      {isEmailLogin ? (
+                        <Mail className="h-4 w-4" />
+                      ) : (
+                        <Phone className="h-4 w-4" />
+                      )}
+                    </div>
                     <Input
                       autoComplete="tel"
                       id="phoneNumber"
-                      type="tel"
-                      placeholder="05XXXXXXXX"
+                      type="text"
+                      placeholder={
+                        isEmailLogin ? "example@email.com" : "05XXXXXXXX"
+                      }
                       value={formData.phoneNumber}
                       onChange={(e) =>
-                        setFormData({ ...formData, phoneNumber: e.target.value })
+                        setFormData({
+                          ...formData,
+                          phoneNumber: e.target.value,
+                        })
                       }
                       className={cn(
                         "pr-10",

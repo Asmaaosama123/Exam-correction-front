@@ -378,7 +378,7 @@ export default function NewExam() {
               العودة
             </Button>
             <h1 className="text-3xl font-bold text-foreground">
-              رفع امتحان جديد
+              رفع اختبار جديد
             </h1>
           </div>
           <p className="text-muted-foreground">
@@ -391,12 +391,12 @@ export default function NewExam() {
           {/* Exam Title */}
           <div className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="examTitle">اسم الامتحان *</Label>
+              <Label htmlFor="examTitle">اسم الاختبار *</Label>
               <Input
                 id="examTitle"
                 value={examTitle}
                 onChange={(e) => setExamTitle(e.target.value)}
-                placeholder="مثال: امتحان الفصل الأول"
+                placeholder="مثال: اختبار الفصل الأول"
               />
             </div>
 
@@ -575,7 +575,7 @@ export default function NewExam() {
             ) : (
               <>
                 <Upload className="w-4 h-4 ml-2" />
-                رفع الامتحان
+                رفع الاختبار
               </>
             )}
           </Button>

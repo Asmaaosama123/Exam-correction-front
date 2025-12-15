@@ -82,9 +82,9 @@ export function GradePaperUpload() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>تصحيح ورقة امتحان</CardTitle>
+        <CardTitle>تصحيح ورقة اختبار</CardTitle>
         <CardDescription>
-          ارفع ورقة الامتحان الممسوحة ضوئياً وسيقوم النظام بقراءة الباركود
+          ارفع ورقة الاختبار الممسوحة ضوئياً وسيقوم النظام بقراءة الباركود
           وتصحيح الورقة تلقائياً
         </CardDescription>
       </CardHeader>

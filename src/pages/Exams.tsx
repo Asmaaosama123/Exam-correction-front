@@ -100,9 +100,9 @@ export default function Exams() {
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">الامتحانات</h1>
+          <h1 className="text-3xl font-bold text-foreground">الاختبارات</h1>
           <p className="text-muted-foreground mt-2">
-            رفع الامتحانات وإنشاء أوراق الطلاب
+            رفع الاختبارات وإنشاء أوراق الطلاب
           </p>
         </div>
 
@@ -119,7 +119,7 @@ export default function Exams() {
                   <Upload className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle>رفع امتحان جديد</CardTitle>
+                  <CardTitle>رفع اختبار جديد</CardTitle>
                   <CardDescription>
                     ارفع ورقة الأسئلة PDF واملأ المعلومات المطلوبة
                   </CardDescription>
@@ -129,7 +129,7 @@ export default function Exams() {
             <CardContent>
               <Button className="w-full">
                 <Plus className="h-4 w-4 ml-2" />
-                رفع امتحان جديد
+                رفع اختبار جديد
               </Button>
             </CardContent>
           </Card>
@@ -147,7 +147,7 @@ export default function Exams() {
                 <div className="flex-1">
                   <CardTitle>إنشاء وتحميل أوراق الطلاب</CardTitle>
                   <CardDescription>
-                    اختر الامتحان والفصل لإنشاء وتحميل أوراق الطلاب
+                    اختر الاختبار والفصل لإنشاء وتحميل أوراق الطلاب
                   </CardDescription>
                 </div>
               </div>
@@ -164,9 +164,9 @@ export default function Exams() {
         {/* Exams Table */}
         <Card>
           <CardHeader>
-            <CardTitle>قائمة الامتحانات</CardTitle>
+            <CardTitle>قائمة الاختبارات</CardTitle>
             <CardDescription>
-              عرض وإدارة جميع الامتحانات المسجلة
+              عرض وإدارة جميع الاختبارات المسجلة
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -175,7 +175,7 @@ export default function Exams() {
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="ابحث عن امتحان بالاسم أو المادة..."
+                  placeholder="ابحث عن اختبار بالاسم أو المادة..."
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   className="pr-10"
@@ -199,7 +199,7 @@ export default function Exams() {
             ) : examsError ? (
               <div className="py-12 text-center">
                 <p className="text-sm text-destructive">
-                  حدث خطأ أثناء تحميل الامتحانات. يرجى المحاولة مرة أخرى.
+                  حدث خطأ أثناء تحميل الاختبارات. يرجى المحاولة مرة أخرى.
                 </p>
               </div>
             ) : (
@@ -210,7 +210,7 @@ export default function Exams() {
                     <p className="text-sm text-muted-foreground">
                       {searchValue
                         ? "لا توجد نتائج للبحث"
-                        : "لا توجد امتحانات مسجلة"}
+                        : "لا توجد اختبارات مسجلة"}
                     </p>
                   </div>
                 ) : (
@@ -220,7 +220,7 @@ export default function Exams() {
                         <thead>
                           <tr className="border-b">
                             <th className="text-right p-4 text-sm font-medium text-muted-foreground">
-                              اسم الامتحان
+                              اسم الاختبار
                             </th>
                             <th className="text-right p-4 text-sm font-medium text-muted-foreground">
                               المادة
@@ -285,7 +285,7 @@ export default function Exams() {
                       <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
                         <div className="text-sm text-muted-foreground">
                           الصفحة {currentPage} من {totalPages} (
-                          {filteredExams.length} امتحان)
+                          {filteredExams.length} اختبار)
                         </div>
                         <div className="flex items-center gap-2">
                           <Button

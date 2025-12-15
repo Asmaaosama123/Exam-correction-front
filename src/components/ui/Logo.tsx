@@ -32,13 +32,13 @@ export default function Logo({
     <div className={cn("flex items-center gap-2", className)}>
       <img
         src={logoSrc}
-        alt="نظام إدارة الامتحانات"
+        alt="نظام إدارة الاختبارات"
         className={cn(sizeClass, "object-contain")}
       />
       {showText && (
         <div className="flex flex-col">
           <span className="text-sm font-bold text-foreground">
-            وسيلة | تصحيح الامتحانات
+            وسيلة | تصحيح الاختبارات
           </span>
           <span className="text-xs text-muted-foreground">
             Wsylh | Grading System

@@ -6,8 +6,11 @@ export interface RegisterRequest {
 }
 
 export interface LoginRequest {
+  // This field is used for both phone number and email.
+  // The backend will use the isEmail flag to decide how to interpret it.
   phoneNumber: string;
   password: string;
+  isEmail: boolean;
 }
 
 export interface RefreshTokenRequest {

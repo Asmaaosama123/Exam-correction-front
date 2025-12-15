@@ -96,7 +96,7 @@ export const examsApi = {
             errors: [
               {
                 code: "GenerateDownloadError",
-                description: "فشل إنشاء وتحميل أوراق الامتحان",
+                description: "فشل إنشاء وتحميل أوراق الاختبار",
               },
             ],
           };
@@ -132,7 +132,7 @@ export const examsApi = {
 
       // If no filename from server, generate one with Arabic date
       if (!filename) {
-        const examName = data.examName || "امتحان";
+        const examName = data.examName || "اختبار";
         const className = data.className || "فصل";
         const dateStr = formatArabicDate(new Date());
 
@@ -156,7 +156,7 @@ export const examsApi = {
                 code: "GenerateDownloadError",
                 description:
                   // @ts-expect-error - error is of type unknown
-                  error.message || "حدث خطأ أثناء إنشاء وتحميل أوراق الامتحان",
+                  error.message || "حدث خطأ أثناء إنشاء وتحميل أوراق الاختبار",
               },
             ],
           },

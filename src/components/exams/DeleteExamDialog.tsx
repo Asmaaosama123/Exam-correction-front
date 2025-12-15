@@ -40,9 +40,9 @@ export function DeleteExamDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>حذف الامتحان</DialogTitle>
+          <DialogTitle>حذف الاختبار</DialogTitle>
           <DialogDescription>
-            هل أنت متأكد من رغبتك في حذف هذا الامتحان؟
+            هل أنت متأكد من رغبتك في حذف هذا الاختبار؟
           </DialogDescription>
         </DialogHeader>
 
@@ -57,7 +57,7 @@ export function DeleteExamDialog({
               <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-destructive">
-                  سيتم حذف الامتحان التالي نهائياً:
+                  سيتم حذف الاختبار التالي نهائياً:
                 </p>
                 <p className="text-sm text-foreground mt-1">
                   {examData?.title}
@@ -101,4 +101,3 @@ export function DeleteExamDialog({
     </Dialog>
   );
 }
-

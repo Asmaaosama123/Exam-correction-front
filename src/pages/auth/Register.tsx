@@ -6,9 +6,10 @@ import {
   Eye,
   EyeOff,
   User,
+  Phone,
   Loader2,
   AlertCircle,
-  Phone,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ import { cn } from "@/lib/utils";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isEmailRegister, setIsEmailRegister] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     phoneNumber: "",
@@ -47,11 +49,31 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const identifier = formData.phoneNumber.trim();
+
+    if (!identifier) {
+      return;
+    }
+
+    if (isEmailRegister) {
+      const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+      if (!isValidEmail) {
+        return;
+      }
+    } else {
+      const isValidPhone = /^0?\d{8,15}$/.test(identifier);
+      if (!isValidPhone) {
+        return;
+      }
+    }
+
     // Transform fullName to firstName/lastName before sending
     const transformedName = transformFullNameToSplit(formData);
     await registerMutation.mutateAsync({
       ...transformedName,
-      phoneNumber: formData.phoneNumber,
+      // Backend currently expects phoneNumber; it can be either phone or email
+      phoneNumber: identifier,
       password: formData.password,
     });
   };
@@ -75,6 +97,37 @@ export default function Register() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Register Mode Switch */}
+                <div className="flex justify-center">
+                  <div className="inline-flex items-center rounded-full bg-muted p-1 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setIsEmailRegister(true)}
+                      disabled={registerMutation.isPending}
+                      className={cn(
+                        "px-3 py-1 rounded-full transition-colors",
+                        isEmailRegister
+                          ? "bg-background text-primary shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      التسجيل بالبريد الإلكتروني
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsEmailRegister(false)}
+                      disabled={registerMutation.isPending}
+                      className={cn(
+                        "px-3 py-1 rounded-full transition-colors",
+                        !isEmailRegister
+                          ? "bg-background text-primary shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      التسجيل برقم الجوال
+                    </button>
+                  </div>
+                </div>
                 {/* Full Name Field */}
                 <div className="space-y-2">
                   <Label htmlFor="fullName">الاسم الكامل</Label>
@@ -108,18 +161,31 @@ export default function Register() {
                   )}
                 </div>
 
-                {/* Phone Number Field */}
+                {/* Email or Phone Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">رقم الجوال</Label>
+                  <Label htmlFor="phoneNumber">
+                    {isEmailRegister ? "البريد الإلكتروني" : "رقم الجوال"}
+                  </Label>
                   <div className="relative">
-                    <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-muted-foreground">
+                      {isEmailRegister ? (
+                        <Mail className="h-4 w-4" />
+                      ) : (
+                        <Phone className="h-4 w-4" />
+                      )}
+                    </div>
                     <Input
                       id="phoneNumber"
-                      type="tel"
-                      placeholder="05XXXXXXXX"
+                      type="text"
+                      placeholder={
+                        isEmailRegister ? "example@email.com" : "05XXXXXXXX"
+                      }
                       value={formData.phoneNumber}
                       onChange={(e) =>
-                        setFormData({ ...formData, phoneNumber: e.target.value })
+                        setFormData({
+                          ...formData,
+                          phoneNumber: e.target.value,
+                        })
                       }
                       className={cn(
                         "pr-10",

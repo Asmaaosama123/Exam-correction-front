@@ -44,7 +44,7 @@ export function GeneratePapersDialog({
 
   const handleGenerate = () => {
     if (!selectedExam || !selectedClassId) {
-      toast.error("يرجى اختيار الامتحان والفصل");
+      toast.error("يرجى اختيار الاختبار والفصل");
       return;
     }
     // Get class name for filename
@@ -96,14 +96,14 @@ export function GeneratePapersDialog({
         <DialogHeader>
           <DialogTitle>إنشاء أوراق الطلاب</DialogTitle>
           <DialogDescription>
-            اختر الامتحان والفصل لإنشاء وتحميل أوراق الطلاب
+            اختر الاختبار والفصل لإنشاء وتحميل أوراق الطلاب
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Exam Selection */}
           <div className="space-y-2">
-            <Label htmlFor="exam-select">اختر الامتحان *</Label>
+            <Label htmlFor="exam-select">اختر الاختبار *</Label>
             {examsLoading ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -116,7 +116,7 @@ export function GeneratePapersDialog({
                 }
               >
                 <SelectTrigger id="exam-select">
-                  <SelectValue placeholder="اختر الامتحان" />
+                  <SelectValue placeholder="اختر الاختبار" />
                 </SelectTrigger>
                 <SelectContent>
                   {exams && exams.length > 0 ? (
@@ -127,7 +127,7 @@ export function GeneratePapersDialog({
                     ))
                   ) : (
                     <SelectItem value="no-exams" disabled>
-                      لا توجد امتحانات متاحة
+                      لا توجد اختبارات متاحة
                     </SelectItem>
                   )}
                 </SelectContent>

@@ -87,9 +87,8 @@ export type ExportFormat = "pdf" | "excel";
 // ==================== Error Types ====================
 
 // Student-specific error codes
-export enum StudentErrorCode {
-  StudentNotFound = "Student.StudentNotFound",
-  InvalidClassId = "Class.InvalidClassId",
-  NotAllowedExtension = "File.NotAllowedExtension",
-  MaxFileSize = "File.MaxFileSize",
-}
+export type StudentErrorCode =
+  | "Student.StudentNotFound"
+  | "Class.InvalidClassId"
+  | "File.NotAllowedExtension"
+  | "File.MaxFileSize";

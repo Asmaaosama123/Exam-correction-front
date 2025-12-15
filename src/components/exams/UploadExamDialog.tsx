@@ -54,6 +54,8 @@ export function UploadExamDialog({
       title: examTitle.trim(),
       subject: subject.trim(),
       file: selectedFile,
+      x: 0,
+      y: 0,
     };
 
     uploadMutation.mutate(request, {
@@ -82,21 +84,21 @@ export function UploadExamDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>رفع امتحان جديد</DialogTitle>
+          <DialogTitle>رفع اختبار جديد</DialogTitle>
           <DialogDescription>
-            ارفع ورقة الأسئلة PDF واملأ المعلومات المطلوبة
+            ارفع ورقة الأسئلة PDF واحط المعلومات المطلوبة
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Exam Title */}
           <div className="space-y-2">
-            <Label htmlFor="examTitle">اسم الامتحان *</Label>
+            <Label htmlFor="examTitle">اسم الاختبار *</Label>
             <Input
               id="examTitle"
               value={examTitle}
               onChange={(e) => setExamTitle(e.target.value)}
-              placeholder="مثال: امتحان الفصل الأول"
+              placeholder="مثال: اختبار الفصل الأول"
             />
           </div>
 
@@ -123,8 +125,8 @@ export function UploadExamDialog({
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <Upload className="w-10 h-10 mb-3 text-muted-foreground" />
                     <p className="mb-2 text-sm text-muted-foreground">
-                      <span className="font-semibold">انقر للرفع</span> أو
-                      اسحب الملف هنا
+                      <span className="font-semibold">انقر للرفع</span> أو اسحب
+                      الملف هنا
                     </p>
                     <p className="text-xs text-muted-foreground">PDF فقط</p>
                   </div>
@@ -146,11 +148,7 @@ export function UploadExamDialog({
                       {selectedFile.name}
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRemoveFile}
-                  >
+                  <Button variant="ghost" size="sm" onClick={handleRemoveFile}>
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
@@ -184,7 +182,7 @@ export function UploadExamDialog({
             ) : (
               <>
                 <Upload className="w-4 h-4 ml-2" />
-                رفع الامتحان
+                رفع الاختبار
               </>
             )}
           </Button>
@@ -193,4 +191,3 @@ export function UploadExamDialog({
     </Dialog>
   );
 }
-

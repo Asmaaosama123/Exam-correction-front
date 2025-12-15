@@ -73,7 +73,7 @@ export default function Home() {
                 ""}
             </h1>
             <p className="mt-4 text-lg text-muted-foreground sm:text-xl">
-              نظام متكامل لإدارة وتصحيح الامتحانات باستخدام الذكاء الاصطناعي
+              نظام متكامل لإدارة وتصحيح الاختبارات باستخدام الذكاء الاصطناعي
             </p>
             <div className="mt-8">
               <Button size="lg" asChild>
@@ -101,10 +101,10 @@ export default function Home() {
                 <Logo size="3xl" />
               </div>
               <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground sm:text-6xl">
-                وسيلة | تصحيح الامتحانات
+                وسيلة | تصحيح الاختبارات
               </h1>
               <p className="mb-10 text-xl text-muted-foreground sm:text-2xl">
-                حل متكامل لإدارة وتصحيح الامتحانات باستخدام الذكاء الاصطناعي
+                حل متكامل لإدارة وتصحيح الاختبارات باستخدام الذكاء الاصطناعي
               </p>
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Button size="lg" className="text-lg px-8 py-6" asChild>
@@ -134,7 +134,7 @@ export default function Home() {
                 المميزات الرئيسية
               </h2>
               <p className="mt-4 text-lg text-muted-foreground">
-                كل ما تحتاجه لإدارة الامتحانات بكفاءة
+                كل ما تحتاجه لإدارة الاختبارات بكفاءة
               </p>
             </div>
             <div className="mx-auto max-w-6xl">
@@ -201,7 +201,7 @@ export default function Home() {
                 جاهز للبدء؟
               </h2>
               <p className="mb-8 text-lg text-muted-foreground">
-                انضم إلينا اليوم وابدأ في إدارة امتحاناتك بكفاءة
+                انضم إلينا اليوم وابدأ في إدارة اختباراتك بكفاءة
               </p>
               <Button size="lg" className="text-lg px-8 py-6" asChild>
                 <Link to="/register">

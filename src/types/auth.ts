@@ -1,14 +1,15 @@
 export interface RegisterRequest {
-  phoneNumber: string;
+  phoneNumber?: string;
   password: string;
   firstName: string;
   lastName: string;
+  isEmail: boolean;
+  Email?: string;
 }
 
 export interface LoginRequest {
-  // This field is used for both phone number and email.
-  // The backend will use the isEmail flag to decide how to interpret it.
-  phoneNumber: string;
+  phoneNumber?: string;
+  Email?: string;
   password: string;
   isEmail: boolean;
 }

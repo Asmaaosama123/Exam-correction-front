@@ -53,6 +53,7 @@ export default function Login() {
 
   // Get field-specific errors
   const phoneNumberErrors = getFieldErrors(error, "phoneNumber");
+  const emailErrors = getFieldErrors(error, "Email");
   const passwordErrors = getFieldErrors(error, "password");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,7 +88,9 @@ export default function Login() {
 
     try {
       await loginMutation.mutateAsync({
-        phoneNumber: identifier,
+        ...(isEmailLogin
+          ? { Email: identifier, phoneNumber: undefined }
+          : { phoneNumber: identifier, Email: undefined }),
         password: formData.password,
         isEmail: isEmailLogin,
       });
@@ -176,17 +179,22 @@ export default function Login() {
                       }
                       className={cn(
                         "pr-10",
-                        phoneNumberErrors.length > 0 && "border-destructive"
+                        (phoneNumberErrors.length > 0 ||
+                          emailErrors.length > 0) &&
+                          "border-destructive"
                       )}
                       required
                       disabled={loginMutation.isPending}
                     />
                   </div>
-                  {phoneNumberErrors.length > 0 && (
+                  {(phoneNumberErrors.length > 0 || emailErrors.length > 0) && (
                     <div className="flex items-start gap-2 text-sm text-destructive">
                       <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                       <div className="flex flex-col gap-1">
                         {phoneNumberErrors.map((err, idx) => (
+                          <span key={idx}>{err}</span>
+                        ))}
+                        {emailErrors.map((err, idx) => (
                           <span key={idx}>{err}</span>
                         ))}
                       </div>

@@ -27,6 +27,7 @@ import { getFieldErrors } from "@/lib/api";
 import { transformFullNameToSplit } from "@/lib/name-utils";
 import Logo from "@/components/ui/Logo";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
@@ -45,6 +46,7 @@ export default function Register() {
   const lastNameErrors = getFieldErrors(error, "lastName");
   const fullNameErrors = [...firstNameErrors, ...lastNameErrors];
   const phoneNumberErrors = getFieldErrors(error, "phoneNumber");
+  const emailErrors = getFieldErrors(error, "Email");
   const passwordErrors = getFieldErrors(error, "password");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,11 +61,17 @@ export default function Register() {
     if (isEmailRegister) {
       const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
       if (!isValidEmail) {
+        toast.error("بريد إلكتروني غير صحيح", {
+          description: "يرجى إدخال بريد إلكتروني صحيح",
+        });
         return;
       }
     } else {
       const isValidPhone = /^0?\d{8,15}$/.test(identifier);
       if (!isValidPhone) {
+        toast.error("رقم جوال غير صحيح", {
+          description: "يرجى إدخال رقم جوال صحيح",
+        });
         return;
       }
     }
@@ -72,9 +80,11 @@ export default function Register() {
     const transformedName = transformFullNameToSplit(formData);
     await registerMutation.mutateAsync({
       ...transformedName,
-      // Backend currently expects phoneNumber; it can be either phone or email
-      phoneNumber: identifier,
+      ...(isEmailRegister
+        ? { Email: identifier, phoneNumber: undefined }
+        : { phoneNumber: identifier, Email: undefined }),
       password: formData.password,
+      isEmail: isEmailRegister,
     });
   };
 
@@ -189,17 +199,22 @@ export default function Register() {
                       }
                       className={cn(
                         "pr-10",
-                        phoneNumberErrors.length > 0 && "border-destructive"
+                        (phoneNumberErrors.length > 0 ||
+                          emailErrors.length > 0) &&
+                          "border-destructive"
                       )}
                       required
                       disabled={registerMutation.isPending}
                     />
                   </div>
-                  {phoneNumberErrors.length > 0 && (
+                  {(phoneNumberErrors.length > 0 || emailErrors.length > 0) && (
                     <div className="flex items-start gap-2 text-sm text-destructive">
                       <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                       <div className="flex flex-col gap-1">
                         {phoneNumberErrors.map((err, idx) => (
+                          <span key={idx}>{err}</span>
+                        ))}
+                        {emailErrors.map((err, idx) => (
                           <span key={idx}>{err}</span>
                         ))}
                       </div>

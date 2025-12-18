@@ -177,7 +177,8 @@ export function useImportStudents() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (file: File) => studentsApi.importStudents(file),
+    mutationFn: (params: { file: File; classId: string }) =>
+      studentsApi.importStudents(params.file, { ClassId: params.classId }),
     onSuccess: (response) => {
       // Invalidate students list queries
       queryClient.invalidateQueries({ queryKey: ["students"] });

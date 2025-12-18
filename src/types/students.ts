@@ -78,6 +78,12 @@ export interface ImportStudentsResponse {
   failedRows: number;
 }
 
+// Request body for importing students from a file
+// Backend expects a ClassId along with the uploaded file
+export interface ImportStudentsRequest {
+  ClassId: string;
+}
+
 export interface ExportStudentsRequest {
   classIds: string[]; // Array of class IDs, empty array means all classes
 }

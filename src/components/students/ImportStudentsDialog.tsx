@@ -10,9 +10,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useImportStudents } from "@/hooks/use-students";
+import { useGetClasses } from "@/hooks/use-classes";
 import { getFieldErrors } from "@/lib/api";
 
 import { Label } from "../ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 interface ImportStudentsDialogProps {
   open: boolean;
@@ -27,11 +35,14 @@ export function ImportStudentsDialog({
   onOpenChange,
 }: ImportStudentsDialogProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importMutation = useImportStudents();
+  const classesQuery = useGetClasses();
 
   const error = importMutation.error;
   const fileErrors = getFieldErrors(error, "file");
+  const classErrors = getFieldErrors(error, "ClassId");
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -61,22 +72,27 @@ export function ImportStudentsDialog({
   };
 
   const handleSubmit = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !selectedClassId) return;
 
-    await importMutation.mutateAsync(selectedFile, {
+    await importMutation.mutateAsync(
+      { file: selectedFile, classId: selectedClassId },
+      {
       onSuccess: () => {
         setSelectedFile(null);
+          setSelectedClassId("");
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
         onOpenChange(false);
       },
-    });
+      }
+    );
   };
 
   const handleClose = () => {
     if (!importMutation.isPending) {
       setSelectedFile(null);
+      setSelectedClassId("");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -95,6 +111,43 @@ export function ImportStudentsDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Class Select */}
+          <div className="space-y-2">
+            <Label htmlFor="classId">اختر الفصل</Label>
+            <Select
+              value={selectedClassId}
+              onValueChange={setSelectedClassId}
+              disabled={
+                importMutation.isPending || classesQuery.isLoading || classesQuery.isError
+              }
+            >
+              <SelectTrigger
+                id="classId"
+                className="w-full"
+                aria-invalid={classErrors.length > 0}
+              >
+                <SelectValue placeholder="اختر الفصل الذي سيتم استيراد الطلاب إليه" />
+              </SelectTrigger>
+              <SelectContent>
+                {classesQuery.data?.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {classErrors.length > 0 && (
+              <div className="flex items-start gap-2 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div className="flex flex-col gap-1">
+                  {classErrors.map((err, idx) => (
+                    <span key={idx}>{err}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* File Input */}
           <div className="space-y-2">
             <Label htmlFor="file">اختر الملف</Label>

@@ -10,6 +10,7 @@ import type {
   UpdateStudentResponse,
   DeleteStudentResponse,
   ImportStudentsResponse,
+  ImportStudentsRequest,
   ExportStudentsRequest,
 } from "@/types/students";
 
@@ -84,9 +85,14 @@ export const studentsApi = {
     return response.data || { success: true };
   },
 
-  importStudents: async (file: File): Promise<ImportStudentsResponse> => {
+  importStudents: async (
+    file: File,
+    data: ImportStudentsRequest
+  ): Promise<ImportStudentsResponse> => {
     const formData = new FormData();
     formData.append("file", file);
+    // Backend expects this field name exactly
+    formData.append("ClassId", data.ClassId);
 
     const response = await api.post<ImportStudentsResponse>(
       "/api/students/import",

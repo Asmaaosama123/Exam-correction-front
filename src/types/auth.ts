@@ -7,9 +7,10 @@ export interface RegisterRequest {
   Email?: string;
 }
 
+// Login uses a single identifier field which can be email or phone,
+// along with an isEmail flag so the backend can decide how to interpret it.
 export interface LoginRequest {
-  phoneNumber?: string;
-  Email?: string;
+  identifier: string;
   password: string;
   isEmail: boolean;
 }

@@ -95,7 +95,7 @@ export const studentsApi = {
     formData.append("ClassId", data.ClassId);
 
     const response = await api.post<ImportStudentsResponse>(
-      "/api/students/import",
+      "/api/students/import-students",
       formData,
       {
         headers: {

@@ -11,6 +11,17 @@ import {
 import { useGradePaper } from "@/hooks/use-grading";
 import { toast } from "sonner";
 
+const ACCEPTED_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
+const ACCEPT_ATTR =
+  "application/pdf,image/jpeg,image/jpg,image/png,image/webp,image/gif";
+
 export function GradePaperUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -18,10 +29,10 @@ export function GradePaperUpload() {
   const gradeMutation = useGradePaper();
 
   const handleFileSelect = (file: File) => {
-    if (file && file.type === "application/pdf") {
+    if (file && ACCEPTED_TYPES.includes(file.type)) {
       setSelectedFile(file);
     } else {
-      toast.error("يرجى اختيار ملف PDF فقط");
+      toast.error("يرجى اختيار ملف PDF أو صورة (JPG, PNG, WebP, GIF)");
     }
   };
 
@@ -64,7 +75,7 @@ export function GradePaperUpload() {
 
   const handleGrade = async () => {
     if (!selectedFile) {
-      toast.error("يرجى اختيار ملف PDF للتصحيح");
+      toast.error("يرجى اختيار ملف (PDF أو صورة) للتصحيح");
       return;
     }
 
@@ -109,13 +120,13 @@ export function GradePaperUpload() {
                 <span className="font-semibold">انقر للرفع</span> أو اسحب الملف
                 هنا
               </p>
-              <p className="text-xs text-muted-foreground">PDF فقط</p>
+              <p className="text-xs text-muted-foreground">PDF أو صورة (JPG, PNG, WebP, GIF)</p>
             </div>
             <input
               ref={fileInputRef}
               type="file"
               className="hidden"
-              accept="application/pdf"
+              accept={ACCEPT_ATTR}
               onChange={handleFileInputChange}
             />
           </div>

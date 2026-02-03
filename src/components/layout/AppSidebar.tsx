@@ -41,14 +41,14 @@ const menuItems = [
     href: "/students",
   },
   {
-    title: "اعداد الاختبارات",
-    icon: FileText,
-    href: "https://exams.wsyelhi.com",
-  },
-  {
     title: "الاختبارات",
     icon: FileCheck,
     href: "/exams",
+  },
+  {
+    title: "إعداد نموذج اختبار",
+    icon: FileText,
+    href: "/exam-template",
   },
   {
     title: "التصحيح والنتائج",

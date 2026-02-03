@@ -14,6 +14,7 @@ import Terms from "@/pages/terms/Terms";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 // import UnderConstructions from "@/components/layout/UnderConstructions";
 import Grading from "@/pages/grading/Grading";
+import ExamTemplateSetup from "@/pages/ExamTemplateSetup";
 
 const routes = [
   {
@@ -58,6 +59,14 @@ const routes = [
     element: (
       <AuthGuard>
         <Grading />
+      </AuthGuard>
+    ),
+  },
+  {
+    path: "/exam-template",
+    element: (
+      <AuthGuard>
+        <ExamTemplateSetup />
       </AuthGuard>
     ),
   },

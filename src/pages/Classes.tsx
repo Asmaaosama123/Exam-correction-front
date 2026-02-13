@@ -9,6 +9,12 @@ import {
   LayoutGrid,
   Table as TableIcon,
   Calendar,
+  Info,
+  PlusCircle,
+  PencilLine,
+  Search as SearchIcon,
+  Grid,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +30,24 @@ import { useGetClasses, useDeleteClass } from "@/hooks/use-classes";
 import { ClassFormDialog } from "@/components/classes/ClassFormDialog";
 import { DeleteClassDialog } from "@/components/classes/DeleteClassDialog";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// Dialog + Tooltip components
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 const formatClassDate = (value: string) =>
   new Date(value).toLocaleDateString("ar-SA", {
     year: "numeric",
@@ -40,12 +64,12 @@ export default function Classes() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
   const [deletingClassId, setDeletingClassId] = useState<string | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchValue);
     }, 500);
-
     return () => clearTimeout(timer);
   }, [searchValue]);
 
@@ -57,25 +81,11 @@ export default function Classes() {
       classItem.name.toLowerCase().includes(debouncedSearch.toLowerCase())
     ) || [];
 
-  const handleEdit = (classId: string) => {
-    setEditingClassId(classId);
-  };
-
-  const handleDelete = (classId: string) => {
-    setDeletingClassId(classId);
-  };
-
-  const handleAddSuccess = () => {
-    setIsAddDialogOpen(false);
-  };
-
-  const handleEditSuccess = () => {
-    setEditingClassId(null);
-  };
-
-  const handleDeleteSuccess = () => {
-    setDeletingClassId(null);
-  };
+  const handleEdit = (classId: string) => setEditingClassId(classId);
+  const handleDelete = (classId: string) => setDeletingClassId(classId);
+  const handleAddSuccess = () => setIsAddDialogOpen(false);
+  const handleEditSuccess = () => setEditingClassId(null);
+  const handleDeleteSuccess = () => setDeletingClassId(null);
 
   const totalClasses = classesData?.length || 0;
   const totalStudents =
@@ -84,6 +94,7 @@ export default function Classes() {
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-6">
+        {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">الفصول</h1>
@@ -97,6 +108,7 @@ export default function Classes() {
           </Button>
         </div>
 
+        {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -164,6 +176,7 @@ export default function Classes() {
           </Card>
         </div>
 
+        {/* Classes List Card */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -192,6 +205,7 @@ export default function Classes() {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Search */}
             <div className="mb-6">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -204,6 +218,7 @@ export default function Classes() {
               </div>
             </div>
 
+            {/* Loading / Error / Content */}
             {isLoading ? (
               viewMode === "grid" ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -273,9 +288,7 @@ export default function Classes() {
                         <CardContent>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="h-4 w-4" />
-                            <span>
-                              {formatClassDate(classItem.createdAt)}
-                            </span>
+                            <span>{formatClassDate(classItem.createdAt)}</span>
                           </div>
                         </CardContent>
                       </Card>
@@ -307,9 +320,7 @@ export default function Classes() {
                             className="border-b transition-colors hover:bg-accent/50"
                           >
                             <td className="p-4">
-                              <div className="font-medium">
-                                {classItem.name}
-                              </div>
+                              <div className="font-medium">{classItem.name}</div>
                             </td>
                             <td className="p-4">
                               <div className="flex items-center gap-2">
@@ -364,6 +375,126 @@ export default function Classes() {
         </Card>
       </div>
 
+      {/* ---------- FLOATING INFO BUTTON – now bold & with tooltip ---------- */}
+      <TooltipProvider>
+        <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <Button
+                  variant="default"           // solid primary – super visible
+                  size="icon"
+                  className="fixed bottom-6 left-6 h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                  aria-label="كيفية استخدام الصفحة"
+                >
+                  <Info className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-sm">
+              <p>دليل استخدام صفحة الفصول</p>
+            </TooltipContent>
+          </Tooltip>
+          <DialogContent className="sm:max-w-2xl" dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">
+                كيفية التعامل مع صفحة الفصول
+              </DialogTitle>
+              <DialogDescription className="text-base">
+                دليل سريع لاستخدام صفحة إدارة الفصول الدراسية
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 py-2">
+              <p className="text-muted-foreground leading-relaxed">
+                <strong>الفصل الدراسي</strong> هو الوحدة التنظيمية الأساسية التي تضم مجموعة من الطلاب.
+                يمكنك من خلال هذه الصفحة إنشاء الفصول وتعديلها وحذفها، بالإضافة إلى معرفة عدد الطلاب في كل فصل.
+              </p>
+
+              <div className="space-y-4">
+                {/* كل عنصر الآن يشبه بطاقات المميزات تماماً */}
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <PlusCircle className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">إضافة فصل جديد</h4>
+                    <p className="text-sm text-muted-foreground">
+                      انقر على زر <strong>“إضافة فصل جديد”</strong> في أعلى الصفحة. سيظهر لك مربع حوار تختار فيه
+                      اسماً مميزاً للفصل. يجب أن يكون الاسم فريداً – لا يمكن تكرار نفس الاسم لفصل آخر.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <PencilLine className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">تعديل أو حذف فصل</h4>
+                    <p className="text-sm text-muted-foreground">
+                      بجانب كل فصل تجد أيقونتي <strong>تعديل</strong> (قلم) و<strong>حذف</strong> (سلة).
+                      يمكنك تعديل اسم الفصل أو حذفه نهائياً. عند الحذف سيطلب منك التأكيد.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <SearchIcon className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">البحث والفلترة</h4>
+                    <p className="text-sm text-muted-foreground">
+                      استخدم مربع البحث في أعلى القائمة للبحث عن فصل باسمه. النتائج تتغير تلقائياً أثناء الكتابة.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <Grid className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">عرض الشبكة / الجدول</h4>
+                    <p className="text-sm text-muted-foreground">
+                      يمكنك التبديل بين <strong>عرض الشبكة</strong> (بطاقات) و<strong>عرض الجدول</strong>
+                      باستخدام الأيقونات الموجودة أعلى القائمة. اختر ما يناسبك.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <BarChart3 className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">إحصائيات سريعة</h4>
+                    <p className="text-sm text-muted-foreground">
+                      في أعلى الصفحة تجد بطاقات تعرض <strong>إجمالي الفصول</strong>، <strong>إجمالي الطلاب</strong>،
+                      و<strong>متوسط الطلاب لكل فصل</strong>. يتم تحديثها تلقائياً.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground border-t pt-4 mt-2">
+                ملاحظة: عند حذف فصل دراسي، لن يتم حذف الطلاب المرتبطين به مباشرةً –
+                يمكنك إعادة تعيينهم لفصل آخر لاحقاً.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setInfoOpen(false)}>
+                إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </TooltipProvider>
+      {/* ---------------------------------------------------------------------- */}
+
+      {/* Dialogs for Add, Edit, Delete */}
       <ClassFormDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}

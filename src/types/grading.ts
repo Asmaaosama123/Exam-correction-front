@@ -1,69 +1,63 @@
-/**
- * Grading Types
- * Single source of truth for all grading-related types
- */
+// src/types/grading.ts
 
-// ==================== Grading Types ====================
-
-export interface GradingResult {
+export interface GradingDetail {
   id: string;
-  studentId: string;
-  studentName: string;
-  examId: string;
-  examName: string;
-  examSubject: string;
-  className: string;
-  classId: string;
-  grade: number;
-  maxGrade?: number;
-  gradedAt: string;
+  type: "mcq" | "true_false";
+  gt: string;
+  pred: string;
+  conf: number;
+  ok: boolean;
+  method: string;
 }
 
-// ==================== Request Types ====================
+export interface ExamResult {
+  id: string;           // تم الإضافة
+  filename: string;
+  studentName?: string; // تم الإضافة
+  examName?: string;    // تم الإضافة
+  examSubject?: string; // تم الإضافة
+  className?: string;   // تم الإضافة
+  grade: number;        // تم الإضافة (مباشرة بدل details.score لو الكود بيستخدمها كدا)
+  maxGrade: number;     // تم الإضافة
+  gradedAt: string;     // تم الإضافة
+  details: {
+    score: number;
+    total: number;
+    details: GradingDetail[];
+  };
+  annotated_image_url: string;
+}
 
 export interface GradePaperRequest {
-  file: File;
-}
-
-export interface GradePaperResponse {
-  success: boolean;
-  studentId: string;
   examId: string;
-  grade: number;
-  maxGrade?: number;
-  message?: string;
+  studentId?: string;
+  image?: string; 
+  file: File | Blob;   // تم الإضافة لأن grading-api بيستخدمها
 }
 
 export interface GetGradingResultsRequest {
-  pageNumber?: number;
-  pageSize?: number;
   examId?: string;
-  classId?: string;
-  searchValue?: string; // Search by exam name or student name
+  page?: number;       // تأكد لو بتستخدم page أو pageNumber
+  pageNumber?: number; // تم الإضافة لحل خطأ GradingResultsTable
+  pageSize?: number;   // تم الإضافة
+  classId?: string;    // تم الإضافة
+  searchValue?: string;// تم الإضافة
+  limit?: number;
 }
-
-// ==================== Response Types ====================
 
 export interface GetGradingResultsResponse {
-  items: GradingResult[];
-  pageNumber: number;
-  totalPages: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
-  totalCount: number;
+  items: ExamResult[];
+  total: number;
+  page: number;
+  pages: number;
+  totalPages: number;    // تم الإضافة
+  totalCount: number;    // تم الإضافة
+  hasPreviousPage: boolean; // تم الإضافة
+  hasNextPage: boolean;     // تم الإضافة
 }
-
-// ==================== Error Types ====================
-
-export const GradingErrorCode = {
-  PaperNotFound: "Grading.PaperNotFound",
-  InvalidBarcode: "Grading.InvalidBarcode",
-  StudentNotFound: "Grading.StudentNotFound",
-  ExamNotFound: "Grading.ExamNotFound",
-  InvalidFileFormat: "File.InvalidFileFormat",
-  MaxFileSize: "File.MaxFileSize",
-  ProcessingError: "Grading.ProcessingError",
-} as const;
-
-export type GradingErrorCode =
-  (typeof GradingErrorCode)[keyof typeof GradingErrorCode];
+export interface GradePaperResponse {
+  success: boolean;
+  message?: string;
+  grade: number;
+  maxGrade?: number;
+}

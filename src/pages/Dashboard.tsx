@@ -1,6 +1,5 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { TrialStatus } from "@/components/grading/TrialStatus";
-import { GradePaperUpload } from "@/components/grading/GradePaperUpload";
 
 export default function Dashboard() {
   // TODO: These values will come from API/context later
@@ -23,7 +22,7 @@ export default function Dashboard() {
           totalPapers={totalPapers}
         />
 
-        <GradePaperUpload />
+        {/* <GradePaperUpload /> */}
       </div>
     </MainLayout>
   );

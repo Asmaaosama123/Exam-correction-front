@@ -1,3 +1,5 @@
+import { lazy } from "react"; // ✅ استيراد lazy
+import { Routes, Route } from "react-router-dom";
 import Home from "@/pages/Home";
 import NotFound from "@/pages/NotFound";
 import Login from "@/pages/auth/Login";
@@ -8,13 +10,14 @@ import Classes from "@/pages/Classes";
 import Reports from "@/pages/Reports";
 import Exams from "@/pages/Exams";
 import NewExam from "@/pages/exams/NewExam";
-import { Routes, Route } from "react-router-dom";
 import Privacy from "@/pages/terms/Privacy";
 import Terms from "@/pages/terms/Terms";
 import { AuthGuard } from "@/components/auth/AuthGuard";
-// import UnderConstructions from "@/components/layout/UnderConstructions";
 import Grading from "@/pages/grading/Grading";
 import ExamTemplateSetup from "@/pages/ExamTemplateSetup";
+
+// ✅ استيراد صفحة الكاميرا باستخدام Lazy Loading
+const CameraScan = lazy(() => import("@/pages/grading/CameraScan"));
 
 const routes = [
   {
@@ -34,7 +37,6 @@ const routes = [
     element: (
       <AuthGuard>
         <Dashboard />
-        {/* <UnderConstructions /> */}
       </AuthGuard>
     ),
   },
@@ -103,8 +105,12 @@ const routes = [
     element: <Terms />,
   },
   {
+    path: "/camera-scan",
+    element: <CameraScan />, // ✅ مسار الكاميرا
+  },
+  {
     path: "*",
-    element: <NotFound />,
+    element: <NotFound />, // ✅ مسار 404 واحد فقط
   },
 ];
 

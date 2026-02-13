@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from "react";
-import { Upload, FileText, X } from "lucide-react";
+// components/ExamTemplateSetup.tsx
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,407 +13,652 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import StitchedPdfViewer from '@/components/ui/StitchedPdfViewerProps';
 
-// Type declaration for global PDF.js library (same as NewExam)
-interface PdfJsLib {
-  version: string;
-  GlobalWorkerOptions: {
-    workerSrc: string;
-  };
-  getDocument(src: { data: ArrayBuffer }): {
-    promise: Promise<{
-      getPage(pageNumber: number): Promise<{
-        getViewport(params: { scale: number }): {
-          width: number;
-          height: number;
-        };
-      }>;
-    }>;
-  };
-}
+const PAGE_SIZES = { a4: { width: 794, height: 1123 } } as const;
 
-declare global {
-  interface Window {
-    pdfjsLib?: PdfJsLib;
-    pdfjs?: PdfJsLib;
-  }
-}
+type QuestionType = "mcq" | "true_false" | "essay";
+type AnswerDirection = "horizontal" | "vertical";
 
-// Use PDF.js from global scope (loaded in index.html)
-const getPdfJs = (): PdfJsLib => {
-  const pdfjsLib = window.pdfjsLib || window.pdfjs;
-  if (!pdfjsLib) {
-    throw new Error("مكتبة PDF.js غير متوفرة. يرجى التأكد من تحميلها في HTML.");
-  }
-  // Configure worker if not already configured
-  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-      pdfjsLib.version || "3.11.174"
-    }/pdf.worker.min.js`;
-  }
-  return pdfjsLib;
-};
-
-// Page size definitions (width × height in pixels at 96 DPI) - reused from NewExam
-const PAGE_SIZES = {
-  a4: {
-    name: "A4",
-    width: 794,
-    height: 1123,
-  },
-} as const;
-
-type QuestionType = "mcq" | "tf" | "essay";
-
-interface QuestionBox {
+interface OptionBox {
   id: string;
-  index: number;
-  page: number; // 1-based page number for multi-page PDF
+  label: string;
   x: number;
   y: number;
   width: number;
   height: number;
+  page: number;
+  originalIndex: number;
 }
 
-interface QuestionConfig {
+interface Question {
   id: string;
+  index: number;
   type: QuestionType;
-  mcqAnswer?: "أ" | "ب" | "ج" | "د";
-  tfAnswer?: "صح" | "خطأ";
+  answer: string;
+  options: OptionBox[];
+  page: number;
+  answerDirection?: AnswerDirection;
+  mcqOptionCount?: number;
 }
+
+const DEFAULT_SETTINGS = {
+  mcq: {
+    optionCount: 4,
+    direction: "horizontal" as AnswerDirection
+  },
+  true_false: {
+    optionCount: 1,
+    direction: "horizontal" as AnswerDirection
+  },
+  essay: {
+    optionCount: 1,
+    direction: "horizontal" as AnswerDirection
+  }
+};
 
 export default function ExamTemplateSetup() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const pdfUrlRef = useRef<string | null>(null);
-  const [pdfDimensions, setPdfDimensions] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
+  const [pdfDimensions, setPdfDimensions] = useState<{ width: number; height: number } | null>(null);
   const [numPages, setNumPages] = useState(1);
   const [scale, setScale] = useState(1);
-  const pdfDocRef = useRef<unknown>(null);
-
+  const [stitchedImageUrl, setStitchedImageUrl] = useState<string | null>(null);
+// التغيير هيبقى كدا
+// استبدل السطر 79 بهذا السطر
+const [, setUpdateKey] = useState(Date.now().toString());
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const pageCanvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
 
   const [isDrawing, setIsDrawing] = useState(false);
-  const [drawStart, setDrawStart] = useState<{
-    x: number;
-    y: number;
-    page: number;
-  } | null>(null);
-  const [previewBox, setPreviewBox] = useState<QuestionBox | null>(null);
-  const [boxes, setBoxes] = useState<QuestionBox[]>([]);
+  const [drawStart, setDrawStart] = useState<{ x: number; y: number; page: number } | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [previewOption, setPreviewOption] = useState<OptionBox | null>(null);
+  const [currentOptionLabel, setCurrentOptionLabel] = useState<string>("A");
 
-  const [currentQuestionType, setCurrentQuestionType] =
-    useState<QuestionType | null>(null);
-  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  // إعدادات الأسئلة المحفوظة
+  const [questionSettings, setQuestionSettings] = useState<Record<QuestionType, {
+    optionCount: number;
+    direction: AnswerDirection;
+  }>>(DEFAULT_SETTINGS);
+
+  // نوع السؤال المختار – يبقى محفوظاً
+  const [selectedQuestionType, setSelectedQuestionType] = useState<QuestionType | null>(null);
+  const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
 
   const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
-  const [questionConfigs, setQuestionConfigs] = useState<
-    Record<string, QuestionConfig>
-  >({});
+  const [examId, setExamId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [pdfConverting, setPdfConverting] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const [pdfKey, setPdfKey] = useState(0);
 
   const canvasWidth = pdfDimensions?.width || PAGE_SIZES.a4.width;
   const canvasHeight = pdfDimensions?.height || PAGE_SIZES.a4.height;
-  const totalPdfHeight = numPages * canvasHeight * scale;
+  const totalPdfHeight = numPages * canvasHeight * scale + (numPages - 1) * 16;
 
-  // Load PDF URL and (optionally) extract first-page dimensions for overlay scaling
-  useEffect(() => {
-    if (selectedFile) {
-      const url = URL.createObjectURL(selectedFile);
+  // ========== إدارة الملفات ==========
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      pdfUrlRef.current = url;
+    const allowedExtensions = [".pdf", ".jpg", ".jpeg", ".png"];
+    const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
 
-      const prepare = async () => {
-        try {
-          const pdfjs = getPdfJs();
-          const arrayBuffer = await selectedFile.arrayBuffer();
-          const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-          const anyPdf = pdf as unknown as { numPages: number };
-          pdfDocRef.current = pdf;
-          setNumPages(anyPdf.numPages || 1);
+    if (!allowedExtensions.includes(ext)) {
+      toast.error("الملف يجب أن يكون PDF أو صورة (JPG, JPEG, PNG)");
+      return;
+    }
 
-          const page = await pdf.getPage(1);
-          const viewport = page.getViewport({ scale: 1.0 });
-          const width = viewport.width;
-          const height = viewport.height;
+    if (stitchedImageUrl) {
+      URL.revokeObjectURL(stitchedImageUrl);
+      setStitchedImageUrl(null);
+    }
 
-          setPdfDimensions({ width, height });
-          setBoxes([]);
-          setPreviewBox(null);
-        } catch (error) {
-          console.error("Error extracting PDF dimensions:", error);
-          toast.error(
-            "فشل قراءة أبعاد الملف. سيتم استخدام الأبعاد الافتراضية."
-          );
-          setPdfDimensions({
-            width: PAGE_SIZES.a4.width,
-            height: PAGE_SIZES.a4.height,
-          });
-          setBoxes([]);
-          setPreviewBox(null);
-        }
-      };
+    setSelectedFile(file);
+    setUpdateKey(Date.now().toString());
+    setPdfKey(prev => prev + 1);
+    setQuestions([]);
+    setCurrentQuestion(null);
+    setSelectedQuestionType(null);
+    setIsCreatingQuestion(false);
+    setScale(1);
+    setPdfDimensions(null);
+    setPdfConverting(false);
+    setPdfError(null);
 
-      // Run async preparation to avoid synchronous cascading updates
-      prepare();
-
-      return () => {
-        if (pdfUrlRef.current) {
-          URL.revokeObjectURL(pdfUrlRef.current);
-          pdfUrlRef.current = null;
-        }
-      };
-    } else {
-      pdfDocRef.current = null;
-      if (pdfUrlRef.current) {
-        URL.revokeObjectURL(pdfUrlRef.current);
-        pdfUrlRef.current = null;
-      }
-      setTimeout(() => {
-        setPdfDimensions(null);
+    if (['.jpg', '.jpeg', '.png'].includes(ext)) {
+      const url = URL.createObjectURL(file);
+      setStitchedImageUrl(url);
+      const img = new Image();
+      img.onload = () => {
+        setPdfDimensions({ width: img.width, height: img.height });
         setNumPages(1);
-        setBoxes([]);
-        setPreviewBox(null);
-      }, 0);
-    }
-  }, [selectedFile]);
-
-  // Calculate scale to fit container horizontally (vertical scroll allowed)
-  useEffect(() => {
-    if (containerRef.current && selectedFile && pdfDimensions) {
-      const updateScale = () => {
-        const container = containerRef.current;
-        if (!container) return;
-
-        const containerRect = container.getBoundingClientRect();
-        const availableWidth = containerRect.width - 32;
-
-        const widthScale = availableWidth / canvasWidth;
-        const newScale = Math.min(widthScale, 1); // لا نكبّر فوق الحجم الأصلي
-
-        setScale(newScale);
       };
-
-      updateScale();
-      window.addEventListener("resize", updateScale);
-      return () => window.removeEventListener("resize", updateScale);
+      img.src = url;
+    } else {
+      setPdfConverting(true);
     }
-  }, [selectedFile, pdfDimensions, canvasWidth]);
+  }, [stitchedImageUrl]);
 
-  // Render PDF pages at high resolution so text stays sharp when displayed at scale
-  const renderScale =
-    (96 / 72) *
-    scale *
-    Math.max(
-      3,
-      typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1
-    );
+  const handleRemoveFile = useCallback(() => {
+    if (stitchedImageUrl) {
+      URL.revokeObjectURL(stitchedImageUrl);
+      setStitchedImageUrl(null);
+    }
+    setSelectedFile(null);
+    setPdfDimensions(null);
+    setNumPages(1);
+    setQuestions([]);
+    setCurrentQuestion(null);
+    setSelectedQuestionType(null);
+    setIsCreatingQuestion(false);
+    setScale(1);
+    setUpdateKey(Date.now().toString());
+        setPdfConverting(false);
+    setPdfError(null);
+  }, [stitchedImageUrl]);
 
+  // ========== تحجيم الـ Canvas ==========
   useEffect(() => {
-    const pdf = pdfDocRef.current as {
-      getPage: (n: number) => Promise<unknown>;
-    } | null;
-    if (!pdf || !numPages || !pdfDimensions) return;
-
-    const renderPage = async (pageNum: number) => {
-      const canvas = pageCanvasRefs.current[pageNum - 1];
-      if (!canvas) return;
-      try {
-        const page = (await pdf.getPage(pageNum)) as {
-          getViewport: (o: { scale: number }) => {
-            width: number;
-            height: number;
-          };
-          render: (o: unknown) => { promise: Promise<void> };
-        };
-        const viewport = page.getViewport({ scale: renderScale });
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
-          await page.render({ canvasContext: ctx, viewport }).promise;
-        }
-      } catch (e) {
-        console.error("Error rendering page", pageNum, e);
-      }
+    if (!containerRef.current || !pdfDimensions) return;
+    const updateScale = () => {
+      if (!containerRef.current || !pdfDimensions) return;
+      const containerWidth = containerRef.current.clientWidth - 40;
+      const widthScale = containerWidth / canvasWidth;
+      const newScale = Math.min(Math.max(widthScale, 0.6), 1.5);
+      setScale(newScale);
     };
+    updateScale();
+    const handleResize = () => requestAnimationFrame(updateScale);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [pdfDimensions, canvasWidth]);
 
-    const run = async () => {
-      for (let i = 1; i <= numPages; i++) await renderPage(i);
-    };
-    run();
-  }, [selectedFile, numPages, pdfDimensions, scale, renderScale]);
-
+  // ========== تحويل الإحداثيات ==========
   const getCanvasCoordinates = (clientX: number, clientY: number) => {
-    if (!canvasRef.current || !containerRef.current)
+    if (!canvasRef.current || !containerRef.current || !pdfDimensions || !numPages)
       return { x: 0, y: 0, page: 1 };
+
     const rect = canvasRef.current.getBoundingClientRect();
     const scrollTop = containerRef.current.scrollTop;
     const docY = scrollTop + (clientY - rect.top);
-    const pageHeightScaled = canvasHeight * scale;
-    const page = Math.min(
-      numPages,
-      Math.max(1, 1 + Math.floor(docY / pageHeightScaled))
-    );
-    const yOnPage = docY - (page - 1) * pageHeightScaled;
+
+    let accumulatedHeight = 0;
+    let page = 1;
+    for (let i = 1; i <= numPages; i++) {
+      const pageHeight = canvasHeight * scale;
+      const pageSpacing = i > 1 ? 16 : 0;
+      if (docY < accumulatedHeight + pageHeight) {
+        page = i;
+        break;
+      }
+      accumulatedHeight += pageHeight + pageSpacing;
+    }
+    const y = (docY - accumulatedHeight) / scale;
     const x = (clientX - rect.left) / scale;
-    const y = yOnPage / scale;
-    return { x, y, page };
+    return { x: Math.max(0, x), y: Math.max(0, y), page };
   };
 
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!selectedFile || !isDrawingMode) return;
-    if (!currentQuestionType) {
-      toast.error("يرجى اختيار نوع السؤال قبل الرسم");
-      return;
+  // ========== ترتيب الخيارات حسب الاتجاه ==========
+  const sortOptionsByDirection = useCallback(
+    (options: OptionBox[], direction: AnswerDirection = "horizontal"): OptionBox[] => {
+      const optionsCopy = [...options];
+      if (direction === "horizontal") {
+        return optionsCopy.sort((a, b) => {
+          if (Math.abs(a.y - b.y) < 20) return b.x - a.x;
+          return a.y - b.y;
+        });
+      } else {
+        return optionsCopy.sort((a, b) => {
+          if (Math.abs(a.x - b.x) < 20) return a.y - b.y;
+          return a.x - b.x;
+        });
+      }
+    },
+    []
+  );
+
+  // ========== بدء سؤال جديد (يُستخدم عند الضغط على أزرار الأنواع) ==========
+  const startNewQuestion = (type: QuestionType) => {
+    // إذا كان هناك سؤال قيد الرسم، يتم إلغاؤه تلقائياً
+    if (currentQuestion) {
+      toast.warning("تم إلغاء السؤال الحالي والبدء بسؤال جديد");
+      setCurrentQuestion(null);
     }
+
+    const settings = questionSettings[type];
+    setSelectedQuestionType(type);
+    setIsCreatingQuestion(true);
+    setCurrentOptionLabel("A");
+
+    const messages = {
+      mcq: `ارسم ${settings.optionCount} مربعات للاختيارات (${settings.direction === "horizontal" ? "أفقي" : "رأسي"})`,
+      true_false: "ارسم مربعاً واحداً لمنطقة الإجابة صح/خطأ",
+      essay: "ارسم مربعاً واحداً لمنطقة الإجابة المقالية"
+    };
+    toast.info(messages[type]);
+  };
+
+  // ========== إنهاء السؤال الحالي وإضافته للقائمة ==========
+  const finishCurrentQuestion = (questionToFinish?: Question) => {
+    const question = questionToFinish || currentQuestion;
+    if (!question || question.options.length === 0) return;
+
+    if (question.type === "mcq") {
+      const requiredCount = question.mcqOptionCount || 4;
+      if (question.options.length !== requiredCount) {
+        toast.error(`يجب رسم ${requiredCount} مربعات لسؤال MCQ`);
+        return;
+      }
+      // ترتيب الخيارات وتسميتها
+      if (question.answerDirection) {
+        const sortedOptions = sortOptionsByDirection(question.options, question.answerDirection);
+        const labels = ["A", "B", "C", "D", "E", "F"];
+        sortedOptions.forEach((opt, idx) => {
+          if (idx < requiredCount) opt.label = labels[idx];
+        });
+        question.options = sortedOptions;
+      }
+    }
+
+    // إضافة السؤال للقائمة
+    setQuestions(prev => {
+      const exists = prev.some(q => q.id === question.id);
+      if (exists) return prev.map(q => q.id === question.id ? question : q);
+      else return [...prev, question];
+    });
+
+    // إعادة تعيين حالة السؤال الحالي ولكن **نبقى في وضع الرسم** لنفس النوع
+    setCurrentQuestion(null);
+    setCurrentOptionLabel("A");
+    setIsCreatingQuestion(true);   // نبقى في وضع الرسم
+    // لا نغير selectedQuestionType
+
+    toast.success(`تم إضافة السؤال. ارسم السؤال التالي`);
+  };
+
+  // ========== أحداث الفأرة على الـ Canvas ==========
+  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!selectedFile || !selectedQuestionType || !isCreatingQuestion) return;
     const { x, y, page } = getCanvasCoordinates(e.clientX, e.clientY);
     setIsDrawing(true);
     setDrawStart({ x, y, page });
-    const id = `${Date.now()}-${boxes.length + 1}`;
-    setPreviewBox({
-      id,
-      index: boxes.length + 1,
-      page,
-      x,
-      y,
+
+    const optionId = `opt-${Date.now()}`;
+    let label = currentOptionLabel;
+    if (selectedQuestionType === "true_false") label = "TF";
+
+    setPreviewOption({
+      id: optionId,
+      label,
+      x, y,
       width: 0,
       height: 0,
+      page,
+      originalIndex: currentQuestion ? currentQuestion.options.length : 0
     });
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDrawing || !drawStart || !previewBox) return;
+    if (!isDrawing || !drawStart || !previewOption) return;
     const { x, y } = getCanvasCoordinates(e.clientX, e.clientY);
-    const left = Math.min(drawStart.x, x);
-    const top = Math.min(drawStart.y, y);
-    const width = Math.abs(x - drawStart.x);
-    const height = Math.abs(y - drawStart.y);
-    setPreviewBox((prev) =>
-      prev
-        ? {
-            ...prev,
-            page: drawStart.page,
-            x: left,
-            y: top,
-            width,
-            height,
-          }
-        : prev
-    );
+    const newX = Math.min(drawStart.x, x);
+    const newY = Math.min(drawStart.y, y);
+    const newWidth = Math.abs(x - drawStart.x);
+    const newHeight = Math.abs(y - drawStart.y);
+    setPreviewOption({ ...previewOption, x: newX, y: newY, width: newWidth, height: newHeight });
   };
 
   const handleCanvasMouseUp = () => {
-    if (isDrawing && previewBox && drawStart) {
-      if (previewBox.width > 10 && previewBox.height > 10) {
-        setBoxes((prev) => {
-          const newBox: QuestionBox = {
-            ...previewBox,
-            index: prev.length + 1,
-            page: drawStart.page,
-          };
+    if (!isDrawing || !drawStart || !previewOption || !selectedQuestionType) return;
 
-          // Pre-fill config with currently selected question type
-          if (currentQuestionType) {
-            setQuestionConfigs((prevConfigs) => ({
-              ...prevConfigs,
-              [newBox.id]: {
-                ...(prevConfigs[newBox.id] || { id: newBox.id }),
-                id: newBox.id,
-                type: currentQuestionType,
-              },
-            }));
+    if (previewOption.width > 10 && previewOption.height > 10) {
+      if (currentQuestion) {
+        // تحديث السؤال الحالي
+        let updatedQuestion = {
+          ...currentQuestion,
+          options: [...currentQuestion.options, previewOption]
+        };
+
+        if (selectedQuestionType === "mcq") {
+          const sortedOptions = sortOptionsByDirection(updatedQuestion.options, questionSettings.mcq.direction);
+          const labels = ["A", "B", "C", "D", "E", "F"];
+          const maxLabels = Math.min(sortedOptions.length, updatedQuestion.mcqOptionCount || 4);
+          for (let i = 0; i < maxLabels; i++) {
+            sortedOptions[i].label = labels[i];
+            sortedOptions[i].originalIndex = i;
           }
+          updatedQuestion.options = sortedOptions;
+          const nextLabelIndex = updatedQuestion.options.length;
+          if (nextLabelIndex < (updatedQuestion.mcqOptionCount || 4)) {
+            setCurrentOptionLabel(labels[nextLabelIndex] || String.fromCharCode(65 + nextLabelIndex));
+          }
+        }
 
-          return [...prev, newBox];
-        });
+        setCurrentQuestion(updatedQuestion);
+
+        const requiredCount = updatedQuestion.type === "mcq"
+          ? (updatedQuestion.mcqOptionCount || 4)
+          : questionSettings[updatedQuestion.type].optionCount;
+
+        if (updatedQuestion.options.length >= requiredCount) {
+          finishCurrentQuestion(updatedQuestion);
+        }
+      } else {
+        // إنشاء سؤال جديد
+        const questionId = `q-${Date.now()}`;
+        const settings = questionSettings[selectedQuestionType];
+        const newQuestion: Question = {
+          id: questionId,
+          index: questions.length + 1,
+          type: selectedQuestionType,
+          answer: "",
+          options: [previewOption],
+          page: previewOption.page,
+          answerDirection: settings.direction,
+          mcqOptionCount: selectedQuestionType === "mcq" ? settings.optionCount : undefined
+        };
+        setCurrentQuestion(newQuestion);
+
+        if (selectedQuestionType === "mcq") {
+          setCurrentOptionLabel("B");
+        }
+
+        const requiredCount = selectedQuestionType === "mcq"
+          ? (newQuestion.mcqOptionCount || 4)
+          : settings.optionCount;
+
+        if (requiredCount === 1) {
+          setTimeout(() => finishCurrentQuestion(newQuestion), 100);
+        }
       }
     }
+
     setIsDrawing(false);
     setDrawStart(null);
-    setPreviewBox(null);
+    setPreviewOption(null);
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === "application/pdf") {
-      setSelectedFile(file);
-    } else {
-      toast.error("يرجى اختيار ملف PDF فقط");
+  // ========== تحديث إعدادات نوع السؤال ==========
+  const updateQuestionSettings = (type: QuestionType, setting: "optionCount" | "direction", value: any) => {
+    setQuestionSettings(prev => ({
+      ...prev,
+      [type]: { ...prev[type], [setting]: value }
+    }));
+    toast.success(`تم حفظ الإعدادات لسؤال ${type === 'mcq' ? 'MCQ' : type === 'true_false' ? 'صح/خطأ' : 'مقالي'}`);
+  };
+
+  // ========== حذف الأسئلة ==========
+  const handleClearQuestions = () => {
+    setQuestions([]);
+    setCurrentQuestion(null);
+    setIsCreatingQuestion(false);
+    setSelectedQuestionType(null);
+    toast.success("تم مسح جميع الأسئلة");
+  };
+
+  const handleDeleteQuestion = (id: string) => {
+    setQuestions(prev => {
+      const filtered = prev.filter(q => q.id !== id);
+      return filtered.map((q, idx) => ({ ...q, index: idx + 1 }));
+    });
+    toast.success("تم حذف السؤال");
+  };
+
+  // ========== تغيير نوع السؤال من داخل نافذة الإجابات ==========
+  const updateQuestionType = (id: string, newType: QuestionType) => {
+    const questionToUpdate = questions.find(q => q.id === id);
+    if (!questionToUpdate) return;
+
+    const settings = questionSettings[newType];
+    let newOptions = [...questionToUpdate.options];
+
+    if (newType !== "mcq" && newOptions.length > 1) {
+      newOptions = [newOptions[0]];
     }
-  };
 
-  const handleRemoveFile = () => {
-    setSelectedFile(null);
-  };
+    const updatedQuestion: Question = {
+      ...questionToUpdate,
+      type: newType,
+      options: newOptions,
+      answer: "",
+      answerDirection: settings.direction,
+      mcqOptionCount: newType === "mcq" ? settings.optionCount : undefined
+    };
 
-  const handleClearBoxes = () => {
-    setBoxes([]);
-    setPreviewBox(null);
-  };
-
-  const handleDeleteLastBox = () => {
-    setBoxes((prev) => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      setQuestionConfigs((prevConfigs) => {
-        const newConfigs = { ...prevConfigs };
-        delete newConfigs[last.id];
-        return newConfigs;
+    if (newType === "mcq") {
+      const sortedOptions = sortOptionsByDirection(updatedQuestion.options, settings.direction);
+      const labels = ["A", "B", "C", "D", "E", "F"];
+      sortedOptions.forEach((opt, idx) => {
+        if (idx < settings.optionCount) opt.label = labels[idx];
       });
-      return prev.slice(0, -1);
+      updatedQuestion.options = sortedOptions;
+    }
+
+    setQuestions(prev => prev.map(q => q.id === id ? updatedQuestion : q));
+
+    // إغلاق النافذة وتفعيل الرسم
+    setAnswerDialogOpen(false);
+    setCurrentQuestion(updatedQuestion);
+    setSelectedQuestionType(newType);
+    setIsCreatingQuestion(true);
+
+    if (newType === "mcq") {
+      const nextIndex = updatedQuestion.options.length;
+      if (nextIndex < settings.optionCount) {
+        setCurrentOptionLabel(String.fromCharCode(65 + nextIndex));
+      }
+    }
+
+    toast.info(`تم تغيير نوع السؤال إلى ${newType === 'mcq' ? 'MCQ' : newType === 'true_false' ? 'صح/خطأ' : 'مقالي'}. ارسم المربعات المطلوبة.`);
+  };
+
+  // ========== تحديث الإجابة الصحيحة ==========
+  const updateQuestionAnswer = (id: string, answer: string) => {
+    let englishAnswer = answer;
+    if (answer === "صح") englishAnswer = "TRUE";
+    if (answer === "خطأ") englishAnswer = "FALSE";
+    setQuestions(prev => prev.map(q => q.id === id ? { ...q, answer: englishAnswer } : q));
+  };
+
+  // ========== حساب الـ ROI الكلي للسؤال ==========
+  const calculateOverallROI = (question: Question): [number, number, number, number] => {
+    if (question.options.length === 0) return [0, 0, 0, 0];
+    let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+    question.options.forEach(option => {
+      minX = Math.min(minX, option.x);
+      minY = Math.min(minY, option.y);
+      maxX = Math.max(maxX, option.x + option.width);
+      maxY = Math.max(maxY, option.y + option.height);
+    });
+    return [Math.round(minX), Math.round(minY), Math.round(maxX - minX), Math.round(maxY - minY)];
+  };
+
+  // ========== تحضير JSON للأسئلة ==========
+  const prepareQuestionsJson = () => {
+    if (!pdfDimensions) return "";
+    const canvasWidth = Math.round(pdfDimensions.width);
+    const canvasHeight = Math.round(pdfDimensions.height);
+
+    const questionsData = questions.map(question => {
+      // const sortedOptions = sortOptionsByDirection(question.options, question.answerDirection);
+      const rois: Record<string, [number, number, number, number]> = {};
+
+      if (question.type === "mcq") {
+        question.options.forEach(option => {
+          rois[option.label] = [
+            Math.round(option.x),
+            Math.round(option.y),
+            Math.round(option.width),
+            Math.round(option.height)
+          ];
+        });
+      } else if (question.type === "true_false" && question.options.length >= 1) {
+        rois["TF"] = [
+          Math.round(question.options[0].x),
+          Math.round(question.options[0].y),
+          Math.round(question.options[0].width),
+          Math.round(question.options[0].height)
+        ];
+      }
+
+      const roi = calculateOverallROI(question);
+      const questionObj: any = {
+        id: question.index.toString(),
+        type: question.type,
+        answer: question.answer,
+        roi: roi
+      };
+      if (question.type !== "essay") {
+        questionObj.rois = rois;
+      }
+      return questionObj;
+    });
+
+    return JSON.stringify({
+      canvas: { width: canvasWidth, height: canvasHeight },
+      questions: questionsData
     });
   };
 
-  const handleOpenAnswersDialog = () => {
-    if (boxes.length === 0) {
-      toast.error("يرجى رسم الأسئلة على النموذج أولاً");
+  // ========== حفظ نموذج المعلم ==========
+  const handleSaveTemplate = async () => {
+    if (!examId.trim()) return toast.error("أدخل رقم الامتحان");
+    const examIdNum = parseInt(examId);
+    if (isNaN(examIdNum)) {
+      toast.error("رقم الامتحان يجب أن يكون رقماً صحيحاً");
       return;
     }
-    setAnswerDialogOpen(true);
+    if (!selectedFile) return toast.error("اختر ملف PDF أو صورة أولاً");
+    if (!questions.length) return toast.error("ارسم الأسئلة أولاً");
+
+    const questionsWithoutAnswers = questions.filter(q => !q.answer && q.type !== "essay");
+    if (questionsWithoutAnswers.length > 0) {
+      toast.error(`يوجد ${questionsWithoutAnswers.length} سؤال بدون إجابة صحيحة`);
+      setAnswerDialogOpen(true);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const questionsJson = prepareQuestionsJson();
+      const formData = new FormData();
+      formData.append("ExamId", examIdNum.toString());
+      formData.append("File", selectedFile);
+      formData.append("QuestionsJson", questionsJson);
+
+      const res = await fetch("https://localhost:44393/api/Exam/upload-teacher-exam", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        // const result = await res.json();
+        toast.success("تم حفظ نموذج المعلم بنجاح!");
+        handleRemoveFile();
+        setExamId("");
+        setAnswerDialogOpen(false);
+      } else {
+        const errorText = await res.text();
+        try {
+          const errorJson = JSON.parse(errorText);
+          toast.error(`خطأ: ${errorJson.detail || errorJson.title || errorJson.message || "حدث خطأ غير معروف"}`);
+        } catch {
+          toast.error(`خطأ من السيرفر: ${errorText}`);
+        }
+      }
+    } catch (error) {
+      console.error("خطأ في الاتصال بالسيرفر:", error);
+      toast.error("خطأ في الاتصال بالخادم");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateQuestionConfig = (
-    id: string,
-    updater: (prev: QuestionConfig) => QuestionConfig
-  ) => {
-    setQuestionConfigs((prev) => {
-      const existing =
-        prev[id] ||
-        ({
-          id,
-          type: "mcq",
-        } as QuestionConfig);
-      return {
-        ...prev,
-        [id]: updater(existing),
-      };
-    });
+  // ========== إعادة تحويل PDF ==========
+  const handleReRender = () => {
+    if (!selectedFile || !selectedFile.name.toLowerCase().endsWith('.pdf')) return;
+    if (stitchedImageUrl) {
+      URL.revokeObjectURL(stitchedImageUrl);
+      setStitchedImageUrl(null);
+    }
+    setPdfKey(prev => prev + 1);
+    setPdfConverting(true);
+    setPdfError(null);
+    toast.info("جاري إعادة تحويل PDF...");
   };
 
+  // ========== حساب إزاحة الصفحة ==========
+  const getPageOffset = (pageNum: number) => {
+    if (pageNum <= 1) return 0;
+    return (pageNum - 1) * (canvasHeight * scale + 16);
+  };
+
+  // ========== أحداث StitchedPdfViewer ==========
+  const handleStitchedPdfLoaded = (data: { width: number; height: number; pageCount: number; imageUrl: string }) => {
+    setPdfConverting(false);
+    setPdfError(null);
+    setPdfDimensions({ width: data.width, height: data.height });
+    setNumPages(data.pageCount);
+    setStitchedImageUrl(data.imageUrl);
+  };
+
+  const handleStitchedPdfError = (error: string) => {
+    setPdfConverting(false);
+    setPdfError(error);
+    toast.error(`خطأ في تحويل PDF: ${error}`);
+  };
+
+  // ========== JSX مع تحسينات التصميم ==========
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-6 h-full overflow-hidden">
-        {/* Header */}
+        {/* العنوان */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">
-            إعداد نموذج اختبار
+            إعداد نموذج اختبار المعلم
           </h1>
           <p className="text-muted-foreground mt-2">
-            ارفع ورقة الاختبار وحدد مناطق الأسئلة على النموذج، ثم قم بتحديد
-            الإجابات الصحيحة لكل سؤال.
+            ارفع ورقة الاختبار وحدد مناطق الأسئلة على النموذج، ثم قم بتحديد الإجابات الصحيحة لكل سؤال.
           </p>
         </div>
 
-        {/* Upload Section */}
+        {/* بطاقة معلومات الامتحان */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="examId">رقم الامتحان *</Label>
+                <Input
+                  id="examId"
+                  value={examId}
+                  onChange={(e) => setExamId(e.target.value)}
+                  placeholder="أدخل رقم الامتحان الموجود مسبقاً "
+                  type="number"
+                />
+              </div>
+            </div>
+           
+          </CardContent>
+        </Card>
+
+        {/* رفع الملف */}
         <div className="space-y-2">
-          <Label>ورقة الأسئلة (PDF) *</Label>
+          <Label>ملف نموذج الإجابة *</Label>
           {!selectedFile ? (
             <div className="flex items-center justify-center w-full">
               <label
@@ -422,28 +668,39 @@ export default function ExamTemplateSetup() {
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <Upload className="w-10 h-10 mb-3 text-muted-foreground" />
                   <p className="mb-2 text-sm text-muted-foreground">
-                    <span className="font-semibold">انقر للرفع</span> أو اسحب
-                    الملف هنا
+                    <span className="font-semibold">انقر للرفع</span> أو اسحب الملف هنا
                   </p>
-                  <p className="text-xs text-muted-foreground">PDF فقط</p>
+                  <p className="text-xs text-muted-foreground">PDF, JPG, JPEG, PNG</p>
                 </div>
                 <input
                   id="template-file-upload"
                   type="file"
                   className="hidden"
-                  accept="application/pdf"
+                  accept=".pdf,.jpg,.jpeg,.png"
                   onChange={handleFileSelect}
                 />
               </label>
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="flex items-center justify-between p-3 border rounded-lg bg-card">
                 <div className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-sm font-medium truncate">
+                  <span className="text-sm font-medium truncate max-w-[200px] md:max-w-xs">
                     {selectedFile.name}
                   </span>
+                  {selectedFile.name.toLowerCase().endsWith('.pdf') && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleReRender}
+                      disabled={pdfConverting}
+                    >
+                      <RotateCw className="w-4 h-4 mr-1" />
+                      {pdfConverting ? "جاري التحويل..." : "إعادة تحويل PDF"}
+                    </Button>
+                  )}
                 </div>
                 <Button variant="ghost" size="sm" onClick={handleRemoveFile}>
                   <X className="w-4 h-4" />
@@ -453,351 +710,527 @@ export default function ExamTemplateSetup() {
           )}
         </div>
 
-        {/* Drawing and Controls */}
-        {selectedFile && (
-          <div className="flex flex-col flex-1 min-h-0 w-full space-y-4">
-            {/* Question type and controls row */}
-            <div className="flex flex-wrap items-center gap-4 justify-between">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    نوع السؤال الحالي:
-                  </span>
-                  <div className="inline-flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={
-                        currentQuestionType === "mcq" ? "default" : "outline"
-                      }
-                      onClick={() => setCurrentQuestionType("mcq")}
-                    >
-                      سؤال موضوعي (أ،ب،ج،د)
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={
-                        currentQuestionType === "tf" ? "default" : "outline"
-                      }
-                      onClick={() => setCurrentQuestionType("tf")}
-                    >
-                      صح / خطأ
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={
-                        currentQuestionType === "essay" ? "default" : "outline"
-                      }
-                      onClick={() => setCurrentQuestionType("essay")}
-                    >
-                      إجابة مقالية
-                    </Button>
-                  </div>
-                </div>
+        {/* محول PDF المخفي */}
+        {selectedFile && selectedFile.name.toLowerCase().endsWith('.pdf') && (
+          <StitchedPdfViewer
+            key={`pdf-converter-${pdfKey}`}
+            file={selectedFile}
+            onLoaded={handleStitchedPdfLoaded}
+            onError={handleStitchedPdfError}
+            hidden
+          />
+        )}
 
-                <div className="flex flex-wrap items-center gap-3">
+        {/* حالة تحويل PDF */}
+        {pdfConverting && (
+          <div className="flex flex-col items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+            <p className="text-foreground font-medium">جاري تحويل PDF إلى صورة طويلة...</p>
+          </div>
+        )}
+        {pdfError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{pdfError}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* واجهة الرسم - تظهر فقط بعد تحميل الملف */}
+        {selectedFile && !pdfConverting && !pdfError && (
+          <div className="flex flex-col flex-1 min-h-0 w-full space-y-4">
+            {/* شريط الأدوات العلوي */}
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-card p-4 rounded-lg border">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  نوع السؤال:
+                </span>
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     size="sm"
-                    variant={isDrawingMode ? "default" : "outline"}
-                    onClick={() => setIsDrawingMode((prev) => !prev)}
+                    variant={selectedQuestionType === "mcq" ? "default" : "outline"}
+                    onClick={() => startNewQuestion("mcq")}
                   >
-                    {isDrawingMode ? "إيقاف وضع الرسم" : "تشغيل وضع الرسم"}
+                    MCQ
+                    <Badge variant="secondary" className="mr-1 text-xs">
+                      {questionSettings.mcq.optionCount}
+                    </Badge>
                   </Button>
                   <Button
                     type="button"
-                    variant="destructive"
                     size="sm"
-                    onClick={handleClearBoxes}
-                    disabled={boxes.length === 0}
+                    variant={selectedQuestionType === "true_false" ? "default" : "outline"}
+                    onClick={() => startNewQuestion("true_false")}
                   >
-                    مسح الكل
+                    صح / خطأ
                   </Button>
                   <Button
                     type="button"
-                    variant="outline"
                     size="sm"
-                    onClick={handleDeleteLastBox}
-                    disabled={boxes.length === 0}
+                    variant={selectedQuestionType === "essay" ? "default" : "outline"}
+                    onClick={() => startNewQuestion("essay")}
                   >
-                    مسح
+                    مقالي
                   </Button>
                   <Button
                     type="button"
-                    variant="default"
                     size="sm"
-                    onClick={handleOpenAnswersDialog}
-                    disabled={boxes.length === 0}
+                    variant="ghost"
+                    onClick={() => toast.info("الإعدادات محفوظة لكل نوع سؤال تلقائياً")}
                   >
-                    إدخال الإجابات
+                    <Settings className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
-              <div className="text-sm text-muted-foreground">
-                عدد الأسئلة المرسومة:{" "}
-                <span className="font-medium text-foreground">
-                  {boxes.length}
-                </span>
+
+              {/* إعدادات MCQ السريعة */}
+              {selectedQuestionType === "mcq" && (
+                <div className="flex items-center gap-4 bg-muted/50 p-2 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">عدد الخيارات:</span>
+                    <Select
+                      value={questionSettings.mcq.optionCount.toString()}
+                      onValueChange={(value) => {
+                        updateQuestionSettings("mcq", "optionCount", parseInt(value));
+                        if (currentQuestion) {
+                          setCurrentQuestion({
+                            ...currentQuestion,
+                            mcqOptionCount: parseInt(value)
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-20 h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3">3</SelectItem>
+                        <SelectItem value="4">4</SelectItem>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="6">6</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">الاتجاه:</span>
+                    <div className="flex gap-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={questionSettings.mcq.direction === "horizontal" ? "default" : "outline"}
+                        onClick={() => updateQuestionSettings("mcq", "direction", "horizontal")}
+                        className="h-8 px-2"
+                      >
+                        أفقي
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={questionSettings.mcq.direction === "vertical" ? "default" : "outline"}
+                        onClick={() => updateQuestionSettings("mcq", "direction", "vertical")}
+                        className="h-8 px-2"
+                      >
+                        رأسي
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* إحصائيات سريعة */}
+              <div className="flex items-center gap-3 text-sm">
+                <div className="flex items-center gap-1">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium">{numPages}</span>
+                  <span className="text-muted-foreground">صفحة</span>
+                </div>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1">
+                  <Badge variant="outline">{questions.length}</Badge>
+                  <span className="text-muted-foreground">سؤال</span>
+                </div>
               </div>
             </div>
 
-            {/* PDF + overlay: scroll is on this container so PDF and boxes move together */}
-            <div className="flex flex-col flex-1 min-h-0 border rounded-lg p-4 bg-muted/30">
-              <p className="text-xs text-muted-foreground mb-3 shrink-0">
-                اسحب لرسم مربع حول كل سؤال في النموذج. كل مربع يمثل سؤالاً
-                واحداً. يجب اختيار نوع السؤال الحالي قبل الرسم.
+            {/* لوحة التحكم بالرسم والإجراءات */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleClearQuestions}
+                  disabled={questions.length === 0 && !currentQuestion}
+                >
+                  <Trash2 className="w-4 h-4 ml-1" />
+                  مسح الكل
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (questions.length > 0) {
+                      setQuestions(prev => prev.slice(0, -1));
+                      toast.success("تم حذف آخر سؤال");
+                    }
+                  }}
+                  disabled={questions.length === 0}
+                >
+                  حذف آخر سؤال
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  onClick={() => setAnswerDialogOpen(true)}
+                  disabled={questions.length === 0}
+                >
+                  <Check className="w-4 h-4 ml-1" />
+                  الإجابات ({questions.length})
+                </Button>
+              </div>
+
+              {/* حالة السؤال الحالي */}
+              {currentQuestion && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg">
+                  <span className="text-xs font-medium text-amber-800">
+                    رسم السؤال {currentQuestion.index}:
+                  </span>
+                  <Badge variant="outline" className="bg-amber-100">
+                    {currentQuestion.options.length} / {
+                      currentQuestion.type === "mcq"
+                        ? (currentQuestion.mcqOptionCount || questionSettings.mcq.optionCount)
+                        : "1"
+                    }
+                  </Badge>
+                  {currentQuestion.options.length >= (currentQuestion.type === "mcq"
+                    ? (currentQuestion.mcqOptionCount || questionSettings.mcq.optionCount)
+                    : 1) && (
+                    <span className="text-xs text-green-600 font-semibold">✓ جاهز للإضافة</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* رسالة إرشادية حسب نوع السؤال المختار */}
+            {isCreatingQuestion && selectedQuestionType && (
+              <div className={`rounded-lg p-3 flex items-center gap-2 ${
+                selectedQuestionType === "mcq" ? "bg-blue-50 border border-blue-200 text-blue-800" :
+                selectedQuestionType === "true_false" ? "bg-green-50 border border-green-200 text-green-800" :
+                "bg-purple-50 border border-purple-200 text-purple-800"
+              }`}>
+                <PlusCircle className="w-5 h-5 shrink-0" />
+                <p className="text-sm font-medium">
+                  {selectedQuestionType === "mcq" ? (
+                    <>
+                      ارسم <strong>{currentQuestion?.mcqOptionCount || questionSettings.mcq.optionCount}</strong> مربعاً للاختيارات
+                      ({questionSettings.mcq.direction === "horizontal" ? "أفقي" : "رأسي"})
+                      {currentQuestion && currentQuestion.options.length > 0 && (
+                        <span className="mr-2">- التالي: {currentOptionLabel}</span>
+                      )}
+                    </>
+                  ) : selectedQuestionType === "true_false" ? (
+                    "ارسم مربعاً واحداً لمنطقة الإجابة صح/خطأ"
+                  ) : (
+                    "ارسم مربعاً واحداً لمنطقة الإجابة المقالية"
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* منطقة الرسم */}
+            <div className="flex flex-col flex-1 min-h-0 border rounded-lg bg-muted/10 p-3">
+              <p className="text-xs text-muted-foreground mb-2 shrink-0">
+                {isCreatingQuestion ? (
+                  <>
+                    <span className="font-medium">وضع الرسم نشط:</span> اسحب على الصورة لرسم المربعات.
+                    {selectedQuestionType === "mcq" && ` سيتم إنهاء السؤال تلقائياً عند اكتمال العدد.`}
+                    {(selectedQuestionType === "true_false" || selectedQuestionType === "essay") && " سيتم إنهاء السؤال تلقائياً بعد رسم المربع."}
+                  </>
+                ) : (
+                  "اختر نوع السؤال من الأعلى لبدء الرسم"
+                )}
+                {selectedQuestionType && !isCreatingQuestion && (
+                  <Badge variant="secondary" className="mr-2">
+                    ✓ نوع السؤال الحالي: {
+                      selectedQuestionType === 'mcq' ? 'MCQ' : 
+                      selectedQuestionType === 'true_false' ? 'صح/خطأ' : 
+                      'مقالي'
+                    }
+                  </Badge>
+                )}
               </p>
               <div
                 ref={containerRef}
-                className="flex-1 min-h-0 border rounded bg-muted/20 p-2 overflow-y-auto overflow-x-hidden"
+                className="flex-1 min-h-0 border rounded bg-white overflow-auto shadow-sm"
               >
                 <div
                   ref={wrapperRef}
-                  className="relative"
+                  className="relative bg-white"
                   style={{
-                    width: `${canvasWidth * scale}px`,
-                    height: `${totalPdfHeight}px`,
-                    minHeight: `${totalPdfHeight}px`,
-                    margin: "0 auto",
+                    width: pdfDimensions ? `${canvasWidth * scale}px` : 'auto',
+                    minHeight: pdfDimensions ? `${totalPdfHeight}px` : 'auto',
                   }}
                 >
-                  {Array.from({ length: numPages }, (_, i) => (
-                    <canvas
-                      key={i}
-                      ref={(el) => {
-                        pageCanvasRefs.current[i] = el;
-                      }}
-                      className="block"
+                  {/* الصورة المدمجة */}
+                  {stitchedImageUrl && pdfDimensions && (
+                    <div
+                      className="relative bg-white shadow"
                       style={{
-                        position: "absolute",
-                        left: 0,
-                        top: `${i * canvasHeight * scale}px`,
                         width: `${canvasWidth * scale}px`,
                         height: `${canvasHeight * scale}px`,
                       }}
-                    />
-                  ))}
-                  <div
-                    ref={canvasRef}
-                    className={`absolute select-none top-0 left-0 ${
-                      isDrawingMode ? "cursor-crosshair" : "cursor-default"
-                    }`}
-                    style={{
-                      width: `${canvasWidth * scale}px`,
-                      height: `${totalPdfHeight}px`,
-                      pointerEvents: isDrawingMode ? "auto" : "none",
-                    }}
-                    onMouseDown={handleCanvasMouseDown}
-                    onMouseMove={handleCanvasMouseMove}
-                    onMouseUp={handleCanvasMouseUp}
-                    onMouseLeave={handleCanvasMouseUp}
-                  >
-                    {boxes.map((box) => (
-                      <div
-                        key={box.id}
-                        className="absolute border-2 border-primary bg-primary/10"
-                        style={{
-                          left: `${box.x * scale}px`,
-                          top: `${
-                            (box.page - 1) * canvasHeight * scale +
-                            box.y * scale
-                          }px`,
-                          width: `${box.width * scale}px`,
-                          height: `${box.height * scale}px`,
-                        }}
-                      >
-                        <div className="absolute -top-4 right-0 text-[11px] bg-primary text-primary-foreground px-1 rounded">
-                          س {box.index}
-                        </div>
-                      </div>
-                    ))}
-                    {previewBox && (
-                      <div
-                        className="absolute border-2 border-dashed border-primary/70 bg-primary/5"
-                        style={{
-                          left: `${previewBox.x * scale}px`,
-                          top: `${
-                            (previewBox.page - 1) * canvasHeight * scale +
-                            previewBox.y * scale
-                          }px`,
-                          width: `${previewBox.width * scale}px`,
-                          height: `${previewBox.height * scale}px`,
-                        }}
+                    >
+                      <img
+                        src={stitchedImageUrl}
+                        alt="PDF كصورة طويلة"
+                        className="block w-full h-full object-contain"
                       />
-                    )}
-                  </div>
+                    </div>
+                  )}
+
+                  {/* طبقة الرسم */}
+                  {pdfDimensions && (
+                    <div
+                      ref={canvasRef}
+                      className={`absolute top-0 left-0 select-none ${
+                        isCreatingQuestion ? "cursor-crosshair" : "cursor-default"
+                      }`}
+                      style={{
+                        pointerEvents: isCreatingQuestion ? "auto" : "none",
+                        width: `${canvasWidth * scale}px`,
+                        height: `${totalPdfHeight}px`,
+                      }}
+                      onMouseDown={handleCanvasMouseDown}
+                      onMouseMove={handleCanvasMouseMove}
+                      onMouseUp={handleCanvasMouseUp}
+                      onMouseLeave={handleCanvasMouseUp}
+                    >
+                      {/* الأسئلة المكتملة */}
+                      {questions.map((question) => (
+                        <div key={question.id}>
+                          {question.options.map((option) => {
+                            const pageOffset = getPageOffset(option.page);
+                            return (
+                              <div
+                                key={option.id}
+                                className={`absolute border-2 ${
+                                  question.type === "mcq" ? "border-blue-500 bg-blue-500/10" :
+                                  question.type === "true_false" ? "border-green-500 bg-green-500/10" :
+                                  "border-purple-500 bg-purple-500/10"
+                                }`}
+                                style={{
+                                  left: `${option.x * scale}px`,
+                                  top: `${pageOffset + option.y * scale}px`,
+                                  width: `${option.width * scale}px`,
+                                  height: `${option.height * scale}px`,
+                                }}
+                              >
+                                <div className={`absolute -top-6 right-0 text-xs px-2 py-1 rounded ${
+                                  question.type === "mcq" ? "bg-blue-500 text-white" : 
+                                  question.type === "true_false" ? "bg-green-500 text-white" : 
+                                  "bg-purple-500 text-white"
+                                }`}>
+                                  س{question.index} - {question.type === "true_false" ? "صح/خطأ" : option.label} - ص{option.page}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))}
+
+                      {/* السؤال الحالي */}
+                      {currentQuestion && currentQuestion.options.map((option) => {
+                        const pageOffset = getPageOffset(option.page);
+                        return (
+                          <div
+                            key={option.id}
+                            className="absolute border-2 border-orange-500 bg-orange-500/20"
+                            style={{
+                              left: `${option.x * scale}px`,
+                              top: `${pageOffset + option.y * scale}px`,
+                              width: `${option.width * scale}px`,
+                              height: `${option.height * scale}px`,
+                            }}
+                          >
+                            <div className="absolute -top-6 right-0 text-xs bg-orange-500 text-white px-2 py-1 rounded">
+                              {currentQuestion.type === "true_false" ? "صح/خطأ" : option.label} - ص{option.page}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* معاينة المربع الذي يتم رسمه */}
+                      {previewOption && (
+                        <div
+                          className="absolute border-2 border-dashed border-red-500 bg-red-500/20"
+                          style={{
+                            left: `${previewOption.x * scale}px`,
+                            top: `${getPageOffset(previewOption.page) + previewOption.y * scale}px`,
+                            width: `${previewOption.width * scale}px`,
+                            height: `${previewOption.height * scale}px`,
+                          }}
+                        >
+                          <div className="absolute -top-6 right-0 text-xs bg-red-500 text-white px-2 py-1 rounded">
+                            {selectedQuestionType === "true_false" ? "صح/خطأ" : previewOption.label} - ص{previewOption.page}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Answers Dialog */}
+        {/* نافذة إدخال الإجابات */}
         <Dialog open={answerDialogOpen} onOpenChange={setAnswerDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>إدخال الإجابات</DialogTitle>
+              <DialogTitle>إدخال/تعديل الإجابات</DialogTitle>
               <DialogDescription>
-                حدد نوع السؤال والإجابة الصحيحة لكل مربع مرسوم على النموذج.
+                حدد الإجابة الصحيحة لكل سؤال. يمكنك أيضاً تغيير نوع السؤال – سيتم إغلاق النافذة تلقائياً لبدء الرسم.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-              {boxes.map((box) => {
-                const config =
-                  questionConfigs[box.id] ||
-                  ({
-                    id: box.id,
-                    type: "mcq",
-                  } as QuestionConfig);
-
-                return (
-                  <div
-                    key={box.id}
-                    className="border rounded-md p-3 flex flex-col gap-3"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="font-medium">سؤال {box.index}</div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>
-                          العرض: {Math.round(box.width)}px، الارتفاع:{" "}
-                          {Math.round(box.height)}px
-                        </span>
+            <div className="space-y-4">
+              {questions.map((question) => (
+                <Card key={question.id}>
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <Badge>سؤال {question.index}</Badge>
+                        <Badge variant="outline">صفحة {question.page}</Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={question.type}
+                          onValueChange={(value: QuestionType) => updateQuestionType(question.id, value)}
+                        >
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="mcq">MCQ</SelectItem>
+                            <SelectItem value="true_false">صح/خطأ</SelectItem>
+                            <SelectItem value="essay">مقالي</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteQuestion(question.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
                       </div>
                     </div>
 
-                    {/* Question type selector */}
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={config.type === "mcq" ? "default" : "outline"}
-                        onClick={() =>
-                          updateQuestionConfig(box.id, (prev) => ({
-                            ...prev,
-                            type: "mcq",
-                          }))
-                        }
-                      >
-                        سؤال موضوعي (أ،ب،ج،د)
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={config.type === "tf" ? "default" : "outline"}
-                        onClick={() =>
-                          updateQuestionConfig(box.id, (prev) => ({
-                            ...prev,
-                            type: "tf",
-                          }))
-                        }
-                      >
-                        صح / خطأ
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={
-                          config.type === "essay" ? "default" : "outline"
-                        }
-                        onClick={() =>
-                          updateQuestionConfig(box.id, (prev) => ({
-                            ...prev,
-                            type: "essay",
-                          }))
-                        }
-                      >
-                        إجابة مقالية
-                      </Button>
+                    {/* محتوى السؤال حسب النوع */}
+                    {question.type === "mcq" && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Label>الإجابة الصحيحة:</Label>
+                          {question.answer && (
+                            <Badge variant="success" className="text-green-700 bg-green-100">
+                              {question.answer}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {["A", "B", "C", "D", "E", "F"].slice(0, question.mcqOptionCount || 4).map((label) => (
+                            <Button
+                              key={label}
+                              type="button"
+                              size="sm"
+                              variant={question.answer === label ? "default" : "outline"}
+                              onClick={() => updateQuestionAnswer(question.id, label)}
+                              className="min-w-[40px]"
+                            >
+                              {label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {question.type === "true_false" && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Label>الإجابة الصحيحة:</Label>
+                          {question.answer && (
+                            <Badge variant="success" className="text-green-700 bg-green-100">
+                              {question.answer === "TRUE" ? "صح" : "خطأ"}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={question.answer === "FALSE" ? "default" : "outline"}
+                            onClick={() => updateQuestionAnswer(question.id, "FALSE")}
+                            className="flex items-center gap-1"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            خطأ
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={question.answer === "TRUE" ? "default" : "outline"}
+                            onClick={() => updateQuestionAnswer(question.id, "TRUE")}
+                            className="flex items-center gap-1"
+                          >
+                            <Check className="w-4 h-4" />
+                            صح
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {question.type === "essay" && (
+                      <div className="text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-green-500" />
+                          هذا السؤال سيتم تصحيحه يدوياً (إجابة مقالية).
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-xs text-muted-foreground mt-3 flex flex-wrap gap-2">
+                      <Badge variant="outline">المربعات: {question.options.length}</Badge>
+                      <Badge variant="outline">
+                        الاتجاه: {question.answerDirection === "horizontal" ? "أفقي" : "رأسي"}
+                      </Badge>
+                      {question.type === "mcq" && (
+                        <Badge variant="outline">الخيارات: {question.mcqOptionCount || 4}</Badge>
+                      )}
                     </div>
+                  </CardContent>
+                </Card>
+              ))}
 
-                    {/* Answer selector */}
-                    {config.type === "mcq" && (
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {(["أ", "ب", "ج", "د"] as const).map((option) => (
-                          <Button
-                            key={option}
-                            type="button"
-                            size="sm"
-                            variant={
-                              config.mcqAnswer === option
-                                ? "default"
-                                : "outline"
-                            }
-                            onClick={() =>
-                              updateQuestionConfig(box.id, (prev) => ({
-                                ...prev,
-                                type: "mcq",
-                                mcqAnswer: option,
-                              }))
-                            }
-                          >
-                            {option}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
-
-                    {config.type === "tf" && (
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {(["صح", "خطأ"] as const).map((option) => (
-                          <Button
-                            key={option}
-                            type="button"
-                            size="sm"
-                            variant={
-                              config.tfAnswer === option ? "default" : "outline"
-                            }
-                            onClick={() =>
-                              updateQuestionConfig(box.id, (prev) => ({
-                                ...prev,
-                                type: "tf",
-                                tfAnswer: option,
-                              }))
-                            }
-                          >
-                            {option}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
-
-                    {config.type === "essay" && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        هذا السؤال سيتم تصحيحه يدوياً (إجابة مقالية).
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-
-              {boxes.length === 0 && (
+              {questions.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  لم يتم رسم أي أسئلة بعد. أغلق هذه النافذة وارسم مربعات على
-                  النموذج أولاً.
+                  لم يتم رسم أي أسئلة بعد. أغلق هذه النافذة وارسم مربعات على النموذج أولاً.
                 </p>
               )}
             </div>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setAnswerDialogOpen(false)}
-              >
+            <DialogFooter className="mt-4">
+              <Button type="button" variant="outline" onClick={() => setAnswerDialogOpen(false)}>
                 إغلاق
               </Button>
               <Button
                 type="button"
-                onClick={() => {
-                  // في المستقبل يمكن إرسال الإعدادات إلى الخادم هنا
-                  toast.success("تم حفظ إعدادات الإجابات محلياً");
-                  setAnswerDialogOpen(false);
-                }}
+                onClick={handleSaveTemplate}
+                disabled={!examId || !selectedFile || questions.length === 0 || isLoading}
               >
-                حفظ النموذج
+                {isLoading ? "جاري الحفظ..." : "حفظ نموذج المعلم"}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -30,8 +30,9 @@ interface PdfJsLib {
 
 declare global {
   interface Window {
-    pdfjsLib?: PdfJsLib;
-    pdfjs?: PdfJsLib;
+  // داخل ملف src/pages/exams/NewExam.tsx
+pdfjsLib?: any;
+pdfjs?: any;
   }
 }
 
@@ -107,135 +108,100 @@ export default function NewExam() {
   const containerRef = useRef<HTMLDivElement>(null);
   const pdfIframeRef = useRef<HTMLIFrameElement>(null);
   const [scale, setScale] = useState(1);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [pdfDimensions, setPdfDimensions] = useState<{
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [documentDimensions, setDocumentDimensions] = useState<{
     width: number;
     height: number;
   } | null>(null);
 
   const uploadMutation = useUploadExam();
 
-  // Get canvas dimensions - use A4 as default, or PDF dimensions if available
-  const canvasWidth = pdfDimensions?.width || PAGE_SIZES.a4.width;
-  const canvasHeight = pdfDimensions?.height || PAGE_SIZES.a4.height;
+  // Get canvas dimensions - use A4 as default, or document dimensions if available
+  const canvasWidth = documentDimensions?.width || PAGE_SIZES.a4.width;
+  const canvasHeight = documentDimensions?.height || PAGE_SIZES.a4.height;
 
-  // Create PDF URL from selected file and extract dimensions
+  // Create URL from selected file and extract PDF dimensions
   React.useEffect(() => {
     if (selectedFile) {
       const url = URL.createObjectURL(selectedFile);
-      setPdfUrl(url);
+      setDocumentUrl(url);
 
-      // Extract PDF dimensions
-      const extractPdfDimensions = async () => {
-        try {
-          const pdfjs = getPdfJs();
-          const arrayBuffer = await selectedFile.arrayBuffer();
-          const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-          const page = await pdf.getPage(1); // Get first page
-          const viewport = page.getViewport({ scale: 1.0 });
+      // Only PDF files are accepted
+      const isPdf = selectedFile.type === "application/pdf";
 
-          // Convert PDF points to pixels at 96 DPI
-          // PDF uses 72 DPI, browser uses 96 DPI
-          // So we need to scale: 96/72 = 1.333...
-          const PIXELS_PER_POINT = 96 / 72;
-          const width = viewport.width * PIXELS_PER_POINT;
-          const height = viewport.height * PIXELS_PER_POINT;
+      if (isPdf) {
+        const extractPdfDimensions = async () => {
+          try {
+            const pdfjs = getPdfJs();
+            const arrayBuffer = await selectedFile.arrayBuffer();
+            const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 1.0 });
 
-          setPdfDimensions({ width, height });
-          // Reset barcode area when dimensions change
-          setBarcodeArea(null);
-        } catch (error) {
-          console.error("Error extracting PDF dimensions:", error);
-          toast.error(
-            "فشل قراءة أبعاد الملف. سيتم استخدام الأبعاد الافتراضية."
-          );
-          // Fallback to A4 if extraction fails
-          setPdfDimensions({
-            width: PAGE_SIZES.a4.width,
-            height: PAGE_SIZES.a4.height,
-          });
-          setBarcodeArea(null);
-        }
-      };
+            // Convert PDF points to pixels at 96 DPI
+            const PIXELS_PER_POINT = 96 / 72;
+            const width = viewport.width * PIXELS_PER_POINT;
+            const height = viewport.height * PIXELS_PER_POINT;
 
-      extractPdfDimensions();
+            setDocumentDimensions({ width, height });
+            setBarcodeArea(null);
+          } catch (error) {
+            console.error("Error extracting PDF dimensions:", error);
+            toast.error(
+              "فشل قراءة أبعاد الملف. سيتم استخدام الأبعاد الافتراضية."
+            );
+            setDocumentDimensions({
+              width: PAGE_SIZES.a4.width,
+              height: PAGE_SIZES.a4.height,
+            });
+            setBarcodeArea(null);
+          }
+        };
+        extractPdfDimensions();
+      } else {
+        toast.error("يرجى اختيار ملف PDF فقط");
+        setSelectedFile(null);
+        setDocumentUrl(null);
+        setDocumentDimensions(null);
+      }
 
       return () => {
         URL.revokeObjectURL(url);
       };
     } else {
-      setPdfUrl(null);
-      setPdfDimensions(null);
+      setDocumentUrl(null);
+      setDocumentDimensions(null);
     }
   }, [selectedFile]);
 
-  // Calculate scale to fit container and get PDF dimensions
+  // Calculate scale to fit container (don't scale up)
   React.useEffect(() => {
-    if (containerRef.current && selectedFile && pdfUrl) {
-      const updateScale = () => {
-        const container = containerRef.current;
-        if (!container) return;
+    if (!containerRef.current || !selectedFile || !documentDimensions) return;
 
-        // Use iframe dimensions or fallback to page size
-        const iframe = pdfIframeRef.current;
-        if (iframe && iframe.contentWindow) {
-          try {
-            // Try to get PDF dimensions from iframe
-            // For now, we'll use the page size dimensions
-            const containerRect = container.getBoundingClientRect();
-            const availableWidth = containerRect.width - 32; // padding
-            const availableHeight = containerRect.height - 32; // padding
+    const updateScale = () => {
+      const container = containerRef.current;
+      if (!container || !documentDimensions) return;
 
-            const widthScale = availableWidth / canvasWidth;
-            const heightScale = availableHeight / canvasHeight;
-            const newScale = Math.min(widthScale, heightScale, 1); // Don't scale up
+      const containerRect = container.getBoundingClientRect();
+      const availableWidth = containerRect.width - 32; // padding
+      const availableHeight = containerRect.height - 32; // padding
 
-            setScale(newScale);
-          } catch {
-            // If we can't access iframe, use container-based scaling
-            const containerRect = container.getBoundingClientRect();
-            const availableWidth = containerRect.width - 32;
-            const availableHeight = containerRect.height - 32;
+      const widthScale = availableWidth / documentDimensions.width;
+      const heightScale = availableHeight / documentDimensions.height;
+      const newScale = Math.min(widthScale, heightScale, 1); // Don't scale up
 
-            const widthScale = availableWidth / canvasWidth;
-            const heightScale = availableHeight / canvasHeight;
-            const newScale = Math.min(widthScale, heightScale, 1);
+      setScale(newScale);
+    };
 
-            setScale(newScale);
-          }
-        } else {
-          // Fallback scaling
-          const containerRect = container.getBoundingClientRect();
-          const availableWidth = containerRect.width - 32;
-          const availableHeight = containerRect.height - 32;
-
-          const widthScale = availableWidth / canvasWidth;
-          const heightScale = availableHeight / canvasHeight;
-          const newScale = Math.min(widthScale, heightScale, 1);
-
-          setScale(newScale);
-        }
-      };
-
-      // Wait for iframe to load
-      const iframe = pdfIframeRef.current;
-      if (iframe) {
-        iframe.onload = () => {
-          setTimeout(updateScale, 100);
-        };
-      }
-
-      updateScale();
-      window.addEventListener("resize", updateScale);
-      return () => window.removeEventListener("resize", updateScale);
-    }
-  }, [selectedFile, pdfUrl, canvasWidth, canvasHeight]);
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, [selectedFile, documentDimensions]);
 
   const getCanvasCoordinates = (clientX: number, clientY: number) => {
     if (!canvasRef.current) return { x: 0, y: 0 };
     const rect = canvasRef.current.getBoundingClientRect();
     // Calculate coordinates relative to the overlay div
-    // The overlay is centered, so we need to account for that
     const relativeX = clientX - rect.left;
     const relativeY = clientY - rect.top;
     // Convert to unscaled coordinates
@@ -277,7 +243,7 @@ export default function NewExam() {
 
     setBarcodeArea({
       x: newX,
-      y: newY, // Y from bottom
+      y: newY,
       canvasHeight,
     });
     setIsDragging(true);
@@ -319,7 +285,9 @@ export default function NewExam() {
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type === "application/pdf") {
+    if (!file) return;
+
+    if (file.type === "application/pdf") {
       setSelectedFile(file);
     } else {
       toast.error("يرجى اختيار ملف PDF فقط");
@@ -343,7 +311,6 @@ export default function NewExam() {
 
     // Convert pixel coordinates to PDF points
     // At 96 DPI: 1 pixel = 72/96 = 0.75 PDF points
-    // 1 PDF point = 1/72 inch
     const PIXELS_TO_POINTS = 72 / 96; // 0.75
     const xPoints = Math.round(barcodeArea.x * PIXELS_TO_POINTS);
     const yPoints = Math.round(barcodeArea.y * PIXELS_TO_POINTS);
@@ -358,8 +325,11 @@ export default function NewExam() {
 
     uploadMutation.mutate(request, {
       onSuccess: () => {
-        // Navigate back to exams page on success
         navigate("/exams");
+      },
+      onError: (error) => {
+        console.error("Upload error:", error);
+        toast.error("فشل رفع الملف. تأكد من أن الخادم يقبل PDF، أو حاول مرة أخرى.");
       },
     });
   };
@@ -382,7 +352,7 @@ export default function NewExam() {
             </h1>
           </div>
           <p className="text-muted-foreground">
-            ارفع ورقة الأسئلة PDF وحدد موقع الباركود
+            ارفع ورقة الأسئلة (PDF) وحدد موقع الباركود
           </p>
         </div>
 
@@ -427,7 +397,9 @@ export default function NewExam() {
                       <span className="font-semibold">انقر للرفع</span> أو اسحب
                       الملف هنا
                     </p>
-                    <p className="text-xs text-muted-foreground">PDF فقط</p>
+                    <p className="text-xs text-muted-foreground">
+                      PDF فقط
+                    </p>
                   </div>
                   <input
                     id="file-upload"
@@ -457,7 +429,7 @@ export default function NewExam() {
         </div>
 
         {/* Barcode Selection - Full Width */}
-        {selectedFile && (
+        {selectedFile && documentDimensions && (
           <div className="flex flex-col flex-1 min-h-0 w-full space-y-4">
             <div className="flex items-center justify-between shrink-0">
               <Label>حدد موقع الباركود على الورقة *</Label>
@@ -481,11 +453,11 @@ export default function NewExam() {
                 ref={containerRef}
                 className="flex-1 min-h-0 border rounded bg-muted/20 p-2 flex items-center justify-center relative"
               >
-                {/* PDF Display */}
-                {pdfUrl && (
+                {/* Document Display - PDF only */}
+                {documentUrl && (
                   <iframe
                     ref={pdfIframeRef}
-                    src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                    src={`${documentUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                     className="border-0"
                     style={{
                       width: `${canvasWidth * scale}px`,

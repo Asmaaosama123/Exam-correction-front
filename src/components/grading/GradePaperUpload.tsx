@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import {
   Upload,
   FileText,
@@ -6,9 +6,6 @@ import {
   Loader2,
   CheckCircle2,
   Camera,
-  CameraOff,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,9 +15,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useGradePaper } from "@/hooks/use-grading";
 import { toast } from "sonner";
+// src/types/grading.ts
 
+export interface GradingDetail {
+  id: string;
+  type: "mcq" | "true_false";
+  gt: string;
+  pred: string;
+  conf: number;
+  ok: boolean;
+  method: string;
+}
+
+export interface ExamResult {
+  filename: string;
+  details: {
+    score: number;
+    total: number;
+    details: GradingDetail[];
+  };
+  annotated_image_url: string;
+}
 const ACCEPTED_TYPES = [
   "application/pdf",
   "image/jpeg",
@@ -31,28 +47,21 @@ const ACCEPTED_TYPES = [
 ];
 const ACCEPT_ATTR =
   "application/pdf,image/jpeg,image/jpg,image/png,image/webp,image/gif";
-const MAX_CAMERA_PHOTOS = 150;
 
-export function GradePaperUpload() {
+interface GradePaperUploadProps {
+  onUpload: (file: File) => Promise<void>;
+  isLoading: boolean;
+  /** استقبال نتائج من الكاميرا (اختياري) */
+  onCameraResults?: (results: ExamResult[]) => void;
+}
+
+export function GradePaperUpload({
+  onUpload,
+  isLoading,
+}: GradePaperUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const gradeMutation = useGradePaper();
-
-  // Camera state
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [capturedPhotos, setCapturedPhotos] = useState<File[]>([]);
-  const [isCameraSectionOpen, setIsCameraSectionOpen] = useState(false);
-
-  const toggleCameraSection = () => {
-    if (isCameraSectionOpen && isCameraActive) {
-      // Stop camera when closing section
-      stopCamera();
-    }
-    setIsCameraSectionOpen(!isCameraSectionOpen);
-  };
 
   const handleFileSelect = (file: File) => {
     if (file && ACCEPTED_TYPES.includes(file.type)) {
@@ -62,13 +71,9 @@ export function GradePaperUpload() {
     }
   };
 
-  const handleFileInputChange = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileSelect(file);
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -85,182 +90,69 @@ export function GradePaperUpload() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
     const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
+    if (file) handleFileSelect(file);
   };
 
   const handleRemoveFile = () => {
     setSelectedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleGrade = async () => {
     if (!selectedFile) {
-      toast.error("يرجى اختيار ملف (PDF أو صورة) للتصحيح");
+      toast.error("يرجى اختيار ملف للتصحيح");
       return;
     }
-
-    gradeMutation.mutate(
-      { file: selectedFile },
-      {
-        onSuccess: () => {
-          // Reset file after successful grading
-          handleRemoveFile();
-        },
-      }
-    );
+    await onUpload(selectedFile);
+    handleRemoveFile();
   };
 
-  const startCamera = async () => {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast.error("الكاميرا غير مدعومة في هذا المتصفح");
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      setCameraStream(stream);
-      setIsCameraActive(true);
-    } catch (error) {
-      console.error("Error accessing camera:", error);
-      toast.error("تعذر تشغيل الكاميرا. يرجى التحقق من الأذونات.");
-    }
+  // ✅ الدالة الوحيدة لفتح الكاميرا في تبويب جديد
+  const handleCameraScan = () => {
+    const sessionId = crypto.randomUUID();
+    window.open(`/camera-scan?session=${sessionId}`, "_blank");
   };
 
-  const stopCamera = () => {
-    if (cameraStream) {
-      cameraStream.getTracks().forEach((track) => track.stop());
-    }
-    setCameraStream(null);
-    setIsCameraActive(false);
-  };
-
-  const handleCapturePhoto = () => {
-    if (!isCameraActive || !videoRef.current) return;
-
-    if (capturedPhotos.length >= MAX_CAMERA_PHOTOS) {
-      toast.error(`لا يمكن التقاط أكثر من ${MAX_CAMERA_PHOTOS} صورة للكاميرا`);
-      return;
-    }
-
-    const video = videoRef.current;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return;
-        const file = new File(
-          [blob],
-          `camera-${new Date().toISOString()}.jpg`,
-          { type: "image/jpeg" }
-        );
-        setCapturedPhotos((prev) => [...prev, file]);
-      },
-      "image/jpeg",
-      0.9
-    );
-  };
-
-  const handleClearCaptured = () => {
-    setCapturedPhotos([]);
-  };
-
-  const handleGradeCaptured = async () => {
-    if (capturedPhotos.length === 0) {
-      toast.error("لا توجد صور ممسوحة للتصحيح");
-      return;
-    }
-
-    // Grade each captured photo sequentially using the same mutation
-    for (const photo of capturedPhotos.slice(0, MAX_CAMERA_PHOTOS)) {
-      try {
-        await (
-          gradeMutation as typeof gradeMutation & {
-            mutateAsync?: (vars: { file: File }) => Promise<unknown>;
-          }
-        ).mutateAsync?.({ file: photo });
-      } catch {
-        // errors handled inside useGradePaper
-      }
-    }
-
-    toast.success("تم إرسال جميع صور الكاميرا للتصحيح");
-    setCapturedPhotos([]);
-  };
-
-  // Attach/detach camera stream to video element
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video && cameraStream) {
-      try {
-        // Attach stream (supported in modern browsers)
-        (video as HTMLVideoElement).srcObject = cameraStream;
-        // Ensure video is muted to allow autoplay on mobile
-        video.muted = true;
-        const playPromise = video.play();
-        if (playPromise && typeof playPromise.then === "function") {
-          playPromise.catch((err) => {
-            console.warn("Unable to autoplay video", err);
-          });
-        }
-      } catch (e) {
-        console.error("Failed to attach video stream", e);
-        toast.error("تعذر تشغيل معاينة الكاميرا");
-      }
-    }
-
-    return () => {
-      if (video && (video as HTMLVideoElement).srcObject) {
-        const stream = (video as HTMLVideoElement).srcObject as MediaStream;
-        stream.getTracks().forEach((t) => t.stop());
-        (video as HTMLVideoElement).srcObject = null;
-      }
-    };
-  }, [cameraStream]);
+  // (اختياري) استقبال النتائج من التبويب الجديد عبر localStorage
+  // يمكنك تنفيذها في الصفحة الرئيسية (Grading.tsx)
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>تصحيح ورقة اختبار</CardTitle>
-        <CardDescription>
-          ارفع ورقة الاختبار الممسوحة ضوئياً وسيقوم النظام بقراءة الباركود
-          وتصحيح الورقة تلقائياً
+    <Card className="border-0 shadow-lg overflow-hidden bg-gradient-to-br from-white to-slate-50/80">
+      <CardHeader className="border-b border-slate-100 bg-white/50 backdrop-blur-sm">
+        <CardTitle className="text-2xl font-bold flex items-center gap-2">
+          <Upload className="h-6 w-6 text-primary" />
+          تصحيح ورقة اختبار
+        </CardTitle>
+        <CardDescription className="text-base">
+          ارفع ورقة الاختبار الممسوحة ضوئياً أو استخدم الكاميرا لتصحيحها
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* File Upload Area */}
+
+      <CardContent className="space-y-6 p-6">
+        {/* 📁 رفع الملفات */}
         {!selectedFile ? (
           <div
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            className={`flex items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+            className={`flex items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
               dragActive
-                ? "border-primary bg-primary/5"
-                : "border-muted-foreground/25 hover:bg-muted/50"
+                ? "border-primary bg-primary/10 scale-[1.02]"
+                : "border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5"
             }`}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => !isLoading && fileInputRef.current?.click()}
           >
-            <div className="flex flex-col items-center justify-center">
-              <Upload className="w-10 h-10 mb-3 text-muted-foreground" />
-              <p className="mb-2 text-sm text-muted-foreground">
-                <span className="font-semibold">انقر للرفع</span> أو اسحب الملف
-                هنا
+            <div className="flex flex-col items-center justify-center p-6">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Upload className="w-8 h-8 text-primary" />
+              </div>
+              <p className="mb-2 text-lg font-medium">
+                <span className="font-bold text-primary">انقر للرفع</span> أو اسحب الملف هنا
               </p>
-              <p className="text-xs text-muted-foreground">
-                PDF أو صورة (JPG, PNG, WebP, GIF)
+              <p className="text-sm text-muted-foreground">
+                PDF, JPG, PNG, WebP, GIF
               </p>
             </div>
             <input
@@ -269,44 +161,48 @@ export function GradePaperUpload() {
               className="hidden"
               accept={ACCEPT_ATTR}
               onChange={handleFileInputChange}
+              disabled={isLoading}
             />
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
-              <div className="flex items-center gap-3">
-                <FileText className="w-6 h-6 text-primary" />
+          <div className="space-y-5">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-xl border border-primary/20">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <FileText className="w-6 h-6 text-primary" />
+                </div>
                 <div>
-                  <p className="text-sm font-medium">{selectedFile.name}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-base font-semibold">{selectedFile.name}</p>
+                  <p className="text-sm text-muted-foreground">
                     {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
               </div>
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={handleRemoveFile}
-                disabled={gradeMutation.isPending}
+                disabled={isLoading}
+                className="hover:bg-destructive/10 hover:text-destructive"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </Button>
             </div>
 
             <Button
               onClick={handleGrade}
-              disabled={gradeMutation.isPending}
-              className="w-full"
+              disabled={isLoading}
+              className="w-full h-14 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg"
               size="lg"
             >
-              {gradeMutation.isPending ? (
+              {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  <Loader2 className="w-5 h-5 ml-2 animate-spin" />
                   جاري التصحيح...
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-4 h-4 ml-2" />
+                  <CheckCircle2 className="w-5 h-5 ml-2" />
                   تصحيح الورقة
                 </>
               )}
@@ -314,155 +210,34 @@ export function GradePaperUpload() {
           </div>
         )}
 
-        {/* Camera Scan Section */}
-        <div className="pt-4 border-t">
-          <button
-            type="button"
-            onClick={toggleCameraSection}
-            className="flex w-full items-center justify-between gap-2 py-2 text-right transition-colors hover:text-foreground"
-          >
-            <div className="flex items-center gap-2">
-              <Camera className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">
-                  مسح أوراق الاختبار باستخدام الكاميرا
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  يمكنك التقاط حتى {MAX_CAMERA_PHOTOS} صورة، ثم إرسالها للتصحيح
-                  تلقائياً.
-                </p>
-              </div>
-            </div>
-            {isCameraSectionOpen ? (
-              <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
-            ) : (
-              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-            )}
-          </button>
-
-          {isCameraSectionOpen && (
-            <div className="pt-3 space-y-3">
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-start">
-                {/* Camera preview & controls */}
-                <div className="space-y-3">
-                  <div className="aspect-video w-full bg-muted rounded-md overflow-hidden border flex items-center justify-center">
-                    {isCameraActive ? (
-                      <video
-                        ref={videoRef}
-                        className="w-full h-full object-contain"
-                        autoPlay
-                        playsInline
-                        muted
-                      />
-                    ) : (
-                      <p className="text-xs text-muted-foreground px-4 text-center">
-                        اضغط على زر "تشغيل الكاميرا" لبدء مسح أوراق الاختبار.
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={isCameraActive ? "destructive" : "outline"}
-                      onClick={isCameraActive ? stopCamera : startCamera}
-                    >
-                      {isCameraActive ? (
-                        <>
-                          <CameraOff className="h-4 w-4 ml-2" />
-                          إيقاف الكاميرا
-                        </>
-                      ) : (
-                        <>
-                          <Camera className="h-4 w-4 ml-2" />
-                          تشغيل الكاميرا
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleCapturePhoto}
-                      disabled={
-                        !isCameraActive ||
-                        capturedPhotos.length >= MAX_CAMERA_PHOTOS
-                      }
-                    >
-                      التقاط صورة
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Captured photos list */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      الصور الملتقطة:{" "}
-                      <span className="font-medium text-foreground">
-                        {capturedPhotos.length} / {MAX_CAMERA_PHOTOS}
-                      </span>
-                    </span>
-                    {capturedPhotos.length > 0 && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleClearCaptured}
-                      >
-                        مسح جميع الصور
-                      </Button>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto border rounded-md p-2 bg-muted/40">
-                    {capturedPhotos.length === 0 ? (
-                      <p className="col-span-3 text-[11px] text-muted-foreground text-center">
-                        لم يتم التقاط أي صور بعد.
-                      </p>
-                    ) : (
-                      capturedPhotos.map((photo, index) => {
-                        const url = URL.createObjectURL(photo);
-                        return (
-                          <div
-                            key={photo.name + index}
-                            className="relative rounded overflow-hidden border bg-background"
-                          >
-                            <img
-                              src={url}
-                              alt={`capture-${index + 1}`}
-                              className="w-full h-16 object-cover"
-                              onLoad={() => URL.revokeObjectURL(url)}
-                            />
-                            <span className="absolute bottom-0 right-0 text-[10px] bg-black/60 text-white px-1">
-                              #{index + 1}
-                            </span>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="w-full"
-                    onClick={handleGradeCaptured}
-                    disabled={
-                      capturedPhotos.length === 0 || gradeMutation.isPending
-                    }
-                  >
-                    {gradeMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 ml-2 animate-spin" />
-                        جاري إرسال الصور للتصحيح...
-                      </>
-                    ) : (
-                      "تصحيح جميع صور الكاميرا"
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+        {/* الفاصل */}
+        <div className="relative pt-4">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-dashed border-slate-300" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-card px-4 text-sm text-muted-foreground">أو</span>
+          </div>
         </div>
+
+        {/* 📸 زر الكاميرا – يفتح تبويب جديد */}
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-3 h-auto py-4 border-2 hover:bg-slate-100 transition-all"
+          onClick={handleCameraScan}
+        >
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Camera className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex flex-col items-start text-right">
+            <span className="text-base font-medium">
+              مسح أوراق الاختبار باستخدام الكاميرا
+            </span>
+            <span className="text-xs text-muted-foreground">
+              سيتم فتح نافذة جديدة لالتقاط الصور وإرسالها للتصحيح
+            </span>
+          </div>
+        </Button>
       </CardContent>
     </Card>
   );

@@ -10,6 +10,11 @@ import {
   ChevronRight,
   Plus,
   Download,
+  Info,
+  // ---------- Icons for documentation ----------
+  FileDown,
+  Table,
+  Trash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +31,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DeleteExamDialog } from "@/components/exams/DeleteExamDialog";
 import { GeneratePapersDialog } from "@/components/exams/GeneratePapersDialog";
 
+// ----- Dialog + Tooltip imports -----
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+// ------------------------------------
+
 export default function Exams() {
   const navigate = useNavigate();
   // Dialog State
@@ -37,6 +60,10 @@ export default function Exams() {
   const [deletingExamId, setDeletingExamId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+
+  // ---------- State for the info dialog ----------
+  const [infoOpen, setInfoOpen] = useState(false);
+  // -----------------------------------------------
 
   const {
     data: exams,
@@ -338,6 +365,148 @@ export default function Exams() {
           />
         )}
       </div>
+
+      {/* ---------- FLOATING INFO BUTTON – دليل استخدام صفحة الاختبارات ---------- */}
+      <TooltipProvider>
+        <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="fixed bottom-6 left-6 h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                  aria-label="دليل استخدام صفحة الاختبارات"
+                >
+                  <Info className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-sm">
+              <p>دليل استخدام صفحة الاختبارات</p>
+            </TooltipContent>
+          </Tooltip>
+          <DialogContent
+            className="sm:max-w-2xl max-h-[85vh] overflow-y-auto"
+            dir="rtl"
+          >
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">
+                كيفية التعامل مع صفحة الاختبارات
+              </DialogTitle>
+              <DialogDescription className="text-base">
+                دليل سريع لاستخدام صفحة إدارة الاختبارات
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 py-2">
+              <p className="text-muted-foreground leading-relaxed">
+                <strong>صفحة الاختبارات</strong> تتيح لك إدارة جميع الاختبارات في النظام،
+                ورفع اختبارات جديدة، وإنشاء أوراق الطلاب، والبحث والفلترة.
+              </p>
+
+              <div className="space-y-4">
+                {/* رفع اختبار جديد */}
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <Upload className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">رفع اختبار جديد</h4>
+                    <p className="text-sm text-muted-foreground">
+                      انقر على بطاقة <strong>“رفع اختبار جديد”</strong> أو الزر الموجود فيها.
+                      ستنتقل إلى صفحة رفع الملفات حيث يمكنك اختيار ملف PDF وتحديد موقع الباركود.
+                    </p>
+                  </div>
+                </div>
+
+                {/* إنشاء أوراق الطلاب */}
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <FileDown className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">إنشاء أوراق الطلاب</h4>
+                    <p className="text-sm text-muted-foreground">
+                      استخدم بطاقة <strong>“إنشاء وتحميل أوراق الطلاب”</strong> لاختيار اختبار وفصل
+                      وتحميل ملف ZIP يحتوي على أوراق PDF جاهزة للطباعة لكل طالب.
+                    </p>
+                  </div>
+                </div>
+
+                {/* البحث في القائمة */}
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <Search className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">البحث والفلترة</h4>
+                    <p className="text-sm text-muted-foreground">
+                      اكتب اسم الاختبار أو المادة في مربع البحث لتصفية القائمة.
+                      النتائج تتغير أثناء الكتابة.
+                    </p>
+                  </div>
+                </div>
+
+                {/* عرض الجدول */}
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <Table className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">عرض الاختبارات</h4>
+                    <p className="text-sm text-muted-foreground">
+                      يعرض الجدول جميع الاختبارات مع تفاصيل: الاسم، المادة، عدد الصفحات،
+                      تاريخ الإنشاء، وإجراء الحذف.
+                    </p>
+                  </div>
+                </div>
+
+                {/* حذف اختبار */}
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <Trash className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">حذف اختبار</h4>
+                    <p className="text-sm text-muted-foreground">
+                      انقر على أيقونة <strong>سلة المهملات</strong> بجانب الاختبار لحذفه.
+                      سيطلب منك تأكيد الحذف.
+                    </p>
+                  </div>
+                </div>
+
+                {/* ترقيم الصفحات */}
+                {totalPages > 1 && (
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                      <ChevronLeft className="h-6 w-6 text-primary" />
+                      <ChevronRight className="h-6 w-6 text-primary -mr-2" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">ترقيم الصفحات</h4>
+                      <p className="text-sm text-muted-foreground">
+                        استخدم أزرار <strong>السابق</strong> و<strong>التالي</strong> للتنقل بين الصفحات.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-sm text-muted-foreground border-t pt-4 mt-2">
+                ملاحظة: عند حذف اختبار، لا يمكن التراجع عن هذه العملية.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setInfoOpen(false)}>
+                إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </TooltipProvider>
+      {/* ------------------------------------------------------------------ */}
     </MainLayout>
   );
 }

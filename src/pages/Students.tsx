@@ -13,6 +13,14 @@ import {
   Download,
   CreditCard,
   Calendar,
+  Info,
+  Filter,
+  FileUp,
+  FileDown,
+  UserPlus,
+  UserPen,
+  UserX,
+  List,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +48,23 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
+// Dialog + Tooltip imports
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 export default function Students() {
   const [selectedClassId, setSelectedClassId] = useState<string | undefined>(
     undefined
@@ -56,64 +81,42 @@ export default function Students() {
   } | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchValue);
-      setPageNumber(1); // Reset to first page on search
+      setPageNumber(1);
     }, 500);
-
     return () => clearTimeout(timer);
   }, [searchValue]);
 
-  // Reset to first page when page size changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setPageNumber(1);
   }, [pageSize]);
 
   const { data: classesData, isLoading: isLoadingClasses } = useGetClasses();
-
   const { data, isLoading, error } = useGetStudents({
     classId: selectedClassId,
     pageNumber,
     pageSize,
     SearchValue: debouncedSearch || undefined,
   });
-
   const deleteMutation = useDeleteStudent();
 
-  const handleEdit = (studentId: string) => {
-    setEditingStudent(studentId);
-  };
-
+  const handleEdit = (studentId: string) => setEditingStudent(studentId);
   const handleDelete = (studentId: string, className?: string) => {
-    // Find classId from className if available, or use selectedClassId
     let classIdForDelete = selectedClassId;
     if (!classIdForDelete && className && classesData) {
       const foundClass = classesData.find((c) => c.name === className);
-      if (foundClass) {
-        classIdForDelete = foundClass.id;
-      }
+      if (foundClass) classIdForDelete = foundClass.id;
     }
-    setDeletingStudent({
-      id: studentId,
-      classId: classIdForDelete,
-    });
+    setDeletingStudent({ id: studentId, classId: classIdForDelete });
   };
-
-  const handleAddSuccess = () => {
-    setIsAddDialogOpen(false);
-  };
-
-  const handleEditSuccess = () => {
-    setEditingStudent(null);
-  };
-
-  const handleDeleteSuccess = () => {
-    setDeletingStudent(null);
-  };
+  const handleAddSuccess = () => setIsAddDialogOpen(false);
+  const handleEditSuccess = () => setEditingStudent(null);
+  const handleDeleteSuccess = () => setDeletingStudent(null);
 
   const totalStudents = data?.items.length || 0;
   const totalPages = data?.totalPages || 0;
@@ -130,17 +133,11 @@ export default function Students() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsExportDialogOpen(true)}
-            >
+            <Button variant="outline" onClick={() => setIsExportDialogOpen(true)}>
               <Download className="h-4 w-4 ml-2" />
               تصدير الطلاب
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsImportDialogOpen(true)}
-            >
+            <Button variant="outline" onClick={() => setIsImportDialogOpen(true)}>
               <Upload className="h-4 w-4 ml-2" />
               استيراد من Excel
             </Button>
@@ -231,14 +228,11 @@ export default function Students() {
                   value={selectedClassId || "all"}
                   onValueChange={(value) => {
                     setSelectedClassId(value === "all" ? undefined : value);
-                    setPageNumber(1); // Reset to first page when changing class
+                    setPageNumber(1);
                   }}
                   disabled={isLoadingClasses}
                 >
-                  <SelectTrigger
-                    id="class-select"
-                    className="w-full sm:w-[300px]"
-                  >
+                  <SelectTrigger id="class-select" className="w-full sm:w-[300px]">
                     <SelectValue placeholder="اختر الفصل" />
                   </SelectTrigger>
                   <SelectContent>
@@ -252,8 +246,7 @@ export default function Students() {
                         {classesData && classesData.length > 0 ? (
                           classesData.map((classItem) => (
                             <SelectItem key={classItem.id} value={classItem.id}>
-                              {classItem.name} ({classItem.numberOfStudents}{" "}
-                              طالب)
+                              {classItem.name} ({classItem.numberOfStudents} طالب)
                             </SelectItem>
                           ))
                         ) : (
@@ -335,7 +328,6 @@ export default function Students() {
                     </thead>
                     <tbody>
                       {data?.items.map((student) => {
-                        // Format createdAt date
                         const formattedDate = student.createdAt
                           ? new Date(student.createdAt).toLocaleDateString(
                               "ar-SA",
@@ -355,9 +347,7 @@ export default function Students() {
                             className="border-b transition-colors hover:bg-accent/50"
                           >
                             <td className="p-4">
-                              <div className="font-medium">
-                                {student.fullName}
-                              </div>
+                              <div className="font-medium">{student.fullName}</div>
                             </td>
                             <td className="p-4">
                               <div className="flex items-center gap-2 text-sm">
@@ -377,9 +367,7 @@ export default function Students() {
                                 {student.mobileNumber || "لا يوجد"}
                               </div>
                             </td>
-                            <td className="p-4 text-sm">
-                              {student.className || "-"}
-                            </td>
+                            <td className="p-4 text-sm">{student.className || "-"}</td>
                             <td className="p-4">
                               {student.isDisabled ? (
                                 <span className="inline-flex items-center rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive">
@@ -477,9 +465,7 @@ export default function Students() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() =>
-                            setPageNumber((p) => Math.max(1, p - 1))
-                          }
+                          onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
                           disabled={!data?.hasPreviouspage || isLoading}
                         >
                           <ChevronRight className="h-4 w-4 ml-2" />
@@ -488,9 +474,7 @@ export default function Students() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() =>
-                            setPageNumber((p) => Math.min(totalPages, p + 1))
-                          }
+                          onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
                           disabled={!data?.hasNextPage || isLoading}
                         >
                           التالي
@@ -505,6 +489,168 @@ export default function Students() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ---------- FLOATING INFO BUTTON – perfect match with screenshot ---------- */}
+      <TooltipProvider>
+        <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="fixed bottom-6 left-6 h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                  aria-label="دليل استخدام صفحة الطلاب"
+                >
+                  <Info className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-sm">
+              <p>دليل استخدام صفحة الطلاب</p>
+            </TooltipContent>
+          </Tooltip>
+          <DialogContent
+            className="sm:max-w-2xl max-h-[85vh] overflow-y-auto"
+            dir="rtl"
+          >
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">
+                كيفية التعامل مع صفحة الطلاب
+              </DialogTitle>
+              <DialogDescription className="text-base">
+                دليل سريع لاستخدام صفحة إدارة الطلاب
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 py-2">
+              <p className="text-muted-foreground leading-relaxed">
+                <strong>صفحة الطلاب</strong> تتيح لك إدارة جميع الطلاب المسجلين في النظام،
+                مع إمكانية البحث والفلترة حسب الفصل، وإضافة الطلاب بشكل فردي أو عبر استيراد
+                من Excel، وتصدير البيانات، بالإضافة إلى تعديل وحذف الطلاب.
+              </p>
+
+              <div className="space-y-4">
+                {/* كل عنصر بشكله الجميل – icons inside card-like containers */}
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <Filter className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">تصفية حسب الفصل</h4>
+                    <p className="text-sm text-muted-foreground">
+                      اختر فصلاً من القائمة المنسدلة لعرض الطلاب المنتمين إليه فقط،
+                      أو اختر <strong>“جميع الفصول”</strong> لعرض الكل.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <Search className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">البحث</h4>
+                    <p className="text-sm text-muted-foreground">
+                      ابحث عن طالب باستخدام الاسم، الرقم الوطني، البريد الإلكتروني أو رقم الهاتف.
+                      النتائج تتغير أثناء الكتابة.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <UserPlus className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">إضافة طالب جديد</h4>
+                    <p className="text-sm text-muted-foreground">
+                      انقر على زر <strong>“إضافة طالب جديد”</strong> لإدخال بيانات طالب فردي.
+                      يجب اختيار الفصل الذي سينتمي إليه الطالب.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <FileUp className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">استيراد من Excel</h4>
+                    <p className="text-sm text-muted-foreground">
+                      استخدم زر <strong>“استيراد من Excel”</strong> لرفع ملف CSV أو XLSX
+                      وإضافة عدد كبير من الطلاب دفعة واحدة. يجب تحديد الفصل قبل الاستيراد.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <FileDown className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">تصدير الطلاب</h4>
+                    <p className="text-sm text-muted-foreground">
+                      يمكنك تصدير قائمة الطلاب إلى ملف Excel أو PDF عبر زر{" "}
+                      <strong>“تصدير الطلاب”</strong>. اختر الفصول التي تريدها أو جميع الفصول.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <UserPen className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">تعديل أو حذف</h4>
+                    <p className="text-sm text-muted-foreground">
+                      بجانب كل طالب أيقونتي <strong>تعديل</strong> (قلم) و<strong>حذف</strong> (سلة).
+                      يمكنك تحديث بياناته أو حذفه نهائياً مع التأكيد.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <UserX className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">تعطيل / تفعيل</h4>
+                    <p className="text-sm text-muted-foreground">
+                      في شاشة التعديل يمكنك <strong>تعطيل</strong> الطالب بدلاً من حذفه،
+                      وسيظهر في الجدول بحالة “معطل”.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                    <List className="h-6 w-6 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold">ترقيم الصفحات</h4>
+                    <p className="text-sm text-muted-foreground">
+                      يمكنك تغيير عدد الطلاب المعروضين في الصفحة (5، 10، 20، 50)
+                      والتنقل بين الصفحات باستخدام أزرار <strong>السابق</strong> و<strong>التالي</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground border-t pt-4 mt-2">
+                ملاحظة: عند حذف طالب، لا يمكن التراجع عن هذه العملية.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setInfoOpen(false)}>
+                إغلاق
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </TooltipProvider>
+      {/* ------------------------------------------------------------------ */}
 
       {/* Dialogs */}
       <StudentFormDialog

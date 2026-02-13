@@ -39,7 +39,7 @@ const Grading = () => {
     formData.append("file", file);
 
     try {
-      const response = await fetch("https://localhost:44393/api/Exam/process", {
+      const response = await fetch("http://76.13.51.15:5002/api/Exam/process", {
         method: "POST",
         body: formData,
       });

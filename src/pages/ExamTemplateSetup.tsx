@@ -561,7 +561,7 @@ const [, setUpdateKey] = useState(Date.now().toString());
       formData.append("File", selectedFile);
       formData.append("QuestionsJson", questionsJson);
 
-      const res = await fetch("https://localhost:44393/api/Exam/upload-teacher-exam", {
+      const res = await fetch("http://76.13.51.15:5002/api/Exam/upload-teacher-exam", {
         method: "POST",
         body: formData,
       });

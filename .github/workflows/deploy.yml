@@ -1,12 +1,28 @@
 name: Deploy Frontend
+
 on:
-push:
-branches:
-- main
+  push:
+    branches:
+      - main # هينفذ لما ترفعي على فرع main
 
 jobs:
-build-and-deploy:
-runs-on: ubuntu-latest
-steps:
-- name: Checkout code
-uses: actions/checkout@v3
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install and Build
+        run: |
+          npm install
+          npm run build # هنا هيطلع فولدر dist
+
+      - name: Deploy to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "dist/*"  # انقل فولدر الـ build
+          target: "/var/www/frontend"
+          strip_components: 1

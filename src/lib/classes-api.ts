@@ -71,9 +71,8 @@ export const classesApi = {
 
     // Extract filename from Content-Disposition header if available
     const contentDisposition = response.headers["content-disposition"];
-    let filename = `classes_export_${
-      new Date().toISOString().split("T")[0]
-    }.pdf`;
+    let filename = `classes_export_${new Date().toISOString().split("T")[0]
+      }.pdf`;
 
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(
@@ -98,9 +97,8 @@ export const classesApi = {
 
     // Extract filename from Content-Disposition header if available
     const contentDisposition = response.headers["content-disposition"];
-    let filename = `classes_export_${
-      new Date().toISOString().split("T")[0]
-    }.xlsx`;
+    let filename = `classes_export_${new Date().toISOString().split("T")[0]
+      }.xlsx`;
 
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(

@@ -34,34 +34,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useUploadTeacherExam } from "@/hooks/use-exam-template";
+import type { Question, OptionBox, QuestionType, AnswerDirection, Language } from "@/types/exam-template";
 
 const PAGE_SIZES = { a4: { width: 794, height: 1123 } } as const;
 
-type QuestionType = "mcq" | "true_false" | "essay";
-type AnswerDirection = "horizontal" | "vertical";
-type Language = "ar" | "en";
 
-interface OptionBox {
-  id: string;
-  label: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  page: number;
-  originalIndex: number;
-}
-
-interface Question {
-  id: string;
-  index: number;
-  type: QuestionType;
-  answer: string;
-  options: OptionBox[];
-  page: number;
-  answerDirection?: AnswerDirection;
-  mcqOptionCount?: number;
-}
 
 const DEFAULT_SETTINGS = {
   mcq: {
@@ -97,6 +75,8 @@ export default function ExamTemplateSetup() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  const uploadTeacherExamMutation = useUploadTeacherExam();
+
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number; page: number } | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
@@ -116,7 +96,7 @@ export default function ExamTemplateSetup() {
 
   const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
   const [examId, setExamId] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
+  const isLoading = uploadTeacherExamMutation.isPending;
   const [pdfConverting, setPdfConverting] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfKey, setPdfKey] = useState(0);
@@ -590,38 +570,24 @@ export default function ExamTemplateSetup() {
       return;
     }
 
-    setIsLoading(true);
+    // setIsLoading(true); // We can use mutation.isPending if we want to bind it to UI
     try {
       const questionsJson = prepareQuestionsJson();
-      const formData = new FormData();
-      formData.append("ExamId", examIdNum.toString());
-      formData.append("File", selectedFile);
-      formData.append("QuestionsJson", questionsJson);
 
-      const res = await fetch("http://76.13.51.15:5002/api/Exam/upload-teacher-exam", {
-        method: "POST",
-        body: formData,
+      await uploadTeacherExamMutation.mutateAsync({
+        ExamId: examIdNum,
+        File: selectedFile,
+        QuestionsJson: questionsJson
       });
 
-      if (res.ok) {
-        toast.success("تم حفظ نموذج المعلم بنجاح!");
-        handleRemoveFile();
-        setExamId("");
-        setAnswerDialogOpen(false);
-      } else {
-        const errorText = await res.text();
-        try {
-          const errorJson = JSON.parse(errorText);
-          toast.error(`خطأ: ${errorJson.detail || errorJson.title || errorJson.message || "حدث خطأ في السيرفر، يرجى المحاولة لاحقاً"}`);
-        } catch {
-          toast.error("حدث خطأ في السيرفر، يرجى المحاولة لاحقاً");
-        }
-      }
+      // On success (mutationAsync will throw on error)
+      handleRemoveFile();
+      setExamId("");
+      setAnswerDialogOpen(false);
+
     } catch (error) {
-      console.error("خطأ في الاتصال بالسيرفر:", error);
-      toast.error("تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت وحاول مرة أخرى");
-    } finally {
-      setIsLoading(false);
+      console.error("خطأ في عملية الرفع:", error);
+      // Error handled in hook onError with toast
     }
   };
 
@@ -972,8 +938,8 @@ export default function ExamTemplateSetup() {
             {/* رسالة إرشادية حسب نوع السؤال المختار */}
             {isCreatingQuestion && selectedQuestionType && (
               <div className={`rounded-lg p-3 flex items-center gap-2 ${selectedQuestionType === "mcq" ? "bg-blue-50 border border-blue-200 text-blue-800" :
-                  selectedQuestionType === "true_false" ? "bg-green-50 border border-green-200 text-green-800" :
-                    "bg-purple-50 border border-purple-200 text-purple-800"
+                selectedQuestionType === "true_false" ? "bg-green-50 border border-green-200 text-green-800" :
+                  "bg-purple-50 border border-purple-200 text-purple-800"
                 }`}>
                 <PlusCircle className="w-5 h-5 shrink-0" />
                 <p className="text-sm font-medium">
@@ -1070,8 +1036,8 @@ export default function ExamTemplateSetup() {
                               <div
                                 key={option.id}
                                 className={`absolute border-2 ${question.type === "mcq" ? "border-blue-300 bg-blue-50/30" :
-                                    question.type === "true_false" ? "border-green-300 bg-green-50/30" :
-                                      "border-purple-300 bg-purple-50/30"
+                                  question.type === "true_false" ? "border-green-300 bg-green-50/30" :
+                                    "border-purple-300 bg-purple-50/30"
                                   }`}
                                 style={{
                                   left: `${option.x * scale}px`,
@@ -1081,8 +1047,8 @@ export default function ExamTemplateSetup() {
                                 }}
                               >
                                 <div className={`absolute -top-6 right-0 text-xs px-2 py-1 rounded ${question.type === "mcq" ? "bg-blue-500 text-white" :
-                                    question.type === "true_false" ? "bg-green-500 text-white" :
-                                      "bg-purple-500 text-white"
+                                  question.type === "true_false" ? "bg-green-500 text-white" :
+                                    "bg-purple-500 text-white"
                                   }`}>
                                   س{question.index} - {question.type === "true_false" ? "صح/خطأ" : option.label} - ص{option.page}
                                 </div>

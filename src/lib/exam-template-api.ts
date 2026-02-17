@@ -9,7 +9,7 @@ export const examTemplateApi = {
         formData.append("QuestionsJson", data.QuestionsJson);
 
         const response = await api.post<TeacherExamResponse>(
-            "/api/Exam/upload-teacher-exam",
+            "/Exam/upload-teacher-exam",
             formData,
             {
                 headers: {

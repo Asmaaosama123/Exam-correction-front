@@ -214,21 +214,6 @@ export default function ExamTemplateSetup() {
     setPdfError(null);
   }, [stitchedImageUrl]);
 
-  if (showScanner) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-black">
-        <CameraScanner
-          fullscreen
-          actionLabel="ربط النموذج"
-          onScan={(file) => {
-            handleFileSelect(file);
-            setShowScanner(false);
-          }}
-          onBack={() => setShowScanner(false)}
-        />
-      </div>
-    );
-  }
 
   const handleRemoveFile = useCallback(() => {
     if (stitchedImageUrl) {

@@ -33,7 +33,7 @@ export const studentsApi = {
     }
 
     const response = await api.get<GetStudentsResponse>(
-      `/api/students?${queryParams.toString()}`
+      `/Students?${queryParams.toString()}`
     );
     return response.data;
   },
@@ -46,7 +46,7 @@ export const studentsApi = {
     });
 
     const response = await api.get<GetStudentResponse>(
-      `/api/students/${params.studentId}?${queryParams.toString()}`
+      `/Students/${params.studentId}?${queryParams.toString()}`
     );
     return response.data;
   },
@@ -60,7 +60,7 @@ export const studentsApi = {
     });
 
     const response = await api.post<AddStudentResponse>(
-      `/api/students?${queryParams.toString()}`,
+      `/Students?${queryParams.toString()}`,
       data
     );
     return response.data;
@@ -71,7 +71,7 @@ export const studentsApi = {
     data: UpdateStudentRequest
   ): Promise<UpdateStudentResponse> => {
     const response = await api.put<UpdateStudentResponse>(
-      `/api/students/${studentId}`,
+      `/Students/${studentId}`,
       data
     );
     return response.data;
@@ -79,7 +79,7 @@ export const studentsApi = {
 
   deleteStudent: async (studentId: string): Promise<DeleteStudentResponse> => {
     const response = await api.delete<DeleteStudentResponse>(
-      `/api/students/${studentId}`
+      `/Students/${studentId}`
     );
     // Handle 204 No Content or empty response
     return response.data || { success: true };
@@ -95,7 +95,7 @@ export const studentsApi = {
     formData.append("ClassId", data.ClassId);
 
     const response = await api.post<ImportStudentsResponse>(
-      "/api/students/import-students",
+      "/Students/import-students",
       formData,
       {
         headers: {
@@ -119,8 +119,8 @@ export const studentsApi = {
 
     const url =
       data.classIds.length > 0
-        ? `/api/Reports/report-students-pdf?${queryParams.toString()}`
-        : "/api/Reports/report-students-pdf";
+        ? `/Reports/report-students-pdf?${queryParams.toString()}`
+        : "/Reports/report-students-pdf";
 
     const response = await api.get<Blob>(url, {
       responseType: "blob",
@@ -128,9 +128,8 @@ export const studentsApi = {
 
     // Extract filename from Content-Disposition header if available
     const contentDisposition = response.headers["content-disposition"];
-    let filename = `students_export_${
-      new Date().toISOString().split("T")[0]
-    }.pdf`;
+    let filename = `students_export_${new Date().toISOString().split("T")[0]
+      }.pdf`;
 
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(
@@ -158,8 +157,8 @@ export const studentsApi = {
     // Build URL with or without query parameters
     const url =
       data.classIds.length > 0
-        ? `/api/Reports/report-students-excel?${queryParams.toString()}`
-        : "/api/Reports/report-students-excel";
+        ? `/Reports/report-students-excel?${queryParams.toString()}`
+        : "/Reports/report-students-excel";
 
     const response = await api.get<Blob>(url, {
       responseType: "blob",
@@ -167,9 +166,8 @@ export const studentsApi = {
 
     // Extract filename from Content-Disposition header if available
     const contentDisposition = response.headers["content-disposition"];
-    let filename = `students_export_${
-      new Date().toISOString().split("T")[0]
-    }.xlsx`;
+    let filename = `students_export_${new Date().toISOString().split("T")[0]
+      }.xlsx`;
 
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(

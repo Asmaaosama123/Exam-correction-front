@@ -64,7 +64,7 @@ export function TrialStatus({
           <CardTitle className="text-lg font-semibold">تجربة مجانية</CardTitle>
         </div>
         <CardDescription className="text-base">
-          <div className="mt-2 space-y-1">
+          {/* <div className="mt-2 space-y-1">
             <p>
               لديك{" "}
               <span className="font-bold text-primary text-lg">
@@ -81,7 +81,7 @@ export function TrialStatus({
             <p className="text-sm text-muted-foreground mt-2">
               بعد انتهاء الأوراق المجانية، ستحتاج للتواصل مع المسؤول للاشتراك
             </p>
-          </div>
+          </div> */}
         </CardDescription>
       </CardHeader>
     </Card>

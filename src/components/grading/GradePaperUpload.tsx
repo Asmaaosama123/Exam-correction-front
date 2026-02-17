@@ -45,17 +45,92 @@ export function GradePaperUpload({
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (file: File) => {
-    if (file && ACCEPTED_TYPES.includes(file.type)) {
-      setSelectedFile(file);
+  const stitchImages = async (files: File[]): Promise<{ url: string, width: number, height: number, file: File }> => {
+    return new Promise((resolve, reject) => {
+      const images: HTMLImageElement[] = [];
+      let loadedCount = 0;
+
+      files.forEach((file, index) => {
+        const img = new Image();
+        img.onload = () => {
+          images[index] = img;
+          loadedCount++;
+          if (loadedCount === files.length) {
+            const maxWidth = Math.max(...images.map(i => i.width));
+            const totalHeight = images.reduce((sum, i) => sum + i.height, 0);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = maxWidth;
+            canvas.height = totalHeight;
+            const ctx = canvas.getContext('2d');
+
+            if (!ctx) {
+              reject(new Error("Failed to get canvas context"));
+              return;
+            }
+
+            let currentY = 0;
+            images.forEach(img => {
+              ctx.drawImage(img, 0, currentY);
+              currentY += img.height;
+            });
+
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const stitchedFile = new File([blob], "stitched_grading_images.png", { type: "image/png" });
+                resolve({ url: URL.createObjectURL(blob), width: maxWidth, height: totalHeight, file: stitchedFile });
+              } else {
+                reject(new Error("Failed to create blob"));
+              }
+            }, "image/png");
+          }
+        };
+        img.onerror = () => reject(new Error(`Failed to load image ${file.name}`));
+        img.src = URL.createObjectURL(file);
+      });
+    });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement> | File | File[]) => {
+    let files: File[] = [];
+
+    if (Array.isArray(e)) {
+      files = e;
+    } else if (e instanceof File) {
+      files = [e];
     } else {
-      toast.error("يرجى اختيار ملف PDF أو صورة (JPG, PNG, WebP, GIF)");
+      files = Array.from(e.target.files || []);
+    }
+
+    if (files.length === 0) return;
+
+    const hasPdf = files.some(f => f.name.toLowerCase().endsWith('.pdf'));
+    if (hasPdf && files.length > 1) {
+      toast.error("لا يمكن رفع أكثر من ملف PDF واحد");
+      return;
+    }
+
+    const invalidFiles = files.filter(f => !ACCEPTED_TYPES.includes(f.type) && !f.name.toLowerCase().endsWith('.pdf'));
+    if (invalidFiles.length > 0) {
+      toast.error("بعض الملفات غير مدعومة. يرجى اختيار PDF أو صور فقط.");
+      return;
+    }
+
+    if (files.length === 1 && files[0].name.toLowerCase().endsWith('.pdf')) {
+      setSelectedFile(files[0]);
+    } else {
+      try {
+        const { file } = await stitchImages(files);
+        setSelectedFile(file);
+      } catch (err) {
+        toast.error("حدث خطأ أثناء معالجة الصور");
+        console.error(err);
+      }
     }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileSelect(file);
+    handleFileSelect(e);
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -90,10 +165,14 @@ export function GradePaperUpload({
     handleRemoveFile();
   };
 
-  // فتح الكاميرا في نفس الصفحة بملء الشاشة
+  // فتح الكاميرا باستخدام input native
   const handleCameraScan = () => {
-    const sessionId = crypto.randomUUID();
-    navigate(`/camera-scan?session=${sessionId}`);
+    cameraInputRef.current?.click();
+  };
+
+  const handleCameraInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileSelect(e);
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   return (
@@ -116,11 +195,10 @@ export function GradePaperUpload({
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            className={`flex items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
-              dragActive
-                ? "border-primary bg-primary/10 scale-[1.02]"
-                : "border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5"
-            }`}
+            className={`flex items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all ${dragActive
+              ? "border-primary bg-primary/10 scale-[1.02]"
+              : "border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5"
+              }`}
             onClick={() => !isLoading && fileInputRef.current?.click()}
           >
             <div className="flex flex-col items-center justify-center p-6">
@@ -137,6 +215,7 @@ export function GradePaperUpload({
             <input
               ref={fileInputRef}
               type="file"
+              multiple
               className="hidden"
               accept={ACCEPT_ATTR}
               onChange={handleFileInputChange}
@@ -209,13 +288,24 @@ export function GradePaperUpload({
           </div>
           <div className="flex flex-col items-start text-right">
             <span className="text-base font-medium">
-              مسح أوراق الاختبار باستخدام الكاميرا
+              استخدام الكاميرا
             </span>
             <span className="text-xs text-muted-foreground">
-              سيتم فتح الكاميرا بملء الشاشة لالتقاط الصور
+              التقاط صورة مباشرة من كاميرا الجهاز
             </span>
           </div>
         </Button>
+
+        {/* Hidden Camera Input */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*"
+          capture="environment"
+          onChange={handleCameraInputChange}
+          disabled={isLoading}
+        />
       </CardContent>
     </Card>
   );

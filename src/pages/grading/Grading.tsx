@@ -2,8 +2,8 @@ import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { GradePaperUpload } from "@/components/grading/GradePaperUpload";
 import { GradedExamResult } from "@/components/grading/GradedExamResult";
-import { CameraScanner } from "@/components/grading/CameraScanner";
-import { XCircle, X, Upload, CheckCircle2, Camera, FileText } from "lucide-react";
+import { GradingResultsTable } from "@/components/grading/GradingResultsTable";
+import { XCircle, Upload, CheckCircle2, Camera, FileText } from "lucide-react";
 import { HelpFab } from "@/components/ui/help-fab";
 import { Button } from "@/components/ui/button";
 
@@ -17,7 +17,6 @@ const Grading = () => {
 
   const processExamMutation = useProcessExam();
   const isLoading = processExamMutation.isPending;
-  const [showCamera, setShowCamera] = useState(false);
 
   const handleUpload = async (file: File) => {
     setError(null);
@@ -38,17 +37,6 @@ const Grading = () => {
     }
   };
 
-  const handleCameraResults = (results: ExamResult[]) => {
-    setGradedResults(results);
-    setShowCamera(false);
-  };
-
-  const portraitConstraints = {
-    facingMode: "environment",
-    aspectRatio: 9 / 16,
-    width: { ideal: 720 },
-    height: { ideal: 1280 }
-  };
 
   return (
     <MainLayout>
@@ -74,7 +62,6 @@ const Grading = () => {
         <GradePaperUpload
           onUpload={handleUpload}
           isLoading={isLoading}
-          onCameraResults={handleCameraResults}
         />
 
         {error && (
@@ -94,23 +81,6 @@ const Grading = () => {
           />
         )}
 
-        {showCamera && (
-          <div className="fixed inset-0 z-[40] bg-black">
-            <button
-              onClick={() => setShowCamera(false)}
-              className="absolute top-4 right-4 z-[45] bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg hover:bg-white transition-colors"
-              aria-label="إغلاق"
-            >
-              <X className="h-6 w-6" />
-            </button>
-
-            <CameraScanner
-              fullscreen={true}
-              onComplete={handleCameraResults}
-              videoConstraints={portraitConstraints}
-            />
-          </div>
-        )}
 
         {/* زر المساعدة الثابت باستخدام المكون الموحد */}
         <HelpFab
@@ -145,7 +115,7 @@ const Grading = () => {
                 <div className="flex-1">
                   <h4 className="font-semibold">2. استخدام الكاميرا</h4>
                   <p className="text-sm text-muted-foreground">
-                    بدلاً من الرفع، يمكنك استخدام زر <strong>"مسح أوراق الاختبار"</strong> لفتح الكاميرا والتقاط صور لأوراق الطلاب مباشرة. يمكنك تصوير عدة أوراق دفعة واحدة وسيتم دمجها وتصحيحها.
+                    بدلاً من الرفع، يمكنك استخدام زر <strong>"استخدام الكاميرا"</strong> لفتح تطبيق الكاميرا الأصلي على جهازك والتقاط صور لأوراق الطلاب مباشرة.
                   </p>
                 </div>
               </div>
@@ -182,6 +152,10 @@ const Grading = () => {
             </p>
           </div>
         </HelpFab>
+
+        <div className="mt-8">
+          <GradingResultsTable />
+        </div>
       </div>
     </MainLayout>
   );

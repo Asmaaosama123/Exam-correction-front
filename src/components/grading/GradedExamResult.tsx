@@ -107,8 +107,8 @@ export function GradedExamResult({
               <div
                 key={result.filename}
                 className={`group relative p-5 rounded-2xl border transition-all duration-300 hover:shadow-lg ${isPassing
-                    ? "bg-gradient-to-r from-emerald-50/80 to-white border-emerald-200 hover:border-emerald-400"
-                    : "bg-gradient-to-r from-amber-50/80 to-white border-amber-200 hover:border-amber-400"
+                  ? "bg-gradient-to-r from-emerald-50/80 to-white border-emerald-200 hover:border-emerald-400"
+                  : "bg-gradient-to-r from-amber-50/80 to-white border-amber-200 hover:border-amber-400"
                   }`}
               >
                 {/* شريط جانبي لوني */}
@@ -119,8 +119,8 @@ export function GradedExamResult({
                   {/* بيانات الطالب */}
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shadow-sm ${isPassing
-                        ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
-                        : "bg-amber-100 text-amber-700 border border-amber-300"
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                      : "bg-amber-100 text-amber-700 border border-amber-300"
                       }`}>
                       {studentNumber}
                     </div>
@@ -149,7 +149,9 @@ export function GradedExamResult({
 
                     {result.annotated_image_url && (
                       <ImageModal
-                        imageUrl={result.annotated_image_url}
+                        imageUrl={result.annotated_image_url?.startsWith('http')
+                          ? result.annotated_image_url
+                          : `${import.meta.env.VITE_AI_SERVER_URL}/${result.annotated_image_url.replace(/^\/+/, '')}`}
                         filename={result.filename}
                       />
                     )}

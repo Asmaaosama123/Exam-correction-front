@@ -1,20 +1,17 @@
 // components/ExamTemplateSetup.tsx
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, Info, PlusCircle as PlusCircleIcon, BarChart3, Camera } from "lucide-react";
+import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, PlusCircle as PlusCircleIcon, BarChart3, Camera } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { HelpFab } from "@/components/ui/help-fab";
 import { Label } from "@/components/ui/label";
-import { CameraScanner } from "@/components/grading/CameraScanner";
 
 import {
-  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -30,12 +27,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import StitchedPdfViewer from '@/components/ui/StitchedPdfViewerProps';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useUploadTeacherExam } from "@/hooks/use-exam-template";
 import type { Question, OptionBox, QuestionType, AnswerDirection, Language } from "@/types/exam-template";
 
@@ -76,6 +67,7 @@ export default function ExamTemplateSetup() {
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const uploadTeacherExamMutation = useUploadTeacherExam();
 
@@ -102,7 +94,6 @@ export default function ExamTemplateSetup() {
   const [pdfConverting, setPdfConverting] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfKey, setPdfKey] = useState(0);
-  const [showCamera, setShowCamera] = useState(false);
 
   // حالة اللغة المختارة (عربي / إنجليزي)
   const [examLanguage, setExamLanguage] = useState<Language>("en");
@@ -115,22 +106,79 @@ export default function ExamTemplateSetup() {
   const totalPdfHeight = numPages * canvasHeight * scale + (numPages - 1) * 16;
 
   // ========== إدارة الملفات ==========
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement> | File) => {
-    let file: File | undefined;
+  const stitchImages = async (files: File[]): Promise<{ url: string, width: number, height: number, file: File }> => {
+    return new Promise((resolve, reject) => {
+      const images: HTMLImageElement[] = [];
+      let loadedCount = 0;
 
-    if (e instanceof File) {
-      file = e;
+      files.forEach((file, index) => {
+        const img = new Image();
+        img.onload = () => {
+          images[index] = img;
+          loadedCount++;
+          if (loadedCount === files.length) {
+            // Calculate dimensions
+            const maxWidth = Math.max(...images.map(i => i.width));
+            const totalHeight = images.reduce((sum, i) => sum + i.height, 0);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = maxWidth;
+            canvas.height = totalHeight;
+            const ctx = canvas.getContext('2d');
+
+            if (!ctx) {
+              reject(new Error("Failed to get canvas context"));
+              return;
+            }
+
+            let currentY = 0;
+            images.forEach(img => {
+              ctx.drawImage(img, 0, currentY);
+              currentY += img.height;
+            });
+
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const url = URL.createObjectURL(blob);
+                const stitchedFile = new File([blob], "stitched_images.png", { type: "image/png" });
+                resolve({ url, width: maxWidth, height: totalHeight, file: stitchedFile });
+              } else {
+                reject(new Error("Failed to create blob"));
+              }
+            }, "image/png");
+          }
+        };
+        img.onerror = () => reject(new Error(`Failed to load image ${file.name}`));
+        img.src = URL.createObjectURL(file);
+      });
+    });
+  };
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement> | File | File[]) => {
+    let files: File[] = [];
+
+    if (Array.isArray(e)) {
+      files = e;
+    } else if (e instanceof File) {
+      files = [e];
     } else {
-      file = e.target.files?.[0];
+      files = Array.from(e.target.files || []);
     }
 
-    if (!file) return;
+    if (files.length === 0) return;
+
+    // Check if we have multiple images vs one PDF
+    const hasPdf = files.some(f => f.name.toLowerCase().endsWith('.pdf'));
+    if (hasPdf && files.length > 1) {
+      toast.error("لا يمكن رفع أكثر من ملف PDF واحد");
+      return;
+    }
 
     const allowedExtensions = [".pdf", ".jpg", ".jpeg", ".png"];
-    const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    const invalidFiles = files.filter(f => !allowedExtensions.includes(f.name.toLowerCase().substring(f.name.lastIndexOf('.'))));
 
-    if (!allowedExtensions.includes(ext)) {
-      toast.error("الملف يجب أن يكون PDF أو صورة (JPG, JPEG, PNG)");
+    if (invalidFiles.length > 0) {
+      toast.error("بعض الملفات غير مدعومة. يرجى اختيار PDF أو صور فقط.");
       return;
     }
 
@@ -139,7 +187,23 @@ export default function ExamTemplateSetup() {
       setStitchedImageUrl(null);
     }
 
-    setSelectedFile(file);
+    if (files.length === 1 && files[0].name.toLowerCase().endsWith('.pdf')) {
+      setSelectedFile(files[0]);
+      setPdfConverting(true);
+    } else {
+      // Handle images (one or many)
+      try {
+        const { url, width, height, file } = await stitchImages(files);
+        setSelectedFile(file);
+        setStitchedImageUrl(url);
+        setPdfDimensions({ width, height });
+        setNumPages(1);
+      } catch (err) {
+        toast.error("حدث خطأ أثناء معالجة الصور");
+        console.error(err);
+      }
+    }
+
     setUpdateKey(Date.now().toString());
     setPdfKey(prev => prev + 1);
     setQuestions([]);
@@ -147,23 +211,24 @@ export default function ExamTemplateSetup() {
     setSelectedQuestionType(null);
     setIsCreatingQuestion(false);
     setScale(1);
-    setPdfDimensions(null);
-    setPdfConverting(false);
     setPdfError(null);
-
-    if (['.jpg', '.jpeg', '.png'].includes(ext)) {
-      const url = URL.createObjectURL(file);
-      setStitchedImageUrl(url);
-      const img = new Image();
-      img.onload = () => {
-        setPdfDimensions({ width: img.width, height: img.height });
-        setNumPages(1);
-      };
-      img.src = url;
-    } else {
-      setPdfConverting(true);
-    }
   }, [stitchedImageUrl]);
+
+  if (showScanner) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black">
+        <CameraScanner
+          fullscreen
+          actionLabel="ربط النموذج"
+          onScan={(file) => {
+            handleFileSelect(file);
+            setShowScanner(false);
+          }}
+          onBack={() => setShowScanner(false)}
+        />
+      </div>
+    );
+  }
 
   const handleRemoveFile = useCallback(() => {
     if (stitchedImageUrl) {
@@ -705,12 +770,20 @@ export default function ExamTemplateSetup() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setShowCamera(true)}
+              onClick={() => cameraInputRef.current?.click()}
               className="text-primary hover:text-primary/80"
             >
-              <AlertCircle className="w-4 h-4 ml-2" />
+              <Camera className="w-4 h-4 ml-2" />
               استخدم الكاميرا
             </Button>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
           </div>
           {!selectedFile ? (
             <div className="flex items-center justify-center w-full">
@@ -728,6 +801,7 @@ export default function ExamTemplateSetup() {
                 <input
                   id="template-file-upload"
                   type="file"
+                  multiple
                   className="hidden"
                   accept=".pdf,.jpg,.jpeg,.png"
                   onChange={handleFileSelect}
@@ -1382,20 +1456,6 @@ export default function ExamTemplateSetup() {
           </div>
         </HelpFab>
         {/* ---------------------------------------------------------------------- */}
-        {/* واجهة الكاميرا */}
-        {showCamera && (
-          <div className="fixed inset-0 z-[50]">
-            <CameraScanner
-              fullscreen
-              onScan={(file) => {
-                handleFileSelect(file);
-                setShowCamera(false);
-              }}
-              onBack={() => setShowCamera(false)}
-              actionLabel="استخدام"
-            />
-          </div>
-        )}
       </div>
     </MainLayout>
   );

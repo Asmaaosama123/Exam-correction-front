@@ -1,5 +1,5 @@
 import { api } from "./api";
-import type { ProcessExamResponse } from "@/types/grading";
+import type { ProcessExamResponse, GradingResultsFilter, GradingResultsResponse } from "@/types/grading";
 
 export const gradingApi = {
   processExam: async (file: File): Promise<ProcessExamResponse> => {
@@ -15,6 +15,13 @@ export const gradingApi = {
         },
       }
     );
+    return response.data;
+  },
+
+  getGradingResults: async (params: GradingResultsFilter): Promise<GradingResultsResponse> => {
+    const response = await api.get<GradingResultsResponse>("/api/Grading", {
+      params,
+    });
     return response.data;
   },
 };

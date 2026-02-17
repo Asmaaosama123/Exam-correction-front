@@ -1,10 +1,11 @@
 // components/ExamTemplateSetup.tsx
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, Info, PlusCircle as PlusCircleIcon, BarChart3 } from "lucide-react";
+import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, Info, PlusCircle as PlusCircleIcon, BarChart3, Camera } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { HelpFab } from "@/components/ui/help-fab";
 import { Label } from "@/components/ui/label";
+import { CameraScanner } from "@/components/grading/CameraScanner";
 
 import {
   Dialog,
@@ -101,6 +102,7 @@ export default function ExamTemplateSetup() {
   const [pdfConverting, setPdfConverting] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfKey, setPdfKey] = useState(0);
+  const [showCamera, setShowCamera] = useState(false);
 
   // حالة اللغة المختارة (عربي / إنجليزي)
   const [examLanguage, setExamLanguage] = useState<Language>("en");
@@ -113,8 +115,15 @@ export default function ExamTemplateSetup() {
   const totalPdfHeight = numPages * canvasHeight * scale + (numPages - 1) * 16;
 
   // ========== إدارة الملفات ==========
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement> | File) => {
+    let file: File | undefined;
+
+    if (e instanceof File) {
+      file = e;
+    } else {
+      file = e.target.files?.[0];
+    }
+
     if (!file) return;
 
     const allowedExtensions = [".pdf", ".jpg", ".jpeg", ".png"];
@@ -631,13 +640,22 @@ export default function ExamTemplateSetup() {
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-6 h-full overflow-hidden">
         {/* العنوان (بدون أيقونة المساعدة هنا) */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">
-            إعداد نموذج اختبار المعلم
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            ارفع ورقة الاختبار وحدد مناطق الأسئلة على النموذج، ثم قم بتحديد الإجابات الصحيحة لكل سؤال.
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">
+              إعداد نموذج اختبار المعلم
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              ارفع ورقة الاختبار وحدد مناطق الأسئلة على النموذج، ثم قم بتحديد الإجابات الصحيحة لكل سؤال.
+            </p>
+          </div>
+          {/* <Button
+               onClick={() => setShowCamera(true)}
+               className="bg-primary text-white shadow-md"
+             >
+               <Camera className="ml-2 h-4 w-4" />
+               فتح الكاميرا
+             </Button> */}
         </div>
 
         {/* بطاقة معلومات الامتحان */}
@@ -681,7 +699,19 @@ export default function ExamTemplateSetup() {
 
         {/* رفع الملف */}
         <div className="space-y-2">
-          <Label>ملف نموذج الإجابة *</Label>
+          <div className="flex items-center justify-between">
+            <Label>ملف نموذج الإجابة *</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowCamera(true)}
+              className="text-primary hover:text-primary/80"
+            >
+              <AlertCircle className="w-4 h-4 ml-2" />
+              استخدم الكاميرا
+            </Button>
+          </div>
           {!selectedFile ? (
             <div className="flex items-center justify-center w-full">
               <label
@@ -1352,6 +1382,20 @@ export default function ExamTemplateSetup() {
           </div>
         </HelpFab>
         {/* ---------------------------------------------------------------------- */}
+        {/* واجهة الكاميرا */}
+        {showCamera && (
+          <div className="fixed inset-0 z-[50]">
+            <CameraScanner
+              fullscreen
+              onScan={(file) => {
+                handleFileSelect(file);
+                setShowCamera(false);
+              }}
+              onBack={() => setShowCamera(false)}
+              actionLabel="استخدام"
+            />
+          </div>
+        )}
       </div>
     </MainLayout>
   );

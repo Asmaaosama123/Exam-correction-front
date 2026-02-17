@@ -10,13 +10,17 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 interface CameraScannerProps {
   onComplete?: (results: ExamResult[]) => void;
+  onScan?: (file: File) => void; // New prop for generic file scanning
+  actionLabel?: string;          // New prop for custom button label
   fullscreen?: boolean;
   onBack?: () => void;
-  videoConstraints?: any; // أضف هذا السطر هنا
+  videoConstraints?: any;
 }
 
 export function CameraScanner({
   onComplete,
+  onScan,
+  actionLabel,
   fullscreen = false,
   onBack,
 }: CameraScannerProps) {
@@ -161,7 +165,7 @@ export function CameraScanner({
 
   const uploadAllAndComplete = async () => {
     if (capturedImages.length === 0) {
-      toast.error("لا توجد صور للتصحيح");
+      toast.error("لا توجد صور للمعالجة");
       return;
     }
 
@@ -185,6 +189,15 @@ export function CameraScanner({
       const pdfBlob = pdf.output("blob");
       const pdfFile = new File([pdfBlob], `scan_bundle_${Date.now()}.pdf`, { type: "application/pdf" });
 
+      // If onScan is provided, just return the file and don't grade
+      if (onScan) {
+        onScan(pdfFile);
+        toast.success("تم تجهيز الملف بنجاح");
+        setIsUploading(false);
+        return;
+      }
+
+      // Otherwise, proceed with grading
       toast.info("جاري رفع وتصحيح الملف...");
 
       const response = await gradingApi.processExam(pdfFile);
@@ -202,7 +215,7 @@ export function CameraScanner({
 
     } catch (error: any) {
       console.error(error);
-      const msg = error?.response?.data?.message || error.message || "فشل في عملية التصحيح";
+      const msg = error?.response?.data?.message || error.message || "فشل في عملية المعالجة";
       toast.error(msg);
     } finally {
       setIsUploading(false);
@@ -355,7 +368,7 @@ export function CameraScanner({
             className="absolute bottom-6 left-4 z-40 bg-primary text-white border border-white/20 rounded-full px-4 py-2 text-base flex items-center gap-1 shadow-lg active:scale-95 transition-transform"
           >
             {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            تصحيح ({capturedImages.length})
+            {actionLabel || "تصحيح"} ({capturedImages.length})
           </button>
         </>
       )}

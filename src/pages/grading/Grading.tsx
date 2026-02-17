@@ -5,84 +5,34 @@ import { GradedExamResult } from "@/components/grading/GradedExamResult";
 import { CameraScanner } from "@/components/grading/CameraScanner";
 import { XCircle, X } from "lucide-react";
 
-interface GradingDetail {
-  id: string;
-  type: "mcq" | "true_false";
-  gt: string;
-  pred: string;
-  conf: number;
-  ok: boolean;
-  method: string;
-}
-
-interface ExamResult {
-  filename: string;
-  student_info?: {
-    student_id: string;
-    student_name: string;
-  };
-  details: {
-    score: number;
-    total: number;
-    details: GradingDetail[];
-  };
-  annotated_image_url: string;
-}
+import { toast } from "sonner";
+import { useProcessExam } from "@/hooks/use-grading";
+import type { ExamResult } from "@/types/grading";
 
 const Grading = () => {
   const [gradedResults, setGradedResults] = useState<ExamResult[] | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const processExamMutation = useProcessExam();
+  const isLoading = processExamMutation.isPending;
   const [showCamera, setShowCamera] = useState(false);
 
   const handleUpload = async (file: File) => {
-    setIsLoading(true);
     setError(null);
     setGradedResults(null);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
-    // ✅ اللينكين
-    const LOCAL_API = "https://localhost:44393/api/Exam/process";
-    const SERVER_API = "http://76.13.51.15:5002/api/Exam/process";
-
-    let response: Response | null = null;
-
     try {
-      // 🔹 نحاول الأول اللوكال
-      response = await fetch(LOCAL_API, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Local API failed");
-      }
-    } catch {
-      // 🔹 لو فشل، نروح للسيرفر
-      response = await fetch(SERVER_API, {
-        method: "POST",
-        body: formData,
-      });
-    }
-
-    try {
-      if (!response || !response.ok) {
-        throw new Error("فشل الاتصال بالسيرفر");
-      }
-
-      const data = await response.json();
+      const data = await processExamMutation.mutateAsync(file);
 
       if (data.results && data.results.length > 0) {
         setGradedResults(data.results);
       } else {
         throw new Error("لا توجد نتائج في الاستجابة");
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "حدث خطأ غير معروف");
-    } finally {
-      setIsLoading(false);
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || err.message || "حدث خطأ غير معروف";
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 

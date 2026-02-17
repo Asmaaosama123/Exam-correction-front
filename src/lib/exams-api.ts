@@ -121,12 +121,30 @@ export const examsApi = {
       let filename: string | undefined = undefined;
 
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(
-          /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-        );
-        if (filenameMatch && filenameMatch[1]) {
-          filename = filenameMatch[1].replace(/['"]/g, "");
+        // Try custom regex for filename* (UTF-8)
+        const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;]*)/i);
+        if (filenameStarMatch && filenameStarMatch[1]) {
+          try {
+            filename = decodeURIComponent(filenameStarMatch[1]);
+          } catch (e) {
+            console.error("Error decoding filename:", e);
+          }
         }
+
+        // Fallback to standard filename if filename* not found
+        if (!filename) {
+          const filenameMatch = contentDisposition.match(
+            /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
+          );
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1].replace(/['"]/g, "");
+          }
+        }
+      }
+
+      // If filename is just dashes or underscores (sanitized by server), treat as missing
+      if (filename && /^[-_.]+$/.test(filename)) {
+        filename = undefined;
       }
 
       // 2. التعديل الجوهري هنا:

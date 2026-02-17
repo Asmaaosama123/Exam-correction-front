@@ -20,6 +20,7 @@ import { ExportStudentsDialog } from "@/components/students/ExportStudentsDialog
 import { ExportClassesDialog } from "@/components/classes/ExportClassesDialog";
 import { useExportStudents } from "@/hooks/use-students";
 import { useExportClasses } from "@/hooks/use-classes";
+import { HelpFab } from "@/components/ui/help-fab";
 
 const reportData = [
   {
@@ -225,6 +226,60 @@ export default function Reports() {
             }}
           />
         )}
+
+        <HelpFab
+          title="كيفية استخدام صفحة التقارير"
+          description="دليل سريع لاستخدام صفحة التقارير والإحصائيات"
+          tooltip="دليل استخدام التقارير"
+        >
+          <div className="space-y-6">
+            <p className="text-muted-foreground leading-relaxed">
+              من خلال صفحة التقارير، يمكنك تصدير بيانات النظام والنتائج بصيغ مختلفة (Excel, PDF) وحفظها على جهازك.
+            </p>
+
+            <div className="space-y-4">
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <Users className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">تصدير بيانات الطلاب</h4>
+                  <p className="text-sm text-muted-foreground">
+                    للحصول على قائمة بجميع الطلاب المسجلين، درجاتهم، وبياناتهم الشخصية.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <GraduationCap className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">تصدير بيانات الفصول</h4>
+                  <p className="text-sm text-muted-foreground">
+                    للحصول على تقارير مجمعة لكل فصل دراسي، بما في ذلك متوسط الدرجات ونسب النجاح.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">تقارير الامتحانات</h4>
+                  <p className="text-sm text-muted-foreground">
+                    إحصائيات تفصيلية عن كل امتحان (عدد الحضور، الغياب، أعلى/أقل درجة).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground border-t pt-4 mt-2">
+              💡 يمكنك اختيار نوع الملف (Excel أو PDF) بعد الضغط على زر التحميل.
+            </p>
+          </div>
+        </HelpFab>
       </div>
     </MainLayout>
   );

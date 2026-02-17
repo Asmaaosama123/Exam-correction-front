@@ -56,14 +56,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { HelpFab } from "@/components/ui/help-fab";
 
 export default function Students() {
   const [selectedClassId, setSelectedClassId] = useState<string | undefined>(
@@ -81,7 +75,7 @@ export default function Students() {
   } | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  const [infoOpen, setInfoOpen] = useState(false);
+
 
   // Debounce search
   useEffect(() => {
@@ -330,15 +324,15 @@ export default function Students() {
                       {data?.items.map((student) => {
                         const formattedDate = student.createdAt
                           ? new Date(student.createdAt).toLocaleDateString(
-                              "ar-SA",
-                              {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )
+                            "ar-SA",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )
                           : "-";
 
                         return (
@@ -491,165 +485,60 @@ export default function Students() {
       </div>
 
       {/* ---------- FLOATING INFO BUTTON – perfect match with screenshot ---------- */}
-      <TooltipProvider>
-        <Dialog open={infoOpen} onOpenChange={setInfoOpen}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="fixed bottom-6 left-6 h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105"
-                  aria-label="دليل استخدام صفحة الطلاب"
-                >
-                  <Info className="h-5 w-5" />
-                </Button>
-              </DialogTrigger>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="text-sm">
-              <p>دليل استخدام صفحة الطلاب</p>
-            </TooltipContent>
-          </Tooltip>
-          <DialogContent
-            className="sm:max-w-2xl max-h-[85vh] overflow-y-auto"
-            dir="rtl"
-          >
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">
-                كيفية التعامل مع صفحة الطلاب
-              </DialogTitle>
-              <DialogDescription className="text-base">
-                دليل سريع لاستخدام صفحة إدارة الطلاب
-              </DialogDescription>
-            </DialogHeader>
+      {/* ---------- FLOATING INFO BUTTON ---------- */}
+      <HelpFab
+        title="كيفية التعامل مع صفحة الطلاب"
+        description="دليل سريع لاستخدام صفحة إدارة الطلاب"
+        tooltip="دليل استخدام صفحة الطلاب"
+      >
+        <div className="space-y-6 py-2">
+          <p className="text-muted-foreground leading-relaxed">
+            تتيح لك هذه الصفحة إدارة جميع الطلاب المسجلين في النظام. يمكنك
+            فلترة الطلاب حسب الفصل، البحث عن طالب معين، وإضافة أو تعديل بيانات الطلاب.
+          </p>
 
-            <div className="space-y-6 py-2">
-              <p className="text-muted-foreground leading-relaxed">
-                <strong>صفحة الطلاب</strong> تتيح لك إدارة جميع الطلاب المسجلين في النظام،
-                مع إمكانية البحث والفلترة حسب الفصل، وإضافة الطلاب بشكل فردي أو عبر استيراد
-                من Excel، وتصدير البيانات، بالإضافة إلى تعديل وحذف الطلاب.
-              </p>
-
-              <div className="space-y-4">
-                {/* كل عنصر بشكله الجميل – icons inside card-like containers */}
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                    <Filter className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">تصفية حسب الفصل</h4>
-                    <p className="text-sm text-muted-foreground">
-                      اختر فصلاً من القائمة المنسدلة لعرض الطلاب المنتمين إليه فقط،
-                      أو اختر <strong>“جميع الفصول”</strong> لعرض الكل.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                    <Search className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">البحث</h4>
-                    <p className="text-sm text-muted-foreground">
-                      ابحث عن طالب باستخدام الاسم، الرقم الوطني، البريد الإلكتروني أو رقم الهاتف.
-                      النتائج تتغير أثناء الكتابة.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                    <UserPlus className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">إضافة طالب جديد</h4>
-                    <p className="text-sm text-muted-foreground">
-                      انقر على زر <strong>“إضافة طالب جديد”</strong> لإدخال بيانات طالب فردي.
-                      يجب اختيار الفصل الذي سينتمي إليه الطالب.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                    <FileUp className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">استيراد من Excel</h4>
-                    <p className="text-sm text-muted-foreground">
-                      استخدم زر <strong>“استيراد من Excel”</strong> لرفع ملف CSV أو XLSX
-                      وإضافة عدد كبير من الطلاب دفعة واحدة. يجب تحديد الفصل قبل الاستيراد.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                    <FileDown className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">تصدير الطلاب</h4>
-                    <p className="text-sm text-muted-foreground">
-                      يمكنك تصدير قائمة الطلاب إلى ملف Excel أو PDF عبر زر{" "}
-                      <strong>“تصدير الطلاب”</strong>. اختر الفصول التي تريدها أو جميع الفصول.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                    <UserPen className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">تعديل أو حذف</h4>
-                    <p className="text-sm text-muted-foreground">
-                      بجانب كل طالب أيقونتي <strong>تعديل</strong> (قلم) و<strong>حذف</strong> (سلة).
-                      يمكنك تحديث بياناته أو حذفه نهائياً مع التأكيد.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                    <UserX className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">تعطيل / تفعيل</h4>
-                    <p className="text-sm text-muted-foreground">
-                      في شاشة التعديل يمكنك <strong>تعطيل</strong> الطالب بدلاً من حذفه،
-                      وسيظهر في الجدول بحالة “معطل”.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                    <List className="h-6 w-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold">ترقيم الصفحات</h4>
-                    <p className="text-sm text-muted-foreground">
-                      يمكنك تغيير عدد الطلاب المعروضين في الصفحة (5، 10، 20، 50)
-                      والتنقل بين الصفحات باستخدام أزرار <strong>السابق</strong> و<strong>التالي</strong>.
-                    </p>
-                  </div>
-                </div>
+          <div className="space-y-4">
+            <div className="flex items-start gap-4">
+              <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                <Plus className="h-6 w-6 text-primary" />
               </div>
-
-              <p className="text-sm text-muted-foreground border-t pt-4 mt-2">
-                ملاحظة: عند حذف طالب، لا يمكن التراجع عن هذه العملية.
-              </p>
+              <div className="flex-1">
+                <h4 className="font-semibold">إضافة تلميذ جديد</h4>
+                <p className="text-sm text-muted-foreground">
+                  اضغط على زر <strong>“إضافة تلميذ جديد”</strong> لإدخال بيانات طالب
+                  جديد يدوياً (الاسم، الرقم الوطني، الصف...).
+                </p>
+              </div>
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setInfoOpen(false)}>
-                إغلاق
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </TooltipProvider>
+            <div className="flex items-start gap-4">
+              <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                <Upload className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold">استيراد من Excel</h4>
+                <p className="text-sm text-muted-foreground">
+                  يمكنك استيراد قائمة طلاب كاملة من ملف Excel لتوفير الوقت.
+                  تأكد من مطابقة تنسيق الملف للنموذج المطلوب.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                <Users className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-semibold">إدارة الطلاب</h4>
+                <p className="text-sm text-muted-foreground">
+                  استخدم أيقونات التعديل والحذف في الجدول لتحديث بيانات أي طالب
+                  أو إزالته من النظام عند الحاجة.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </HelpFab>
       {/* ------------------------------------------------------------------ */}
 
       {/* Dialogs */}

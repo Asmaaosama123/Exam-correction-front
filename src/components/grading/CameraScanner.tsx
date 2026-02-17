@@ -1,16 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import Webcam from "react-webcam";
 import { Button } from "@/components/ui/button";
-import { Camera, Upload, X, Loader2, FileText, RefreshCw, Trash2, CheckSquare, Square } from "lucide-react";
+import { Camera, Upload, Loader2, FileText, RefreshCw, Trash2, CheckSquare, Square, Eye, ScanLine } from "lucide-react";
 import { toast } from "sonner";
 import type { ExamResult } from "@/types/grading";
 import jsPDF from "jspdf";
-
-const API_BASE_URL = "http://76.13.51.15:5002";
+import { gradingApi } from "@/lib/grading-api";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 interface CameraScannerProps {
   onComplete?: (results: ExamResult[]) => void;
-  initialResults?: ExamResult[];
   fullscreen?: boolean;
   onBack?: () => void;
   videoConstraints?: any; // أضف هذا السطر هنا
@@ -18,7 +17,6 @@ interface CameraScannerProps {
 
 export function CameraScanner({
   onComplete,
-  initialResults = [],
   fullscreen = false,
   onBack,
 }: CameraScannerProps) {
@@ -27,7 +25,6 @@ export function CameraScanner({
   const [isCameraActive, setIsCameraActive] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [results, setResults] = useState<ExamResult[]>(initialResults);
   const [filterMode, setFilterMode] = useState(0);
   const [showSheet, setShowSheet] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -169,42 +166,46 @@ export function CameraScanner({
     }
 
     setIsUploading(true);
-    const allResults: ExamResult[] = [...results];
 
-    for (const [index, img] of capturedImages.entries()) {
-      toast.info(`جاري تصحيح الصورة ${index + 1} من ${capturedImages.length}...`);
+    try {
+      toast.info("جاري دمج الصور في ملف PDF...");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-      const formData = new FormData();
-      formData.append("file", img.file);
+      for (let i = 0; i < capturedImages.length; i++) {
+        const img = capturedImages[i];
+        if (i > 0) pdf.addPage();
 
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/Exam/process`, {
-          method: "POST",
-          body: formData,
-        });
+        const imgProps = pdf.getImageProperties(img.src);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-        if (!response.ok) throw new Error(`فشل التصحيح: ${response.statusText}`);
+        pdf.addImage(img.src, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
+      }
 
-        const data = await response.json();
-        if (data.results && data.results.length > 0) {
-          allResults.push(...data.results);
-          setResults([...allResults]);
+      const pdfBlob = pdf.output("blob");
+      const pdfFile = new File([pdfBlob], `scan_bundle_${Date.now()}.pdf`, { type: "application/pdf" });
+
+      toast.info("جاري رفع وتصحيح الملف...");
+
+      const response = await gradingApi.processExam(pdfFile);
+
+      if (response.results && response.results.length > 0) {
+        toast.success(`تم استلام ${response.results.length} نتيجة`);
+        if (onComplete) {
+          onComplete(response.results);
+        } else {
+          onBack?.();
         }
-      } catch (error) {
-        toast.error(`فشل في تصحيح الصورة ${index + 1}`);
-      }
-    }
-
-    setIsUploading(false);
-    if (allResults.length > results.length) {
-      toast.success(`تم تصحيح ${allResults.length - results.length} طالب بنجاح`);
-      if (onComplete) {
-        onComplete(allResults);
       } else {
-        onBack?.();
+        toast.warning("تمت العملية ولكن لم يتم استرجاع نتائج");
       }
-    } else {
-      toast.error("لم يتم تصحيح أي صورة");
+
+    } catch (error: any) {
+      console.error(error);
+      const msg = error?.response?.data?.message || error.message || "فشل في عملية التصحيح";
+      toast.error(msg);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -268,7 +269,7 @@ export function CameraScanner({
   if (!fullscreen) return <div>الوضع العادي غير مستخدم حالياً</div>;
 
   return (
-    <div className="fixed inset-0 bg-black z-50 flex flex-col">
+    <div className="fixed inset-0 bg-black z-[40] flex flex-col">
       {/* شريط علوي */}
       <header className="absolute top-0 inset-x-0 flex items-center justify-between px-4 pt-3 z-30">
         <button onClick={onBack} className="text-white/95 text-lg">إلغاء</button>
@@ -301,6 +302,33 @@ export function CameraScanner({
             <Camera className="h-12 w-12 text-slate-400" />
           </div>
         )}
+
+        {/* طبقة التراكب (Overlay) لتوجيه المستخدم - تظهر فقط عندما تكون الكاميرا نشطة ولا يوجد خطأ */}
+        {isCameraActive && !cameraError && !showSheet && (
+          <div className="absolute inset-0 pointer-events-none z-20 flex items-center justify-center">
+            {/* الخلفية المعتمة حول الإطار */}
+            <div className="absolute inset-0 bg-black/40 mask-scan-area"></div>
+
+            {/* إطار المسح */}
+            <div className="relative w-[85%] aspect-[3/4] max-w-md border-2 border-white/50 rounded-2xl shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]">
+              {/* أركان الإطار */}
+              <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-primary rounded-tl-xl"></div>
+              <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-primary rounded-tr-xl"></div>
+              <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-primary rounded-bl-xl"></div>
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-primary rounded-br-xl"></div>
+
+              {/* خط المسح المتحرك */}
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/80 shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-scan-line"></div>
+
+              {/* نص توجيهي */}
+              <div className="absolute -bottom-12 left-0 right-0 text-center">
+                <p className="text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full inline-flex items-center gap-2">
+                  <ScanLine className="h-4 w-4" /> ضع المستند داخل الإطار
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* رسالة الحالة */}
@@ -324,7 +352,7 @@ export function CameraScanner({
           <button
             onClick={uploadAllAndComplete}
             disabled={isUploading}
-            className="absolute bottom-6 left-4 z-30 bg-primary text-white border border-white/20 rounded-full px-4 py-2 text-base flex items-center gap-1"
+            className="absolute bottom-6 left-4 z-40 bg-primary text-white border border-white/20 rounded-full px-4 py-2 text-base flex items-center gap-1 shadow-lg active:scale-95 transition-transform"
           >
             {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             تصحيح ({capturedImages.length})
@@ -334,11 +362,11 @@ export function CameraScanner({
 
       {/* زر الغالق */}
       {!cameraError && (
-        <div className="absolute inset-x-0 bottom-4 safe-bottom grid place-items-center z-30">
+        <div className="absolute inset-x-0 bottom-4 safe-bottom grid place-items-center z-30 pointer-events-none">
           <button
             onClick={capture}
             disabled={!isCameraActive}
-            className="shutter w-[88px] h-[88px] rounded-full bg-white/12 border-6 border-white/95 shadow-[inset_0_0_0_2px_rgba(0,0,0,0.2)] active:scale-98 disabled:opacity-50"
+            className="shutter w-[88px] h-[88px] rounded-full bg-white/12 border-6 border-white/95 shadow-[inset_0_0_0_2px_rgba(0,0,0,0.2)] active:scale-98 disabled:opacity-50 pointer-events-auto"
             aria-label="التقاط"
           />
         </div>
@@ -385,16 +413,39 @@ export function CameraScanner({
                 const objectUrl = URL.createObjectURL(img.file);
                 const isSelected = selectedIds.has(img.id);
                 return (
-                  <div key={img.id} className={`relative rounded-md overflow-hidden border ${isSelected ? 'border-primary border-2' : 'border-white/15'} bg-white/5`}>
-                    <button onClick={() => toggleSelect(img.id)} className="absolute top-1 right-1 z-10 bg-black/50 rounded p-1">
-                      {isSelected ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-white" />}
+                  <div
+                    key={img.id}
+                    className={`relative rounded-md overflow-hidden border transition-all ${isSelected ? 'border-primary border-4 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'border-white/15'} bg-white/5`}
+                  >
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleSelect(img.id); }}
+                      className="absolute top-2 right-2 z-20 bg-black/60 rounded-md p-1.5 hover:bg-black/80 transition-colors"
+                    >
+                      {isSelected ? <CheckSquare className="h-6 w-6 text-primary shadow-sm" /> : <Square className="h-6 w-6 text-white/90 shadow-sm" />}
                     </button>
-                    <img src={objectUrl} className="w-full h-40 object-cover" alt={`scan ${i + 1}`} onLoad={() => URL.revokeObjectURL(objectUrl)} />
+
+                    {/* زر المعاينة - يفتح الصورة بالحجم الكامل */}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <button className="w-full h-40 relative group">
+                          <img src={objectUrl} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt={`scan ${i + 1}`} onLoad={() => URL.revokeObjectURL(objectUrl)} />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                            <Eye className="text-white w-8 h-8 drop-shadow-md" />
+                          </div>
+                        </button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl w-full p-0 overflow-hidden bg-black/90 border-0">
+                        <div className="relative w-full h-[80vh] flex items-center justify-center">
+                          <img src={img.src} alt="Full view" className="max-w-full max-h-full object-contain" />
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+
                     <div className="flex items-center justify-between p-2 text-sm text-white">
                       <span>صورة {i + 1}</span>
                       <div className="flex gap-1">
                         <a download={`scan_${i + 1}.jpg`} href={URL.createObjectURL(img.file)} className="bg-primary px-2 py-1 rounded text-white text-xs" onClick={(e) => e.stopPropagation()}>تنزيل</a>
-                        <button onClick={() => { removeImage(img.id); if (capturedImages.length === 1) setShowSheet(false); }} className="bg-red-500/80 px-2 py-1 rounded text-white text-xs"><X className="h-3 w-3" /></button>
+                        <button onClick={() => { removeImage(img.id); if (capturedImages.length === 1) setShowSheet(false); }} className="bg-red-500/80 px-2 py-1 rounded text-white text-xs hover:bg-red-600"><Trash2 className="h-3 w-3" /></button>
                       </div>
                     </div>
                   </div>

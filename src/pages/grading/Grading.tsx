@@ -3,7 +3,9 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { GradePaperUpload } from "@/components/grading/GradePaperUpload";
 import { GradedExamResult } from "@/components/grading/GradedExamResult";
 import { CameraScanner } from "@/components/grading/CameraScanner";
-import { XCircle, X } from "lucide-react";
+import { XCircle, X, Upload, CheckCircle2, Camera, FileText } from "lucide-react";
+import { HelpFab } from "@/components/ui/help-fab";
+import { Button } from "@/components/ui/button";
 
 import { toast } from "sonner";
 import { useProcessExam } from "@/hooks/use-grading";
@@ -93,10 +95,10 @@ const Grading = () => {
         )}
 
         {showCamera && (
-          <div className="fixed inset-0 z-50 bg-black">
+          <div className="fixed inset-0 z-[40] bg-black">
             <button
               onClick={() => setShowCamera(false)}
-              className="absolute top-4 right-4 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg hover:bg-white transition-colors"
+              className="absolute top-4 right-4 z-[45] bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg hover:bg-white transition-colors"
               aria-label="إغلاق"
             >
               <X className="h-6 w-6" />
@@ -109,6 +111,77 @@ const Grading = () => {
             />
           </div>
         )}
+
+        {/* زر المساعدة الثابت باستخدام المكون الموحد */}
+        <HelpFab
+          title="كيفية استخدام صفحة التصحيح"
+          description="دليل سريع لتصحيح أوراق الاختبارات"
+          tooltip="دليل استخدام صفحة التصحيح"
+        >
+          <div className="space-y-6">
+            <p className="text-muted-foreground leading-relaxed">
+              يمكنك تصحيح أوراق إجابات الطلاب تلقائياً باستخدام الذكاء الاصطناعي. اتبع الخطوات التالية:
+            </p>
+
+            <div className="space-y-4">
+              {/* خطوة 1: اختيار الملف */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <Upload className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">1. رفع ورقة الإجابة</h4>
+                  <p className="text-sm text-muted-foreground">
+                    قم برفع ملف <strong>PDF</strong> أو صورة (JPG, PNG) تحتوي على ورقة إجابة الطالب الممسوحة ضوئياً. تأكد من أن الصورة واضحة وأن العلامات (المربعات السوداء) في الزوايا ظاهرة.
+                  </p>
+                </div>
+              </div>
+
+              {/* خطوة 2: الكاميرا */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <Camera className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">2. استخدام الكاميرا</h4>
+                  <p className="text-sm text-muted-foreground">
+                    بدلاً من الرفع، يمكنك استخدام زر <strong>"مسح أوراق الاختبار"</strong> لفتح الكاميرا والتقاط صور لأوراق الطلاب مباشرة. يمكنك تصوير عدة أوراق دفعة واحدة وسيتم دمجها وتصحيحها.
+                  </p>
+                </div>
+              </div>
+
+              {/* خطوة 3: النتائج */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <CheckCircle2 className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">3. مراجعة النتائج</h4>
+                  <p className="text-sm text-muted-foreground">
+                    بعد التصحيح، ستظهر النتيجة والدرجة واسم الطالب (إذا تم التعرف عليه). يمكنك مراجعة تفاصيل كل سؤال (صح/خطأ) بالضغط على زر التفاصيل.
+                  </p>
+                </div>
+              </div>
+
+              {/* خطوة 4: النموذج */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">4. عرض الوثيقة</h4>
+                  <p className="text-sm text-muted-foreground">
+                    يمكنك مشاهدة الورقة المصححة مع العلامات التوضيحية (التي تبين الإجابات الصحيحة والخاطئة) بالضغط على زر <strong>"عرض الوثيقة"</strong>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground border-t pt-4 mt-2">
+              💡 <strong>نصيحة:</strong> للحصول على أفضل النتائج، تأكد من مسح الورقة ضوئياً بشكل مسطح وإضاءة جيدة.
+            </p>
+          </div>
+        </HelpFab>
       </div>
     </MainLayout>
   );

@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, Info, PlusCircle as PlusCircleIcon, BarChart3 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
+import { HelpFab } from "@/components/ui/help-fab";
 import { Label } from "@/components/ui/label";
 
 import {
@@ -105,7 +106,7 @@ export default function ExamTemplateSetup() {
   const [examLanguage, setExamLanguage] = useState<Language>("en");
 
   // دليل المستخدم
-  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+
 
   const canvasWidth = pdfDimensions?.width || PAGE_SIZES.a4.width;
   const canvasHeight = pdfDimensions?.height || PAGE_SIZES.a4.height;
@@ -1254,135 +1255,102 @@ export default function ExamTemplateSetup() {
           </DialogContent>
         </Dialog>
 
-        {/* ---------- زر المساعدة الثابت في الأسفل (مثل صفحة الفصول) ---------- */}
-        <TooltipProvider>
-          <Dialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="default"
-                    size="icon"
-                    className="fixed bottom-6 left-6 h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105 z-50"
-                    aria-label="دليل المستخدم"
-                  >
-                    <Info className="h-5 w-5" />
-                  </Button>
-                </DialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="text-sm">
-                <p>دليل استخدام صفحة إعداد نموذج المعلم</p>
-              </TooltipContent>
-            </Tooltip>
+        {/* ---------- زر المساعدة الثابت باستخدام المكون الموحد ---------- */}
+        <HelpFab
+          title="كيفية استخدام صفحة إعداد نموذج المعلم"
+          description="دليل سريع لاستخدام صفحة إعداد نموذج اختبار المعلم"
+          tooltip="دليل استخدام صفحة إعداد النموذج"
+        >
+          <div className="space-y-6">
+            <p className="text-muted-foreground leading-relaxed">
+              <strong>نموذج المعلم</strong> هو ملف الامتحان الذي سيتم تصحيحه آلياً. من خلال هذه الصفحة يمكنك تحديد مناطق الإجابة لكل سؤال وتحديد الإجابات الصحيحة.
+            </p>
 
-            <DialogContent className="sm:max-w-2xl" dir="rtl">
-              <DialogHeader>
-                <DialogTitle className="text-2xl font-bold">
-                  📘 كيفية استخدام صفحة إعداد نموذج المعلم
-                </DialogTitle>
-                <DialogDescription className="text-base">
-                  دليل سريع لاستخدام صفحة إعداد نموذج اختبار المعلم
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-6 py-2">
-                <p className="text-muted-foreground leading-relaxed">
-                  <strong>نموذج المعلم</strong> هو ملف الامتحان الذي سيتم تصحيحه آلياً. من خلال هذه الصفحة يمكنك تحديد مناطق الإجابة لكل سؤال وتحديد الإجابات الصحيحة.
-                </p>
-
-                <div className="space-y-4">
-                  {/* بطاقة: إدخال رقم الامتحان واللغة */}
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                      <FileText className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold">1. إدخال رقم الامتحان واللغة</h4>
-                      <p className="text-sm text-muted-foreground">
-                        أدخل رقم الامتحان (رقم صحيح) واختر لغة الامتحان (عربي أو إنجليزي). ستؤثر اللغة على تسميات الخيارات (أ، ب، ج ... أو A, B, C ...).
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* بطاقة: رفع الملف */}
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                      <Upload className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold">2. رفع ملف الامتحان</h4>
-                      <p className="text-sm text-muted-foreground">
-                        ارفع ملف PDF أو صورة. إذا كان PDF سيتم تحويله إلى صورة طويلة (قد يستغرق بضع ثوانٍ).
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* بطاقة: اختيار نوع السؤال */}
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                      <Settings className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold">3. اختيار نوع السؤال</h4>
-                      <p className="text-sm text-muted-foreground">
-                        من شريط الأدوات العلوي، اختر نوع السؤال: <strong>متعدد الاختيارات</strong>، <strong>صح/خطأ</strong>، أو <strong>مقالي</strong>. يمكنك تعديل عدد الخيارات واتجاهها لأسئلة MCQ.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* بطاقة: رسم المربعات */}
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                      <PlusCircleIcon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold">4. رسم مربعات الإجابة</h4>
-                      <p className="text-sm text-muted-foreground">
-                        اسحب على الصورة لرسم مربع حول منطقة الإجابة. لأسئلة MCQ، ارسم العدد المطلوب من المربعات (سيتم إنهاء السؤال تلقائياً عند الاكتمال). لصح/خطأ والمقالي، ارسم مربعاً واحداً فقط.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* بطاقة: تحديد الإجابات */}
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                      <Check className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold">5. تحديد الإجابات الصحيحة</h4>
-                      <p className="text-sm text-muted-foreground">
-                        بعد رسم جميع الأسئلة، اضغط على زر <strong>الإجابات</strong> لفتح نافذة تحديد الإجابات الصحيحة. يمكنك أيضاً تغيير نوع السؤال من هناك (سيتم إغلاق النافذة لبدء الرمجدداً).
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* بطاقة: الحفظ */}
-                  <div className="flex items-start gap-4">
-                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-                      <BarChart3 className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold">6. حفظ نموذج المعلم</h4>
-                      <p className="text-sm text-muted-foreground">
-                        بعد التأكد من جميع الإجابات، اضغط <strong>حفظ نموذج المعلم</strong>. سيتم رفع الملف مع بيانات الأسئلة إلى الخادم.
-                      </p>
-                    </div>
-                  </div>
+            <div className="space-y-4">
+              {/* بطاقة: إدخال رقم الامتحان واللغة */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <FileText className="h-6 w-6 text-primary" />
                 </div>
-
-                <p className="text-sm text-muted-foreground border-t pt-4 mt-2">
-                  💡 يمكنك في أي وقت تعديل الأسئلة أو حذفها باستخدام الأزرار الموجودة. إذا قمت بتغيير نوع سؤال موجود، سيتم نقلك لوضع الرسم لإكمال المتطلبات.
-                </p>
+                <div className="flex-1">
+                  <h4 className="font-semibold">1. إدخال رقم الامتحان واللغة</h4>
+                  <p className="text-sm text-muted-foreground">
+                    أدخل رقم الامتحان (رقم صحيح) واختر لغة الامتحان (عربي أو إنجليزي). ستؤثر اللغة على تسميات الخيارات (أ، ب، ج ... أو A, B, C ...).
+                  </p>
+                </div>
               </div>
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setHelpDialogOpen(false)}>
-                  إغلاق
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </TooltipProvider>
+              {/* بطاقة: رفع الملف */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <Upload className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">2. رفع ملف الامتحان</h4>
+                  <p className="text-sm text-muted-foreground">
+                    ارفع ملف PDF أو صورة. إذا كان PDF سيتم تحويله إلى صورة طويلة (قد يستغرق بضع ثوانٍ).
+                  </p>
+                </div>
+              </div>
+
+              {/* بطاقة: اختيار نوع السؤال */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <Settings className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">3. اختيار نوع السؤال</h4>
+                  <p className="text-sm text-muted-foreground">
+                    من شريط الأدوات العلوي، اختر نوع السؤال: <strong>متعدد الاختيارات</strong>، <strong>صح/خطأ</strong>، أو <strong>مقالي</strong>. يمكنك تعديل عدد الخيارات واتجاهها لأسئلة MCQ.
+                  </p>
+                </div>
+              </div>
+
+              {/* بطاقة: رسم المربعات */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <PlusCircleIcon className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">4. رسم مربعات الإجابة</h4>
+                  <p className="text-sm text-muted-foreground">
+                    اسحب على الصورة لرسم مربع حول منطقة الإجابة. لأسئلة MCQ، ارسم العدد المطلوب من المربعات (سيتم إنهاء السؤال تلقائياً عند الاكتمال). لصح/خطأ والمقالي، ارسم مربعاً واحداً فقط.
+                  </p>
+                </div>
+              </div>
+
+              {/* بطاقة: تحديد الإجابات */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <Check className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">5. تحديد الإجابات الصحيحة</h4>
+                  <p className="text-sm text-muted-foreground">
+                    بعد رسم جميع الأسئلة، اضغط على زر <strong>الإجابات</strong> لفتح نافذة تحديد الإجابات الصحيحة. يمكنك أيضاً تغيير نوع السؤال من هناك (سيتم إغلاق النافذة لبدء الرمجدداً).
+                  </p>
+                </div>
+              </div>
+
+              {/* بطاقة: الحفظ */}
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <BarChart3 className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">6. حفظ نموذج المعلم</h4>
+                  <p className="text-sm text-muted-foreground">
+                    بعد التأكد من جميع الإجابات، اضغط <strong>حفظ نموذج المعلم</strong>. سيتم رفع الملف مع بيانات الأسئلة إلى الخادم.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground border-t pt-4 mt-2">
+              💡 يمكنك في أي وقت تعديل الأسئلة أو حذفها باستخدام الأزرار الموجودة. إذا قمت بتغيير نوع سؤال موجود، سيتم نقلك لوضع الرسم لإكمال المتطلبات.
+            </p>
+          </div>
+        </HelpFab>
         {/* ---------------------------------------------------------------------- */}
       </div>
     </MainLayout>

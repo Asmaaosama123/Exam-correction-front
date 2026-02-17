@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, X, Loader2, Move, ArrowRight, RotateCw, AlertCircle } from "lucide-react";
+import { Upload, FileText, X, Loader2, Move, ArrowRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,15 +24,7 @@ const BARCODE_HEIGHT = 60;
 
 
 
-interface PdfPageProps {
-  pageNumber: number;
-  pdfDocument: any;
-  scale: number;
-  barcodeArea: BarcodeArea | null;
-  onBarcodeChange: (area: BarcodeArea | null) => void;
-  width: number;
-  height: number;
-}
+
 
 export default function NewExam() {
   const navigate = useNavigate();
@@ -51,7 +43,7 @@ export default function NewExam() {
   const [barcodePositions, setBarcodePositions] = useState<Record<number, BarcodeArea>>({});
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
@@ -165,7 +157,7 @@ export default function NewExam() {
 
     // Create or move barcode
     const newX = Math.max(0, Math.min(x - BARCODE_WIDTH / 2, dimensions.width - BARCODE_WIDTH));
-    const newY = Math.max(0, Math.min(y - BARCODE_HEIGHT / 2, canvasHeight - BARCODE_HEIGHT));
+    const newY = Math.max(0, Math.min(y - BARCODE_HEIGHT / 2, (canvasHeight || 0) - BARCODE_HEIGHT));
 
     setBarcodePositions(prev => ({
       ...prev,
@@ -177,13 +169,13 @@ export default function NewExam() {
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!isDragging || !dragStart || !dimensions) return;
-    const { x, y, page, canvasHeight } = getCoordinates(e.clientX, e.clientY);
+    const { x, y, canvasHeight } = getCoordinates(e.clientX, e.clientY);
 
     // Only allow dragging on the same page for now to keep it simple
     // If you want cross-page dragging, you'd need to track which page the barcode "belongs" to
     const targetPage = dragStart.page;
     const newX = Math.max(0, Math.min(x - dragStart.x, dimensions.width - BARCODE_WIDTH));
-    const newY = Math.max(0, Math.min(y - dragStart.y, canvasHeight - BARCODE_HEIGHT));
+    const newY = Math.max(0, Math.min(y - dragStart.y, (canvasHeight || 0) - BARCODE_HEIGHT));
 
     setBarcodePositions(prev => ({
       ...prev,

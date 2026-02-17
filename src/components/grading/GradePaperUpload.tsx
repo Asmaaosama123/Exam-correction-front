@@ -44,6 +44,7 @@ export function GradePaperUpload({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const stitchImages = async (files: File[]): Promise<{ url: string, width: number, height: number, file: File }> => {
     return new Promise((resolve, reject) => {

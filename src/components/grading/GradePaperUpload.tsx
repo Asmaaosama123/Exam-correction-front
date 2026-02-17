@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Upload,
   FileText,
@@ -16,27 +17,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-// src/types/grading.ts
+import type { ExamResult } from "@/types/grading";
 
-export interface GradingDetail {
-  id: string;
-  type: "mcq" | "true_false";
-  gt: string;
-  pred: string;
-  conf: number;
-  ok: boolean;
-  method: string;
-}
-
-export interface ExamResult {
-  filename: string;
-  details: {
-    score: number;
-    total: number;
-    details: GradingDetail[];
-  };
-  annotated_image_url: string;
-}
 const ACCEPTED_TYPES = [
   "application/pdf",
   "image/jpeg",
@@ -51,7 +33,6 @@ const ACCEPT_ATTR =
 interface GradePaperUploadProps {
   onUpload: (file: File) => Promise<void>;
   isLoading: boolean;
-  /** استقبال نتائج من الكاميرا (اختياري) */
   onCameraResults?: (results: ExamResult[]) => void;
 }
 
@@ -59,6 +40,7 @@ export function GradePaperUpload({
   onUpload,
   isLoading,
 }: GradePaperUploadProps) {
+  const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,14 +90,11 @@ export function GradePaperUpload({
     handleRemoveFile();
   };
 
-  // ✅ الدالة الوحيدة لفتح الكاميرا في تبويب جديد
+  // فتح الكاميرا في نفس الصفحة بملء الشاشة
   const handleCameraScan = () => {
     const sessionId = crypto.randomUUID();
-    window.open(`/camera-scan?session=${sessionId}`, "_blank");
+    navigate(`/camera-scan?session=${sessionId}`);
   };
-
-  // (اختياري) استقبال النتائج من التبويب الجديد عبر localStorage
-  // يمكنك تنفيذها في الصفحة الرئيسية (Grading.tsx)
 
   return (
     <Card className="border-0 shadow-lg overflow-hidden bg-gradient-to-br from-white to-slate-50/80">
@@ -130,7 +109,7 @@ export function GradePaperUpload({
       </CardHeader>
 
       <CardContent className="space-y-6 p-6">
-        {/* 📁 رفع الملفات */}
+        {/* رفع الملفات */}
         {!selectedFile ? (
           <div
             onDragEnter={handleDrag}
@@ -210,7 +189,6 @@ export function GradePaperUpload({
           </div>
         )}
 
-        {/* الفاصل */}
         <div className="relative pt-4">
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t border-dashed border-slate-300" />
@@ -220,7 +198,7 @@ export function GradePaperUpload({
           </div>
         </div>
 
-        {/* 📸 زر الكاميرا – يفتح تبويب جديد */}
+        {/* زر الكاميرا - يفتح في نفس الصفحة */}
         <Button
           variant="outline"
           className="w-full justify-start gap-3 h-auto py-4 border-2 hover:bg-slate-100 transition-all"
@@ -234,7 +212,7 @@ export function GradePaperUpload({
               مسح أوراق الاختبار باستخدام الكاميرا
             </span>
             <span className="text-xs text-muted-foreground">
-              سيتم فتح نافذة جديدة لالتقاط الصور وإرسالها للتصحيح
+              سيتم فتح الكاميرا بملء الشاشة لالتقاط الصور
             </span>
           </div>
         </Button>

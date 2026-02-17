@@ -7,7 +7,7 @@ import type { ApiErrorResponse } from "@/types/auth";
 import { authManager } from "./auth-manager";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://76.13.51.15:5002";
+  import.meta.env.VITE_API_URL || "http://localhost:5015";
 
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

@@ -11,15 +11,15 @@ export interface GradingDetail {
 }
 
 export interface ExamResult {
-  id: string;           // تم الإضافة
+  id?: string;                   // اختياري
   filename: string;
-  studentName?: string; // تم الإضافة
-  examName?: string;    // تم الإضافة
-  examSubject?: string; // تم الإضافة
-  className?: string;   // تم الإضافة
-  grade: number;        // تم الإضافة (مباشرة بدل details.score لو الكود بيستخدمها كدا)
-  maxGrade: number;     // تم الإضافة
-  gradedAt: string;     // تم الإضافة
+  studentName?: string;          // اختياري
+  examName?: string;             // اختياري
+  examSubject?: string;          // اختياري
+  className?: string;            // اختياري
+  grade?: number;                // اختياري (إذا كان متوفراً مباشرة)
+  maxGrade?: number;             // اختياري
+  gradedAt?: string;             // اختياري
   details: {
     score: number;
     total: number;
@@ -31,17 +31,17 @@ export interface ExamResult {
 export interface GradePaperRequest {
   examId: string;
   studentId?: string;
-  image?: string; 
-  file: File | Blob;   // تم الإضافة لأن grading-api بيستخدمها
+  image?: string;
+  file: File | Blob;
 }
 
 export interface GetGradingResultsRequest {
   examId?: string;
-  page?: number;       // تأكد لو بتستخدم page أو pageNumber
-  pageNumber?: number; // تم الإضافة لحل خطأ GradingResultsTable
-  pageSize?: number;   // تم الإضافة
-  classId?: string;    // تم الإضافة
-  searchValue?: string;// تم الإضافة
+  page?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  classId?: string;
+  searchValue?: string;
   limit?: number;
 }
 
@@ -50,11 +50,12 @@ export interface GetGradingResultsResponse {
   total: number;
   page: number;
   pages: number;
-  totalPages: number;    // تم الإضافة
-  totalCount: number;    // تم الإضافة
-  hasPreviousPage: boolean; // تم الإضافة
-  hasNextPage: boolean;     // تم الإضافة
+  totalPages: number;
+  totalCount: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
 }
+
 export interface GradePaperResponse {
   success: boolean;
   message?: string;

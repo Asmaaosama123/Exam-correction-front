@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, X, Loader2, Move, ArrowRight } from "lucide-react";
+import { Upload, FileText, X, Loader2, Move, ArrowRight, RotateCw, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,269 +9,186 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { useUploadExam } from "@/hooks/use-exams";
 import type { UploadExamRequest } from "@/types/exams";
 import { toast } from "sonner";
-
-// Type declaration for global PDF.js library
-interface PdfJsLib {
-  version: string;
-  GlobalWorkerOptions: {
-    workerSrc: string;
-  };
-  getDocument(src: { data: ArrayBuffer }): {
-    promise: Promise<{
-      getPage(pageNumber: number): Promise<{
-        getViewport(params: { scale: number }): {
-          width: number;
-          height: number;
-        };
-      }>;
-    }>;
-  };
-}
-
-declare global {
-  interface Window {
-  // داخل ملف src/pages/exams/NewExam.tsx
-pdfjsLib?: any;
-pdfjs?: any;
-  }
-}
-
-// Use PDF.js from global scope (loaded in index.html)
-const getPdfJs = (): PdfJsLib => {
-  const pdfjsLib = window.pdfjsLib || window.pdfjs;
-  if (!pdfjsLib) {
-    throw new Error("مكتبة PDF.js غير متوفرة. يرجى التأكد من تحميلها في HTML.");
-  }
-  // Configure worker if not already configured
-  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${
-      pdfjsLib.version || "3.11.174"
-    }/pdf.worker.min.js`;
-  }
-  return pdfjsLib;
-};
+import StitchedPdfViewer from "@/components/ui/StitchedPdfViewerProps";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface BarcodeArea {
   x: number;
-  y: number; // Y from bottom
-  canvasHeight: number;
+  y: number; // Y from top of the page it's on
+  page: number;
+  canvasHeight?: number; // Total height of the single page
 }
 
 const BARCODE_WIDTH = 200;
 const BARCODE_HEIGHT = 60;
 
-// Page size definitions (width × height in pixels at 96 DPI)
-const PAGE_SIZES = {
-  a4: {
-    name: "A4",
-    width: 794, // 210mm
-    height: 1123, // 297mm
-    description: "210 × 297 mm",
-  },
-  letter: {
-    name: "Letter (US)",
-    width: 816, // 8.5 inches
-    height: 1056, // 11 inches
-    description: "8.5 × 11 in",
-  },
-  legal: {
-    name: "Legal (US)",
-    width: 816, // 8.5 inches
-    height: 1344, // 14 inches
-    description: "8.5 × 14 in",
-  },
-  a3: {
-    name: "A3",
-    width: 1123, // 297mm
-    height: 1587, // 420mm
-    description: "297 × 420 mm",
-  },
-  a5: {
-    name: "A5",
-    width: 559, // 148mm
-    height: 794, // 210mm
-    description: "148 × 210 mm",
-  },
-} as const;
+
+
+interface PdfPageProps {
+  pageNumber: number;
+  pdfDocument: any;
+  scale: number;
+  barcodeArea: BarcodeArea | null;
+  onBarcodeChange: (area: BarcodeArea | null) => void;
+  width: number;
+  height: number;
+}
 
 export default function NewExam() {
   const navigate = useNavigate();
   const [examTitle, setExamTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [barcodeArea, setBarcodeArea] = useState<BarcodeArea | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(
-    null
-  );
-  const canvasRef = useRef<HTMLDivElement>(null);
+
+  // States for document preview
+  const [stitchedImageUrl, setStitchedImageUrl] = useState<string | null>(null);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [numPages, setNumPages] = useState(0);
+  const [isPdfConverting, setIsPdfConverting] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  // State for barcode positions: { pageNumber: BarcodeArea }
+  const [barcodePositions, setBarcodePositions] = useState<Record<number, BarcodeArea>>({});
+
   const containerRef = useRef<HTMLDivElement>(null);
-  const pdfIframeRef = useRef<HTMLIFrameElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
-  const [documentDimensions, setDocumentDimensions] = useState<{
-    width: number;
-    height: number;
-  } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number; page: number } | null>(null);
 
   const uploadMutation = useUploadExam();
 
-  // Get canvas dimensions - use A4 as default, or document dimensions if available
-  const canvasWidth = documentDimensions?.width || PAGE_SIZES.a4.width;
-  const canvasHeight = documentDimensions?.height || PAGE_SIZES.a4.height;
+  // Handle File Selection
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // Create URL from selected file and extract PDF dimensions
-  React.useEffect(() => {
-    if (selectedFile) {
-      const url = URL.createObjectURL(selectedFile);
-      setDocumentUrl(url);
+    if (file.type === "application/pdf" || file.type.startsWith("image/")) {
+      if (stitchedImageUrl) URL.revokeObjectURL(stitchedImageUrl);
 
-      // Only PDF files are accepted
-      const isPdf = selectedFile.type === "application/pdf";
+      setSelectedFile(file);
+      setBarcodePositions({});
+      setDimensions(null);
+      setNumPages(0);
+      setPdfError(null);
 
-      if (isPdf) {
-        const extractPdfDimensions = async () => {
-          try {
-            const pdfjs = getPdfJs();
-            const arrayBuffer = await selectedFile.arrayBuffer();
-            const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-            const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 1.0 });
-
-            // Convert PDF points to pixels at 96 DPI
-            const PIXELS_PER_POINT = 96 / 72;
-            const width = viewport.width * PIXELS_PER_POINT;
-            const height = viewport.height * PIXELS_PER_POINT;
-
-            setDocumentDimensions({ width, height });
-            setBarcodeArea(null);
-          } catch (error) {
-            console.error("Error extracting PDF dimensions:", error);
-            toast.error(
-              "فشل قراءة أبعاد الملف. سيتم استخدام الأبعاد الافتراضية."
-            );
-            setDocumentDimensions({
-              width: PAGE_SIZES.a4.width,
-              height: PAGE_SIZES.a4.height,
-            });
-            setBarcodeArea(null);
-          }
+      if (file.type.startsWith("image/")) {
+        const url = URL.createObjectURL(file);
+        setStitchedImageUrl(url);
+        const img = new Image();
+        img.onload = () => {
+          setDimensions({ width: img.width, height: img.height });
+          setNumPages(1);
         };
-        extractPdfDimensions();
+        img.src = url;
       } else {
-        toast.error("يرجى اختيار ملف PDF فقط");
-        setSelectedFile(null);
-        setDocumentUrl(null);
-        setDocumentDimensions(null);
+        setIsPdfConverting(true);
       }
-
-      return () => {
-        URL.revokeObjectURL(url);
-      };
     } else {
-      setDocumentUrl(null);
-      setDocumentDimensions(null);
+      toast.error("يرجى اختيار ملف PDF أو صورة فقط");
     }
-  }, [selectedFile]);
+  }, [stitchedImageUrl]);
 
-  // Calculate scale to fit container (don't scale up)
-  React.useEffect(() => {
-    if (!containerRef.current || !selectedFile || !documentDimensions) return;
+  const handleRemoveFile = () => {
+    if (stitchedImageUrl) URL.revokeObjectURL(stitchedImageUrl);
+    setSelectedFile(null);
+    setStitchedImageUrl(null);
+    setDimensions(null);
+    setNumPages(0);
+    setBarcodePositions({});
+  };
 
+  // PDF Conversion Callbacks
+  const handlePdfLoaded = (data: { width: number; height: number; pageCount: number; imageUrl: string }) => {
+    setIsPdfConverting(false);
+    setDimensions({ width: data.width, height: data.height });
+    setNumPages(data.pageCount);
+    setStitchedImageUrl(data.imageUrl);
+  };
+
+  const handlePdfError = (error: string) => {
+    setIsPdfConverting(false);
+    setPdfError(error);
+    toast.error(`خطأ في تحويل PDF: ${error}`);
+  };
+
+  // Calculate Scale
+  useEffect(() => {
+    if (!containerRef.current || !dimensions) return;
     const updateScale = () => {
-      const container = containerRef.current;
-      if (!container || !documentDimensions) return;
-
-      const containerRect = container.getBoundingClientRect();
-      const availableWidth = containerRect.width - 32; // padding
-      const availableHeight = containerRect.height - 32; // padding
-
-      const widthScale = availableWidth / documentDimensions.width;
-      const heightScale = availableHeight / documentDimensions.height;
-      const newScale = Math.min(widthScale, heightScale, 1); // Don't scale up
-
-      setScale(newScale);
+      if (!containerRef.current || !dimensions) return;
+      const containerWidth = containerRef.current.clientWidth - 48;
+      const widthScale = containerWidth / dimensions.width;
+      setScale(Math.min(widthScale, 1));
     };
-
     updateScale();
     window.addEventListener("resize", updateScale);
     return () => window.removeEventListener("resize", updateScale);
-  }, [selectedFile, documentDimensions]);
+  }, [dimensions]);
 
-  const getCanvasCoordinates = (clientX: number, clientY: number) => {
-    if (!canvasRef.current) return { x: 0, y: 0 };
+  // Coordinate Conversion
+  const getCoordinates = (clientX: number, clientY: number) => {
+    if (!canvasRef.current || !containerRef.current || !dimensions || !numPages)
+      return { x: 0, y: 0, page: 1 };
+
     const rect = canvasRef.current.getBoundingClientRect();
-    // Calculate coordinates relative to the overlay div
-    const relativeX = clientX - rect.left;
-    const relativeY = clientY - rect.top;
-    // Convert to unscaled coordinates
-    const x = relativeX / scale;
-    const y = relativeY / scale;
-    return { x, y };
+    const scrollTop = containerRef.current.scrollTop;
+    const docY = scrollTop + (clientY - rect.top);
+
+    const canvasHeight = dimensions.height / numPages;
+    const page = Math.min(numPages, Math.max(1, Math.ceil(docY / (canvasHeight * scale))));
+
+    // Y inside the page (from top)
+    const y = (docY - (page - 1) * canvasHeight * scale) / scale;
+    const x = (clientX - rect.left) / scale;
+
+    return { x: Math.max(0, x), y: Math.max(0, y), page, canvasHeight };
   };
 
+  // Barcode Handlers
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!canvasRef.current) return;
-    const { x, y } = getCanvasCoordinates(e.clientX, e.clientY);
+    if (!stitchedImageUrl || !dimensions) return;
+    e.preventDefault();
+    const { x, y, page, canvasHeight } = getCoordinates(e.clientX, e.clientY);
 
-    // Check if clicking on existing barcode area
-    if (barcodeArea) {
-      const topY = canvasHeight - barcodeArea.y - BARCODE_HEIGHT;
-      const isOnBarcode =
-        x >= barcodeArea.x &&
-        x <= barcodeArea.x + BARCODE_WIDTH &&
-        y >= topY &&
-        y <= topY + BARCODE_HEIGHT;
-
-      if (isOnBarcode) {
+    // Check interaction with existing barcode on this page
+    const existing = barcodePositions[page];
+    if (existing) {
+      if (x >= existing.x && x <= existing.x + BARCODE_WIDTH &&
+        y >= existing.y && y <= existing.y + BARCODE_HEIGHT) {
         setIsDragging(true);
-        setDragStart({ x: x - barcodeArea.x, y: y - topY });
+        setDragStart({ x: x - existing.x, y: y - existing.y, page });
         return;
       }
     }
 
-    // Create new barcode area (centered on click)
-    const newX = Math.max(
-      0,
-      Math.min(x - BARCODE_WIDTH / 2, canvasWidth - BARCODE_WIDTH)
-    );
-    const topY = Math.max(
-      0,
-      Math.min(y - BARCODE_HEIGHT / 2, canvasHeight - BARCODE_HEIGHT)
-    );
-    const newY = canvasHeight - topY - BARCODE_HEIGHT; // Convert to Y from bottom
+    // Create or move barcode
+    const newX = Math.max(0, Math.min(x - BARCODE_WIDTH / 2, dimensions.width - BARCODE_WIDTH));
+    const newY = Math.max(0, Math.min(y - BARCODE_HEIGHT / 2, canvasHeight - BARCODE_HEIGHT));
 
-    setBarcodeArea({
-      x: newX,
-      y: newY,
-      canvasHeight,
-    });
+    setBarcodePositions(prev => ({
+      ...prev,
+      [page]: { x: newX, y: newY, page, canvasHeight }
+    }));
     setIsDragging(true);
-    setDragStart({ x: x - newX, y: y - topY });
+    setDragStart({ x: x - newX, y: y - newY, page });
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!canvasRef.current || !isDragging) return;
-    if (!barcodeArea || !dragStart) return;
+    if (!isDragging || !dragStart || !dimensions) return;
+    const { x, y, page, canvasHeight } = getCoordinates(e.clientX, e.clientY);
 
-    const { x, y } = getCanvasCoordinates(e.clientX, e.clientY);
+    // Only allow dragging on the same page for now to keep it simple
+    // If you want cross-page dragging, you'd need to track which page the barcode "belongs" to
+    const targetPage = dragStart.page;
+    const newX = Math.max(0, Math.min(x - dragStart.x, dimensions.width - BARCODE_WIDTH));
+    const newY = Math.max(0, Math.min(y - dragStart.y, canvasHeight - BARCODE_HEIGHT));
 
-    // Move barcode area
-    const newX = Math.max(
-      0,
-      Math.min(x - dragStart.x, canvasWidth - BARCODE_WIDTH)
-    );
-    const topY = Math.max(
-      0,
-      Math.min(y - dragStart.y, canvasHeight - BARCODE_HEIGHT)
-    );
-    const newY = canvasHeight - topY - BARCODE_HEIGHT; // Convert to Y from bottom
-
-    setBarcodeArea({
-      x: newX,
-      y: newY,
-      canvasHeight,
-    });
+    setBarcodePositions(prev => ({
+      ...prev,
+      [targetPage]: { ...prev[targetPage], x: newX, y: newY }
+    }));
   };
 
   const handleMouseUp = () => {
@@ -279,277 +196,199 @@ export default function NewExam() {
     setDragStart(null);
   };
 
-  const handleClearBarcode = () => {
-    setBarcodeArea(null);
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    if (file.type === "application/pdf") {
-      setSelectedFile(file);
-    } else {
-      toast.error("يرجى اختيار ملف PDF فقط");
-    }
-  };
-
-  const handleRemoveFile = () => {
-    setSelectedFile(null);
-  };
-
   const handleSubmit = async () => {
     if (!selectedFile || !examTitle.trim() || !subject.trim()) {
-      toast.error("يرجى ملء جميع الحقول واختيار ملف PDF");
+      toast.error("يرجى ملء جميع الحقول واختيار ملف");
       return;
     }
 
-    if (!barcodeArea) {
-      toast.error("يرجى تحديد موقع الباركود على الورقة");
+    const pages = Object.keys(barcodePositions).map(Number);
+    if (pages.length === 0) {
+      toast.error("يرجى تحديد موقع الباركود على صفحة واحدة على الأقل");
       return;
     }
 
-    // Convert pixel coordinates to PDF points
-    // At 96 DPI: 1 pixel = 72/96 = 0.75 PDF points
-    const PIXELS_TO_POINTS = 72 / 96; // 0.75
-    const xPoints = Math.round(barcodeArea.x * PIXELS_TO_POINTS);
-    const yPoints = Math.round(barcodeArea.y * PIXELS_TO_POINTS);
+    const isPdf = selectedFile.type === "application/pdf";
+
+    const barcodeDataList = Object.entries(barcodePositions).map(([pageStr, area]) => {
+      const page = parseInt(pageStr);
+
+      let xPoints, yPoints;
+
+      if (isPdf) {
+        // PDF points: Stitched rendered at 2.0 scale, so divide pixels by 2
+        xPoints = Math.round(area.x / 2);
+        // Backend iText Y is from bottom. 
+        // area.canvasHeight (rendered pixels) / 2 = PDF Height in points
+        const pdfPageHeight = (area.canvasHeight || 0) / 2;
+        yPoints = Math.round(pdfPageHeight - (area.y / 2) - (BARCODE_HEIGHT / 2));
+      } else {
+        // Image: 1:1 points to pixels in our new backend logic
+        xPoints = Math.round(area.x);
+        // iText Y is from bottom. 
+        const imageHeight = area.canvasHeight || 0;
+        yPoints = Math.round(imageHeight - area.y - BARCODE_HEIGHT);
+      }
+
+      return { page, x: xPoints, y: yPoints };
+    });
 
     const request: UploadExamRequest = {
       title: examTitle.trim(),
       subject: subject.trim(),
       file: selectedFile,
-      x: xPoints, // X coordinate in PDF points
-      y: yPoints, // Y coordinate in PDF points (from bottom)
+      barcodeData: JSON.stringify(barcodeDataList),
     };
 
     uploadMutation.mutate(request, {
-      onSuccess: () => {
-        navigate("/exams");
-      },
+      onSuccess: () => navigate("/exams"),
       onError: (error) => {
         console.error("Upload error:", error);
-        toast.error("فشل رفع الملف. تأكد من أن الخادم يقبل PDF، أو حاول مرة أخرى.");
+        toast.error("فشل رفع الملف. تأكد من أن الخادم يعمل، ثم حاول مرة أخرى.");
       },
     });
   };
+
+  const activeBarcodeInfo = useMemo(() => {
+    const pages = Object.keys(barcodePositions).map(Number);
+    if (pages.length === 0) return null;
+    const lastPage = pages[pages.length - 1];
+    return barcodePositions[lastPage];
+  }, [barcodePositions]);
 
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-6 h-full overflow-hidden">
         <div>
           <div className="flex items-center gap-4 mb-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/exams")}
-            >
+            <Button variant="ghost" size="sm" onClick={() => navigate("/exams")}>
               <ArrowRight className="h-4 w-4 ml-2" />
               العودة
             </Button>
-            <h1 className="text-3xl font-bold text-foreground">
-              رفع اختبار جديد
-            </h1>
+            <h1 className="text-3xl font-bold text-foreground">رفع اختبار جديد</h1>
           </div>
-          <p className="text-muted-foreground">
-            ارفع ورقة الأسئلة (PDF) وحدد موقع الباركود
-          </p>
+          <p className="text-muted-foreground">ارفع ورقة الأسئلة (PDF أو صورة) وحدد موقع الباركود</p>
         </div>
 
-        {/* Form Inputs Row */}
+        {/* Inputs */}
         <div className="grid gap-4 md:grid-cols-2">
-          {/* Exam Title */}
           <div className="flex flex-col gap-4">
             <div className="space-y-2">
               <Label htmlFor="examTitle">اسم الاختبار *</Label>
-              <Input
-                id="examTitle"
-                value={examTitle}
-                onChange={(e) => setExamTitle(e.target.value)}
-                placeholder="مثال: اختبار الفصل الأول"
-              />
+              <Input id="examTitle" value={examTitle} onChange={(e) => setExamTitle(e.target.value)} placeholder="مثال: اختبار الفصل الأول" />
             </div>
-
-            {/* Subject */}
             <div className="space-y-2">
               <Label htmlFor="subject">المادة *</Label>
-              <Input
-                id="subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="مثال: الرياضيات"
-              />
+              <Input id="subject" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="مثال: الرياضيات" />
             </div>
           </div>
 
-          {/* File Upload */}
           <div className="space-y-2">
-            <Label>ورقة الأسئلة (PDF) *</Label>
+            <Label>ورقة الأسئلة *</Label>
             {!selectedFile ? (
-              <div className="flex items-center justify-center w-full">
-                <label
-                  htmlFor="file-upload"
-                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-10 h-10 mb-3 text-muted-foreground" />
-                    <p className="mb-2 text-sm text-muted-foreground">
-                      <span className="font-semibold">انقر للرفع</span> أو اسحب
-                      الملف هنا
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      PDF فقط
-                    </p>
-                  </div>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    className="hidden"
-                    accept="application/pdf"
-                    onChange={handleFileSelect}
-                  />
-                </label>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-sm font-medium truncate">
-                      {selectedFile.name}
-                    </span>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={handleRemoveFile}>
-                    <X className="w-4 h-4" />
-                  </Button>
+              <label htmlFor="file-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-10 h-10 mb-3 text-muted-foreground" />
+                  <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">انقر للرفع</span> أو اسحب الملف</p>
+                  <p className="text-xs text-muted-foreground">PDF أو صور</p>
                 </div>
+                <input id="file-upload" type="file" className="hidden" accept="application/pdf,image/*" onChange={handleFileSelect} />
+              </label>
+            ) : (
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-sm font-medium truncate max-w-[200px]">{selectedFile.name}</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={handleRemoveFile}><X className="w-4 h-4" /></Button>
               </div>
             )}
           </div>
         </div>
 
-        {/* Barcode Selection - Full Width */}
-        {selectedFile && documentDimensions && (
+        {/* PDF Converter (Hidden) */}
+        {selectedFile?.type === "application/pdf" && (
+          <StitchedPdfViewer file={selectedFile} onLoaded={handlePdfLoaded} onError={handlePdfError} hidden />
+        )}
+
+        {/* Preview Area */}
+        {selectedFile && (
           <div className="flex flex-col flex-1 min-h-0 w-full space-y-4">
-            <div className="flex items-center justify-between shrink-0">
+            <div className="flex items-center justify-between">
               <Label>حدد موقع الباركود على الورقة *</Label>
-              {barcodeArea && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleClearBarcode}
-                >
-                  مسح
-                </Button>
+              {Object.keys(barcodePositions).length > 0 && (
+                <Button variant="ghost" size="sm" onClick={() => setBarcodePositions({})}>مسح الكل</Button>
               )}
             </div>
-            <div className="flex flex-col flex-1 min-h-0 border rounded-lg p-4 bg-muted/30">
-              <p className="text-xs text-muted-foreground mb-3 shrink-0">
-                انقر أو اسحب على الورقة لتحديد موقع الباركود (الحجم:{" "}
-                {BARCODE_WIDTH}×{BARCODE_HEIGHT} بكسل)
-              </p>
-              <div
-                ref={containerRef}
-                className="flex-1 min-h-0 border rounded bg-muted/20 p-2 flex items-center justify-center relative"
-              >
-                {/* Document Display - PDF only */}
-                {documentUrl && (
-                  <iframe
-                    ref={pdfIframeRef}
-                    src={`${documentUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                    className="border-0"
-                    style={{
-                      width: `${canvasWidth * scale}px`,
-                      height: `${canvasHeight * scale}px`,
-                      maxWidth: "100%",
-                      maxHeight: "100%",
-                    }}
-                  />
-                )}
-                {/* Overlay for barcode selection */}
-                <div
-                  ref={canvasRef}
-                  className="absolute cursor-crosshair select-none"
-                  style={{
-                    width: `${canvasWidth * scale}px`,
-                    height: `${canvasHeight * scale}px`,
-                    left: "50%",
-                    top: "50%",
-                    transform: "translate(-50%, -50%)",
-                    pointerEvents: "auto",
-                  }}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                >
-                  {/* Barcode Area Overlay */}
-                  {barcodeArea && (
-                    <div
-                      className="absolute border-2 border-primary bg-primary/10 flex items-center justify-center transition-all pointer-events-none"
-                      style={{
-                        left: `${barcodeArea.x * scale}px`,
-                        top: `${
-                          (canvasHeight - barcodeArea.y - BARCODE_HEIGHT) *
-                          scale
-                        }px`,
-                        width: `${BARCODE_WIDTH * scale}px`,
-                        height: `${BARCODE_HEIGHT * scale}px`,
-                      }}
-                      title="اسحب لتحريك الباركود"
-                    >
-                      <Move className="h-6 w-6 text-primary opacity-50" />
-                    </div>
-                  )}
+
+            <div className="flex flex-col flex-1 min-h-0 border rounded-lg p-4 bg-muted/30 relative">
+              {isPdfConverting && (
+                <div className="absolute inset-0 z-50 bg-background/50 flex flex-col items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                  <p className="text-sm font-medium">جاري معالجة الملف...</p>
                 </div>
+              )}
+
+              {pdfError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{pdfError}</AlertDescription>
+                  <Button variant="outline" size="sm" className="mt-2" onClick={() => handleFileSelect({ target: { files: [selectedFile] } } as any)}>إعادة المحاولة</Button>
+                </Alert>
+              )}
+
+              <div ref={containerRef} className="flex-1 overflow-y-auto min-h-0 border rounded bg-white relative">
+                {stitchedImageUrl && dimensions && (
+                  <div
+                    ref={canvasRef}
+                    className="relative cursor-crosshair mx-auto shadow-sm"
+                    style={{ width: dimensions.width * scale, height: dimensions.height * scale }}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                  >
+                    <img
+                      src={stitchedImageUrl}
+                      alt="Preview"
+                      className="w-full h-full pointer-events-none select-none"
+                      draggable={false}
+                    />
+
+                    {/* Render Barcodes */}
+                    {Object.values(barcodePositions).map(area => (
+                      <div
+                        key={area.page}
+                        className="absolute border-2 border-primary bg-primary/10 flex items-center justify-center transition-opacity"
+                        style={{
+                          left: area.x * scale,
+                          top: ((area.page - 1) * (dimensions.height / numPages) + area.y) * scale,
+                          width: BARCODE_WIDTH * scale,
+                          height: BARCODE_HEIGHT * scale,
+                        }}
+                      >
+                        <Move className="h-4 w-4 text-primary opacity-50" />
+                        <div className="absolute -top-6 bg-primary text-white text-[10px] px-1 rounded">صفحة {area.page}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              {barcodeArea && (
-                <div className="mt-3 text-xs text-muted-foreground text-center shrink-0">
-                  <p>
-                    الموقع: X = {Math.round(barcodeArea.x * (72 / 96))}pt, Y ={" "}
-                    {Math.round(barcodeArea.y * (72 / 96))}pt (من الأسفل)
-                  </p>
-                  <p className="text-[10px] opacity-75 mt-1">
-                    ({Math.round(barcodeArea.x)}px × {Math.round(barcodeArea.y)}
-                    px)
-                  </p>
+
+              {activeBarcodeInfo && (
+                <div className="mt-3 text-[10px] text-muted-foreground text-center">
+                  موقع الباركود (صفحة {activeBarcodeInfo.page}): X={Math.round(activeBarcodeInfo.x)}px, Y={Math.round(activeBarcodeInfo.y)}px
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Submit Button */}
+        {/* Footer actions */}
         <div className="flex justify-end gap-4 pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/exams")}
-            disabled={uploadMutation.isPending}
-          >
-            إلغاء
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={
-              uploadMutation.isPending ||
-              !selectedFile ||
-              !examTitle.trim() ||
-              !subject.trim() ||
-              !barcodeArea
-            }
-          >
-            {uploadMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                جاري الرفع...
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4 ml-2" />
-                رفع الاختبار
-              </>
-            )}
+          <Button variant="outline" onClick={() => navigate("/exams")} disabled={uploadMutation.isPending}>إلغاء</Button>
+          <Button onClick={handleSubmit} disabled={uploadMutation.isPending || !selectedFile || Object.keys(barcodePositions).length === 0}>
+            {uploadMutation.isPending ? <><Loader2 className="w-4 h-4 ml-2 animate-spin" /> جاري الرفع...</> : <><Upload className="w-4 h-4 ml-2" /> رفع الاختبار</>}
           </Button>
         </div>
       </div>

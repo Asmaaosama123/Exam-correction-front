@@ -167,10 +167,11 @@ export function GeneratePapersDialog({
 
           {selectedExam && selectedClassId && (
             <div className="p-3 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                سيتم إنشاء أوراق PDF جاهزة للطباعة لكل طالب في الفصل المحدد
-                وتحميلها كملف ZIP.
-              </p>
+             <p className="text-sm text-muted-foreground">
+      {/* التعديل هنا */}
+      سيتم إنشاء ملف PDF **واحد مدمج** يحتوي على أوراق جميع الطلاب 
+      في الفصل المحدد مرتبة وجاهزة للطباعة.
+    </p>
               {selectedExam.barcodeAreaX !== undefined &&
                 selectedExam.barcodeAreaY !== undefined && (
                   <p className="text-xs text-muted-foreground mt-2">
@@ -203,13 +204,11 @@ export function GeneratePapersDialog({
             {generateMutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                جاري الإنشاء والتحميل...
-              </>
+                جاري دمج الأوراق والتحميل...              </>
             ) : (
               <>
                 <Download className="w-4 h-4 ml-2" />
-                إنشاء وتحميل أوراق PDF
-              </>
+                إنشاء وتحميل ملف PDF المدمج              </>
             )}
           </Button>
         </DialogFooter>

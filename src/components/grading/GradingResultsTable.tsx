@@ -274,8 +274,7 @@ export function GradingResultsTable() {
                       </td>
                       <td className="p-4">
                         <Badge
-                          variant={getGradeColor(result.grade, result.maxGrade)}
-                          className="text-sm font-semibold"
+                          variant={getGradeColor(result.grade ?? 0, result.maxGrade ?? 100)} className="text-sm font-semibold"
                         >
                           {result.grade}
                           {result.maxGrade ? ` / ${result.maxGrade}` : ""}
@@ -284,8 +283,7 @@ export function GradingResultsTable() {
                       <td className="p-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
-                          <span>{formatDate(result.gradedAt)}</span>
-                        </div>
+                          <span>{formatDate(result.gradedAt ?? "")}</span>                        </div>
                       </td>
                     </tr>
                   ))}

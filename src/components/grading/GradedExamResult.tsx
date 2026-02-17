@@ -17,6 +17,10 @@ interface GradingDetail {
 
 interface ExamResult {
   filename: string;
+  student_info?: {
+    student_id: string;
+    student_name: string;
+  };
   details: {
     score: number;
     total: number;
@@ -25,18 +29,19 @@ interface ExamResult {
   annotated_image_url: string;
 }
 
+
 interface GradedExamResultProps {
   results: ExamResult[];
   onNewCorrection?: () => void;
   onUpdateModel?: () => void;
 }
 
-export function GradedExamResult({ 
-  results, 
-  onNewCorrection, 
-  onUpdateModel 
+export function GradedExamResult({
+  results,
+  onNewCorrection,
+  onUpdateModel
 }: GradedExamResultProps) {
-  
+
   const extractStudentNumber = (filename: string): string => {
     const match = filename.match(/\(Student:\s*(\d+)\)/);
     return match ? match[1] : "غير معروف";
@@ -101,29 +106,28 @@ export function GradedExamResult({
             return (
               <div
                 key={result.filename}
-                className={`group relative p-5 rounded-2xl border transition-all duration-300 hover:shadow-lg ${
-                  isPassing
+                className={`group relative p-5 rounded-2xl border transition-all duration-300 hover:shadow-lg ${isPassing
                     ? "bg-gradient-to-r from-emerald-50/80 to-white border-emerald-200 hover:border-emerald-400"
                     : "bg-gradient-to-r from-amber-50/80 to-white border-amber-200 hover:border-amber-400"
-                }`}
+                  }`}
               >
                 {/* شريط جانبي لوني */}
-                <div className={`absolute right-0 top-0 bottom-0 w-2 rounded-r-2xl ${
-                  isPassing ? "bg-emerald-500" : "bg-amber-500"
-                }`} />
+                <div className={`absolute right-0 top-0 bottom-0 w-2 rounded-r-2xl ${isPassing ? "bg-emerald-500" : "bg-amber-500"
+                  }`} />
 
                 <div className="flex flex-wrap items-center justify-between gap-4 mr-4">
                   {/* بيانات الطالب */}
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shadow-sm ${
-                      isPassing
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shadow-sm ${isPassing
                         ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
                         : "bg-amber-100 text-amber-700 border border-amber-300"
-                    }`}>
+                      }`}>
                       {studentNumber}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-lg">الطالب {studentNumber}</h3>
+                      <h3 className="font-semibold text-lg">
+                        الطالب {result.student_info?.student_name || "غير معروف"}
+                      </h3>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span>الدرجة: <strong className="text-foreground">{score}</strong> / {total}</span>
                         <span>•</span>
@@ -135,13 +139,14 @@ export function GradedExamResult({
                   {/* الإجراءات */}
                   <div className="flex items-center gap-2">
                     <StudentDetailsModal
-                      studentNumber={studentNumber}
+                      studentName={result.student_info?.student_name || "غير معروف"}
                       details={details.map(({ id, type, gt, pred, ok }) => ({
                         id, type, gt, pred, ok
                       }))}
                       score={score}
                       total={total}
                     />
+
                     {result.annotated_image_url && (
                       <ImageModal
                         imageUrl={result.annotated_image_url}

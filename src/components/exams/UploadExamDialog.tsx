@@ -33,10 +33,10 @@ export function UploadExamDialog({
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type === "application/pdf") {
+    if (file && (file.type === "application/pdf" || file.type.startsWith("image/"))) {
       setSelectedFile(file);
     } else {
-      toast.error("يرجى اختيار ملف PDF فقط");
+      toast.error("يرجى اختيار ملف PDF أو صورة فقط");
     }
   };
 
@@ -54,8 +54,7 @@ export function UploadExamDialog({
       title: examTitle.trim(),
       subject: subject.trim(),
       file: selectedFile,
-      x: 0,
-      y: 0,
+      barcodeData: "[]",
     };
 
     uploadMutation.mutate(request, {
@@ -128,13 +127,13 @@ export function UploadExamDialog({
                       <span className="font-semibold">انقر للرفع</span> أو اسحب
                       الملف هنا
                     </p>
-                    <p className="text-xs text-muted-foreground">PDF فقط</p>
+                    <p className="text-xs text-muted-foreground">PDF أو صور</p>
                   </div>
                   <input
                     id="file-upload"
                     type="file"
                     className="hidden"
-                    accept="application/pdf"
+                    accept="application/pdf,image/*"
                     onChange={handleFileSelect}
                   />
                 </label>

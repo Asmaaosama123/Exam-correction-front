@@ -22,8 +22,7 @@ export interface UploadExamRequest {
   title: string;
   subject: string;
   file: File;
-  x: number; // X coordinate in PDF points (1 point = 1/72 inch)
-  y: number; // Y coordinate in PDF points (from bottom)
+  barcodeData: string;
 }
 
 export interface GenerateStudentPapersRequest {

@@ -1,9 +1,10 @@
 // components/ExamTemplateSetup.tsx
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle } from "lucide-react";
+import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, Info, PlusCircle as PlusCircleIcon, BarChart3 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -26,11 +28,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import StitchedPdfViewer from '@/components/ui/StitchedPdfViewerProps';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const PAGE_SIZES = { a4: { width: 794, height: 1123 } } as const;
 
 type QuestionType = "mcq" | "true_false" | "essay";
 type AnswerDirection = "horizontal" | "vertical";
+type Language = "ar" | "en";
 
 interface OptionBox {
   id: string;
@@ -69,15 +78,21 @@ const DEFAULT_SETTINGS = {
   }
 };
 
+// دالة لتوليد التسميات حسب اللغة
+const getLabels = (language: Language, count: number): string[] => {
+  const arabicLabels = ['أ', 'ب', 'ج', 'د', 'ه', 'و', 'ز', 'ح', 'ط', 'ي'];
+  const englishLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+  const source = language === 'ar' ? arabicLabels : englishLabels;
+  return source.slice(0, count);
+};
+
 export default function ExamTemplateSetup() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pdfDimensions, setPdfDimensions] = useState<{ width: number; height: number } | null>(null);
   const [numPages, setNumPages] = useState(1);
   const [scale, setScale] = useState(1);
   const [stitchedImageUrl, setStitchedImageUrl] = useState<string | null>(null);
-// التغيير هيبقى كدا
-// استبدل السطر 79 بهذا السطر
-const [, setUpdateKey] = useState(Date.now().toString());
+  const [, setUpdateKey] = useState(Date.now().toString());
   const containerRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -105,6 +120,12 @@ const [, setUpdateKey] = useState(Date.now().toString());
   const [pdfConverting, setPdfConverting] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfKey, setPdfKey] = useState(0);
+
+  // حالة اللغة المختارة (عربي / إنجليزي)
+  const [examLanguage, setExamLanguage] = useState<Language>("en");
+
+  // دليل المستخدم
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
 
   const canvasWidth = pdfDimensions?.width || PAGE_SIZES.a4.width;
   const canvasHeight = pdfDimensions?.height || PAGE_SIZES.a4.height;
@@ -168,7 +189,7 @@ const [, setUpdateKey] = useState(Date.now().toString());
     setIsCreatingQuestion(false);
     setScale(1);
     setUpdateKey(Date.now().toString());
-        setPdfConverting(false);
+    setPdfConverting(false);
     setPdfError(null);
   }, [stitchedImageUrl]);
 
@@ -243,7 +264,10 @@ const [, setUpdateKey] = useState(Date.now().toString());
     const settings = questionSettings[type];
     setSelectedQuestionType(type);
     setIsCreatingQuestion(true);
-    setCurrentOptionLabel("A");
+
+    // تعيين التسمية الأولى حسب اللغة
+    const firstLabel = examLanguage === 'ar' ? 'أ' : 'A';
+    setCurrentOptionLabel(firstLabel);
 
     const messages = {
       mcq: `ارسم ${settings.optionCount} مربعات للاختيارات (${settings.direction === "horizontal" ? "أفقي" : "رأسي"})`,
@@ -264,10 +288,10 @@ const [, setUpdateKey] = useState(Date.now().toString());
         toast.error(`يجب رسم ${requiredCount} مربعات لسؤال MCQ`);
         return;
       }
-      // ترتيب الخيارات وتسميتها
+      // ترتيب الخيارات وتسميتها حسب اللغة المختارة
       if (question.answerDirection) {
         const sortedOptions = sortOptionsByDirection(question.options, question.answerDirection);
-        const labels = ["A", "B", "C", "D", "E", "F"];
+        const labels = getLabels(examLanguage, requiredCount);
         sortedOptions.forEach((opt, idx) => {
           if (idx < requiredCount) opt.label = labels[idx];
         });
@@ -284,7 +308,9 @@ const [, setUpdateKey] = useState(Date.now().toString());
 
     // إعادة تعيين حالة السؤال الحالي ولكن **نبقى في وضع الرسم** لنفس النوع
     setCurrentQuestion(null);
-    setCurrentOptionLabel("A");
+    // تعيين التسمية التالية حسب اللغة
+    const nextLabel = examLanguage === 'ar' ? 'أ' : 'A';
+    setCurrentOptionLabel(nextLabel);
     setIsCreatingQuestion(true);   // نبقى في وضع الرسم
     // لا نغير selectedQuestionType
 
@@ -336,23 +362,24 @@ const [, setUpdateKey] = useState(Date.now().toString());
 
         if (selectedQuestionType === "mcq") {
           const sortedOptions = sortOptionsByDirection(updatedQuestion.options, questionSettings.mcq.direction);
-          const labels = ["A", "B", "C", "D", "E", "F"];
-          const maxLabels = Math.min(sortedOptions.length, updatedQuestion.mcqOptionCount || 4);
+          const requiredCount = updatedQuestion.mcqOptionCount || questionSettings.mcq.optionCount;
+          const labels = getLabels(examLanguage, requiredCount);
+          const maxLabels = Math.min(sortedOptions.length, requiredCount);
           for (let i = 0; i < maxLabels; i++) {
             sortedOptions[i].label = labels[i];
             sortedOptions[i].originalIndex = i;
           }
           updatedQuestion.options = sortedOptions;
           const nextLabelIndex = updatedQuestion.options.length;
-          if (nextLabelIndex < (updatedQuestion.mcqOptionCount || 4)) {
-            setCurrentOptionLabel(labels[nextLabelIndex] || String.fromCharCode(65 + nextLabelIndex));
+          if (nextLabelIndex < requiredCount) {
+            setCurrentOptionLabel(labels[nextLabelIndex]);
           }
         }
 
         setCurrentQuestion(updatedQuestion);
 
         const requiredCount = updatedQuestion.type === "mcq"
-          ? (updatedQuestion.mcqOptionCount || 4)
+          ? (updatedQuestion.mcqOptionCount || questionSettings.mcq.optionCount)
           : questionSettings[updatedQuestion.type].optionCount;
 
         if (updatedQuestion.options.length >= requiredCount) {
@@ -375,11 +402,12 @@ const [, setUpdateKey] = useState(Date.now().toString());
         setCurrentQuestion(newQuestion);
 
         if (selectedQuestionType === "mcq") {
-          setCurrentOptionLabel("B");
+          const labels = getLabels(examLanguage, settings.optionCount);
+          setCurrentOptionLabel(labels[1] || (examLanguage === 'ar' ? 'ب' : 'B'));
         }
 
         const requiredCount = selectedQuestionType === "mcq"
-          ? (newQuestion.mcqOptionCount || 4)
+          ? (newQuestion.mcqOptionCount || settings.optionCount)
           : settings.optionCount;
 
         if (requiredCount === 1) {
@@ -442,7 +470,7 @@ const [, setUpdateKey] = useState(Date.now().toString());
 
     if (newType === "mcq") {
       const sortedOptions = sortOptionsByDirection(updatedQuestion.options, settings.direction);
-      const labels = ["A", "B", "C", "D", "E", "F"];
+      const labels = getLabels(examLanguage, settings.optionCount);
       sortedOptions.forEach((opt, idx) => {
         if (idx < settings.optionCount) opt.label = labels[idx];
       });
@@ -460,7 +488,8 @@ const [, setUpdateKey] = useState(Date.now().toString());
     if (newType === "mcq") {
       const nextIndex = updatedQuestion.options.length;
       if (nextIndex < settings.optionCount) {
-        setCurrentOptionLabel(String.fromCharCode(65 + nextIndex));
+        const labels = getLabels(examLanguage, settings.optionCount);
+        setCurrentOptionLabel(labels[nextIndex]);
       }
     }
 
@@ -495,7 +524,6 @@ const [, setUpdateKey] = useState(Date.now().toString());
     const canvasHeight = Math.round(pdfDimensions.height);
 
     const questionsData = questions.map(question => {
-      // const sortedOptions = sortOptionsByDirection(question.options, question.answerDirection);
       const rois: Record<string, [number, number, number, number]> = {};
 
       if (question.type === "mcq") {
@@ -537,18 +565,27 @@ const [, setUpdateKey] = useState(Date.now().toString());
 
   // ========== حفظ نموذج المعلم ==========
   const handleSaveTemplate = async () => {
-    if (!examId.trim()) return toast.error("أدخل رقم الامتحان");
-    const examIdNum = parseInt(examId);
-    if (isNaN(examIdNum)) {
-      toast.error("رقم الامتحان يجب أن يكون رقماً صحيحاً");
+    if (!examId.trim()) {
+      toast.error("الرجاء إدخال رقم الامتحان");
       return;
     }
-    if (!selectedFile) return toast.error("اختر ملف PDF أو صورة أولاً");
-    if (!questions.length) return toast.error("ارسم الأسئلة أولاً");
+    const examIdNum = parseInt(examId);
+    if (isNaN(examIdNum)) {
+      toast.error("رقم الامتحان يجب أن يتكون من أرقام فقط");
+      return;
+    }
+    if (!selectedFile) {
+      toast.error("الرجاء رفع ملف الامتحان أولاً");
+      return;
+    }
+    if (!questions.length) {
+      toast.error("الرجاء رسم الأسئلة على النموذج أولاً");
+      return;
+    }
 
     const questionsWithoutAnswers = questions.filter(q => !q.answer && q.type !== "essay");
     if (questionsWithoutAnswers.length > 0) {
-      toast.error(`يوجد ${questionsWithoutAnswers.length} سؤال بدون إجابة صحيحة`);
+      toast.error(`يوجد ${questionsWithoutAnswers.length} أسئلة بدون إجابة صحيحة، يرجى تحديد الإجابات`);
       setAnswerDialogOpen(true);
       return;
     }
@@ -567,7 +604,6 @@ const [, setUpdateKey] = useState(Date.now().toString());
       });
 
       if (res.ok) {
-        // const result = await res.json();
         toast.success("تم حفظ نموذج المعلم بنجاح!");
         handleRemoveFile();
         setExamId("");
@@ -576,14 +612,14 @@ const [, setUpdateKey] = useState(Date.now().toString());
         const errorText = await res.text();
         try {
           const errorJson = JSON.parse(errorText);
-          toast.error(`خطأ: ${errorJson.detail || errorJson.title || errorJson.message || "حدث خطأ غير معروف"}`);
+          toast.error(`خطأ: ${errorJson.detail || errorJson.title || errorJson.message || "حدث خطأ في السيرفر، يرجى المحاولة لاحقاً"}`);
         } catch {
-          toast.error(`خطأ من السيرفر: ${errorText}`);
+          toast.error("حدث خطأ في السيرفر، يرجى المحاولة لاحقاً");
         }
       }
     } catch (error) {
       console.error("خطأ في الاتصال بالسيرفر:", error);
-      toast.error("خطأ في الاتصال بالخادم");
+      toast.error("تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت وحاول مرة أخرى");
     } finally {
       setIsLoading(false);
     }
@@ -627,7 +663,7 @@ const [, setUpdateKey] = useState(Date.now().toString());
   return (
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-6 h-full overflow-hidden">
-        {/* العنوان */}
+        {/* العنوان (بدون أيقونة المساعدة هنا) */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             إعداد نموذج اختبار المعلم
@@ -640,19 +676,39 @@ const [, setUpdateKey] = useState(Date.now().toString());
         {/* بطاقة معلومات الامتحان */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="examId">رقم الامتحان *</Label>
+                <Label htmlFor="examId">رقم الاختبار *</Label>
                 <Input
                   id="examId"
                   value={examId}
                   onChange={(e) => setExamId(e.target.value)}
-                  placeholder="أدخل رقم الامتحان الموجود مسبقاً "
+                  placeholder="أدخل رقم الاختبار"
                   type="number"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>لغة الاختبار</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={examLanguage === 'ar' ? 'default' : 'outline'}
+                    onClick={() => setExamLanguage('ar')}
+                    className="flex-1"
+                  >
+                    عربي
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={examLanguage === 'en' ? 'default' : 'outline'}
+                    onClick={() => setExamLanguage('en')}
+                    className="flex-1"
+                  >
+                    English
+                  </Button>
+                </div>
+              </div>
             </div>
-           
           </CardContent>
         </Card>
 
@@ -751,7 +807,7 @@ const [, setUpdateKey] = useState(Date.now().toString());
                     variant={selectedQuestionType === "mcq" ? "default" : "outline"}
                     onClick={() => startNewQuestion("mcq")}
                   >
-                    MCQ
+                    سؤال متعدد الاختيارات
                     <Badge variant="secondary" className="mr-1 text-xs">
                       {questionSettings.mcq.optionCount}
                     </Badge>
@@ -907,19 +963,18 @@ const [, setUpdateKey] = useState(Date.now().toString());
                   {currentQuestion.options.length >= (currentQuestion.type === "mcq"
                     ? (currentQuestion.mcqOptionCount || questionSettings.mcq.optionCount)
                     : 1) && (
-                    <span className="text-xs text-green-600 font-semibold">✓ جاهز للإضافة</span>
-                  )}
+                      <span className="text-xs text-green-600 font-semibold">✓ جاهز للإضافة</span>
+                    )}
                 </div>
               )}
             </div>
 
             {/* رسالة إرشادية حسب نوع السؤال المختار */}
             {isCreatingQuestion && selectedQuestionType && (
-              <div className={`rounded-lg p-3 flex items-center gap-2 ${
-                selectedQuestionType === "mcq" ? "bg-blue-50 border border-blue-200 text-blue-800" :
-                selectedQuestionType === "true_false" ? "bg-green-50 border border-green-200 text-green-800" :
-                "bg-purple-50 border border-purple-200 text-purple-800"
-              }`}>
+              <div className={`rounded-lg p-3 flex items-center gap-2 ${selectedQuestionType === "mcq" ? "bg-blue-50 border border-blue-200 text-blue-800" :
+                  selectedQuestionType === "true_false" ? "bg-green-50 border border-green-200 text-green-800" :
+                    "bg-purple-50 border border-purple-200 text-purple-800"
+                }`}>
                 <PlusCircle className="w-5 h-5 shrink-0" />
                 <p className="text-sm font-medium">
                   {selectedQuestionType === "mcq" ? (
@@ -954,9 +1009,9 @@ const [, setUpdateKey] = useState(Date.now().toString());
                 {selectedQuestionType && !isCreatingQuestion && (
                   <Badge variant="secondary" className="mr-2">
                     ✓ نوع السؤال الحالي: {
-                      selectedQuestionType === 'mcq' ? 'MCQ' : 
-                      selectedQuestionType === 'true_false' ? 'صح/خطأ' : 
-                      'مقالي'
+                      selectedQuestionType === 'mcq' ? 'سؤال متعدد الاختيارات' :
+                        selectedQuestionType === 'true_false' ? 'صح/خطأ' :
+                          'مقالي'
                     }
                   </Badge>
                 )}
@@ -994,9 +1049,8 @@ const [, setUpdateKey] = useState(Date.now().toString());
                   {pdfDimensions && (
                     <div
                       ref={canvasRef}
-                      className={`absolute top-0 left-0 select-none ${
-                        isCreatingQuestion ? "cursor-crosshair" : "cursor-default"
-                      }`}
+                      className={`absolute top-0 left-0 select-none ${isCreatingQuestion ? "cursor-crosshair" : "cursor-default"
+                        }`}
                       style={{
                         pointerEvents: isCreatingQuestion ? "auto" : "none",
                         width: `${canvasWidth * scale}px`,
@@ -1007,7 +1061,7 @@ const [, setUpdateKey] = useState(Date.now().toString());
                       onMouseUp={handleCanvasMouseUp}
                       onMouseLeave={handleCanvasMouseUp}
                     >
-                      {/* الأسئلة المكتملة */}
+                      {/* الأسئلة المكتملة - بألوان أفتح */}
                       {questions.map((question) => (
                         <div key={question.id}>
                           {question.options.map((option) => {
@@ -1015,11 +1069,10 @@ const [, setUpdateKey] = useState(Date.now().toString());
                             return (
                               <div
                                 key={option.id}
-                                className={`absolute border-2 ${
-                                  question.type === "mcq" ? "border-blue-500 bg-blue-500/10" :
-                                  question.type === "true_false" ? "border-green-500 bg-green-500/10" :
-                                  "border-purple-500 bg-purple-500/10"
-                                }`}
+                                className={`absolute border-2 ${question.type === "mcq" ? "border-blue-300 bg-blue-50/30" :
+                                    question.type === "true_false" ? "border-green-300 bg-green-50/30" :
+                                      "border-purple-300 bg-purple-50/30"
+                                  }`}
                                 style={{
                                   left: `${option.x * scale}px`,
                                   top: `${pageOffset + option.y * scale}px`,
@@ -1027,11 +1080,10 @@ const [, setUpdateKey] = useState(Date.now().toString());
                                   height: `${option.height * scale}px`,
                                 }}
                               >
-                                <div className={`absolute -top-6 right-0 text-xs px-2 py-1 rounded ${
-                                  question.type === "mcq" ? "bg-blue-500 text-white" : 
-                                  question.type === "true_false" ? "bg-green-500 text-white" : 
-                                  "bg-purple-500 text-white"
-                                }`}>
+                                <div className={`absolute -top-6 right-0 text-xs px-2 py-1 rounded ${question.type === "mcq" ? "bg-blue-500 text-white" :
+                                    question.type === "true_false" ? "bg-green-500 text-white" :
+                                      "bg-purple-500 text-white"
+                                  }`}>
                                   س{question.index} - {question.type === "true_false" ? "صح/خطأ" : option.label} - ص{option.page}
                                 </div>
                               </div>
@@ -1040,13 +1092,13 @@ const [, setUpdateKey] = useState(Date.now().toString());
                         </div>
                       ))}
 
-                      {/* السؤال الحالي */}
+                      {/* السؤال الحالي - بلون برتقالي فاتح */}
                       {currentQuestion && currentQuestion.options.map((option) => {
                         const pageOffset = getPageOffset(option.page);
                         return (
                           <div
                             key={option.id}
-                            className="absolute border-2 border-orange-500 bg-orange-500/20"
+                            className="absolute border-2 border-orange-300 bg-orange-50/30"
                             style={{
                               left: `${option.x * scale}px`,
                               top: `${pageOffset + option.y * scale}px`,
@@ -1061,10 +1113,10 @@ const [, setUpdateKey] = useState(Date.now().toString());
                         );
                       })}
 
-                      {/* معاينة المربع الذي يتم رسمه */}
+                      {/* معاينة المربع الذي يتم رسمه - بلون أحمر فاتح */}
                       {previewOption && (
                         <div
-                          className="absolute border-2 border-dashed border-red-500 bg-red-500/20"
+                          className="absolute border-2 border-dashed border-red-300 bg-red-50/30"
                           style={{
                             left: `${previewOption.x * scale}px`,
                             top: `${getPageOffset(previewOption.page) + previewOption.y * scale}px`,
@@ -1113,7 +1165,7 @@ const [, setUpdateKey] = useState(Date.now().toString());
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="mcq">MCQ</SelectItem>
+                            <SelectItem value="mcq">سؤال متعدد الاختيارات</SelectItem>
                             <SelectItem value="true_false">صح/خطأ</SelectItem>
                             <SelectItem value="essay">مقالي</SelectItem>
                           </SelectContent>
@@ -1141,7 +1193,7 @@ const [, setUpdateKey] = useState(Date.now().toString());
                           )}
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {["A", "B", "C", "D", "E", "F"].slice(0, question.mcqOptionCount || 4).map((label) => (
+                          {getLabels(examLanguage, question.mcqOptionCount || 4).map((label) => (
                             <Button
                               key={label}
                               type="button"
@@ -1235,6 +1287,137 @@ const [, setUpdateKey] = useState(Date.now().toString());
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ---------- زر المساعدة الثابت في الأسفل (مثل صفحة الفصول) ---------- */}
+        <TooltipProvider>
+          <Dialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="default"
+                    size="icon"
+                    className="fixed bottom-6 left-6 h-12 w-12 rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-105 z-50"
+                    aria-label="دليل المستخدم"
+                  >
+                    <Info className="h-5 w-5" />
+                  </Button>
+                </DialogTrigger>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="text-sm">
+                <p>دليل استخدام صفحة إعداد نموذج المعلم</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <DialogContent className="sm:max-w-2xl" dir="rtl">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-bold">
+                  📘 كيفية استخدام صفحة إعداد نموذج المعلم
+                </DialogTitle>
+                <DialogDescription className="text-base">
+                  دليل سريع لاستخدام صفحة إعداد نموذج اختبار المعلم
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 py-2">
+                <p className="text-muted-foreground leading-relaxed">
+                  <strong>نموذج المعلم</strong> هو ملف الامتحان الذي سيتم تصحيحه آلياً. من خلال هذه الصفحة يمكنك تحديد مناطق الإجابة لكل سؤال وتحديد الإجابات الصحيحة.
+                </p>
+
+                <div className="space-y-4">
+                  {/* بطاقة: إدخال رقم الامتحان واللغة */}
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                      <FileText className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">1. إدخال رقم الامتحان واللغة</h4>
+                      <p className="text-sm text-muted-foreground">
+                        أدخل رقم الامتحان (رقم صحيح) واختر لغة الامتحان (عربي أو إنجليزي). ستؤثر اللغة على تسميات الخيارات (أ، ب، ج ... أو A, B, C ...).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* بطاقة: رفع الملف */}
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                      <Upload className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">2. رفع ملف الامتحان</h4>
+                      <p className="text-sm text-muted-foreground">
+                        ارفع ملف PDF أو صورة. إذا كان PDF سيتم تحويله إلى صورة طويلة (قد يستغرق بضع ثوانٍ).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* بطاقة: اختيار نوع السؤال */}
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                      <Settings className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">3. اختيار نوع السؤال</h4>
+                      <p className="text-sm text-muted-foreground">
+                        من شريط الأدوات العلوي، اختر نوع السؤال: <strong>متعدد الاختيارات</strong>، <strong>صح/خطأ</strong>، أو <strong>مقالي</strong>. يمكنك تعديل عدد الخيارات واتجاهها لأسئلة MCQ.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* بطاقة: رسم المربعات */}
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                      <PlusCircleIcon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">4. رسم مربعات الإجابة</h4>
+                      <p className="text-sm text-muted-foreground">
+                        اسحب على الصورة لرسم مربع حول منطقة الإجابة. لأسئلة MCQ، ارسم العدد المطلوب من المربعات (سيتم إنهاء السؤال تلقائياً عند الاكتمال). لصح/خطأ والمقالي، ارسم مربعاً واحداً فقط.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* بطاقة: تحديد الإجابات */}
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                      <Check className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">5. تحديد الإجابات الصحيحة</h4>
+                      <p className="text-sm text-muted-foreground">
+                        بعد رسم جميع الأسئلة، اضغط على زر <strong>الإجابات</strong> لفتح نافذة تحديد الإجابات الصحيحة. يمكنك أيضاً تغيير نوع السؤال من هناك (سيتم إغلاق النافذة لبدء الرمجدداً).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* بطاقة: الحفظ */}
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                      <BarChart3 className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">6. حفظ نموذج المعلم</h4>
+                      <p className="text-sm text-muted-foreground">
+                        بعد التأكد من جميع الإجابات، اضغط <strong>حفظ نموذج المعلم</strong>. سيتم رفع الملف مع بيانات الأسئلة إلى الخادم.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-sm text-muted-foreground border-t pt-4 mt-2">
+                  💡 يمكنك في أي وقت تعديل الأسئلة أو حذفها باستخدام الأزرار الموجودة. إذا قمت بتغيير نوع سؤال موجود، سيتم نقلك لوضع الرسم لإكمال المتطلبات.
+                </p>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setHelpDialogOpen(false)}>
+                  إغلاق
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TooltipProvider>
+        {/* ---------------------------------------------------------------------- */}
       </div>
     </MainLayout>
   );

@@ -12,7 +12,7 @@ interface GradingDetail {
 }
 
 interface StudentDetailsModalProps {
-  studentNumber: string;
+  studentName: string;
   details: GradingDetail[];
   score: number;
   total: number;
@@ -36,7 +36,7 @@ const getTypeLabel = (type: string) => {
 };
 
 export function StudentDetailsModal({
-  studentNumber,
+  studentName,
   details,
   score,
   total,
@@ -65,12 +65,13 @@ export function StudentDetailsModal({
           }`}>
             <div className="flex flex-wrap items-center justify-between">
               <div>
-                <h2 className="text-3xl font-bold flex items-center gap-2">
-                  <span className="bg-primary/10 p-2 rounded-xl">
-                    <BookOpen className="h-6 w-6 text-primary" />
-                  </span>
-                  الطالب {studentNumber}
-                </h2>
+              <h2 className="text-3xl font-bold flex items-center gap-2">
+  <span className="bg-primary/10 p-2 rounded-xl">
+    <BookOpen className="h-6 w-6 text-primary" />
+  </span>
+  الطالب: {studentName}
+</h2>
+
                 <p className="text-muted-foreground mt-1">
                   درجة التصحيح: <span className="font-bold text-foreground">{score}</span> من {total}
                 </p>

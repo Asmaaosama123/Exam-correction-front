@@ -43,8 +43,7 @@ export const examsApi = {
     formData.append("File", data.file);
     formData.append("Title", data.title);
     formData.append("Subject", data.subject);
-    formData.append("X", data.x.toString());
-    formData.append("Y", data.y.toString());
+    formData.append("BarcodeData", data.barcodeData);
 
     const response = await api.post<UploadExamResponse>(
       "/api/Exam/upload-exam",
@@ -130,7 +129,8 @@ export const examsApi = {
         }
       }
 
-      // If no filename from server, generate one with Arabic date
+      // 2. التعديل الجوهري هنا:
+      // لو السيرفر مبعتش اسم، بنولد اسم يدوي بامتداد .pdf بدلاً من .zip
       if (!filename) {
         const examName = data.examName || "اختبار";
         const className = data.className || "فصل";
@@ -138,7 +138,9 @@ export const examsApi = {
 
         const sanitizedExamName = sanitizeFilename(examName);
         const sanitizedClassName = sanitizeFilename(className);
-        filename = `${sanitizedExamName}_${sanitizedClassName}_${dateStr}.zip`;
+
+        // غيرنا .zip لـ .pdf هنا
+        filename = `${sanitizedExamName}_${sanitizedClassName}_${dateStr}.pdf`;
       }
 
       return { blob: response.data, filename };

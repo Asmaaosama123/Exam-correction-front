@@ -1,40 +1,26 @@
-// src/pages/CameraScan.tsx
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CameraScanner } from "@/components/grading/CameraScanner";
-import { useSearchParams } from "react-router-dom";
-// src/types/grading.ts
+import type { ExamResult } from "@/types/grading";
 
-export interface GradingDetail {
-    id: string;
-    type: "mcq" | "true_false";
-    gt: string;
-    pred: string;
-    conf: number;
-    ok: boolean;
-    method: string;
-  }
-  
-  export interface ExamResult {
-    filename: string;
-    details: {
-      score: number;
-      total: number;
-      details: GradingDetail[];
-    };
-    annotated_image_url: string;
-  }
 export default function CameraScan() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session") || crypto.randomUUID();
 
   const handleComplete = (results: ExamResult[]) => {
     localStorage.setItem(`camera-results-${sessionId}`, JSON.stringify(results));
     alert(`✅ تم تصحيح ${results.length} طالب بنجاح!`);
-    setTimeout(() => window.close(), 3000);
+    setTimeout(() => navigate(-1), 3000);
+  };
+  const handleBack = () => {
+    navigate(-1);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white p-4">
-      <CameraScanner fullscreen onComplete={handleComplete} />
-    </div>
+    <CameraScanner
+      fullscreen
+      onComplete={handleComplete}
+      onBack={handleBack}
+    />
   );
 }

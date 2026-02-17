@@ -79,25 +79,22 @@ export function useDeleteExam() {
 export function useGenerateAndDownloadExamPapers() {
   return useMutation({
     mutationFn: async (data: GenerateStudentPapersRequest) => {
-      const { blob, filename } = await examsApi.generateAndDownloadExamPapers(
-        data
-      );
+      const { blob, filename } = await examsApi.generateAndDownloadExamPapers(data);
 
-      // Create blob URL and trigger download with server-provided filename
       const url = window.URL.createObjectURL(blob);
-
-      // Use a temporary link to download with the server-provided filename
       const link = document.createElement("a");
       link.href = url;
-      link.download = filename || "download.zip"; // Use server filename
+
+      // التعديل هنا: نغير الامتداد الافتراضي إلى .pdf
+      // إذا كان الباك إند يرسل FileName، سيستخدمه المتصفح
+      link.download = filename || `${data.className}_exams.pdf`; 
+      
       link.style.display = "none";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      // Clean up after download starts
       setTimeout(() => window.URL.revokeObjectURL(url), 100);
-
       return { success: true };
     },
     onSuccess: () => {

@@ -27,7 +27,7 @@ export const authApi = {
    * Get current user info (validate session)
    */
   getMe: async (): Promise<AuthResponse> => {
-    const response = await api.get<AuthResponse>("/Profile/current");
+    const response = await api.get<AuthResponse>("/api/profile/current");
     return response.data;
   },
 };

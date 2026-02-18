@@ -149,9 +149,7 @@ export function GradedExamResult({
 
                     {result.annotated_image_url && (
                       <ImageModal
-                        imageUrl={result.annotated_image_url?.startsWith('http')
-                          ? result.annotated_image_url
-                          : `${import.meta.env.VITE_AI_SERVER_URL}/${result.annotated_image_url.replace(/^\/+/, '')}`}
+                        imageUrl={result.annotated_image_url}
                         filename={result.filename}
                       />
                     )}

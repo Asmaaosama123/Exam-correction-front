@@ -7,7 +7,7 @@ export const gradingApi = {
     formData.append("file", file);
 
     const response = await api.post<ProcessExamResponse>(
-      "/Exam/process",
+      "/api/Exam/process",
       formData,
       {
         headers: {
@@ -19,7 +19,7 @@ export const gradingApi = {
   },
 
   getGradingResults: async (params: GradingResultsFilter): Promise<GradingResultsResponse> => {
-    const response = await api.get<GradingResultsResponse>("/Grading", {
+    const response = await api.get<GradingResultsResponse>("/api/Grading", {
       params,
     });
     return response.data;

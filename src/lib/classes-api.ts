@@ -15,7 +15,7 @@ export const classesApi = {
    * Get all classes
    */
   getClasses: async (): Promise<GetClassesResponse> => {
-    const response = await api.get<GetClassesResponse>("/Classes");
+    const response = await api.get<GetClassesResponse>("/api/classes");
     return response.data;
   },
 
@@ -23,7 +23,7 @@ export const classesApi = {
    * Get a single class by ID
    */
   getClass: async (classId: string): Promise<GetClassResponse> => {
-    const response = await api.get<GetClassResponse>(`/Classes/${classId}`);
+    const response = await api.get<GetClassResponse>(`/api/classes/${classId}`);
     return response.data;
   },
 
@@ -31,7 +31,7 @@ export const classesApi = {
    * Add a new class
    */
   addClass: async (data: AddClassRequest): Promise<AddClassResponse> => {
-    const response = await api.post<AddClassResponse>("/Classes", data);
+    const response = await api.post<AddClassResponse>("/api/classes", data);
     return response.data;
   },
 
@@ -43,7 +43,7 @@ export const classesApi = {
     data: UpdateClassRequest
   ): Promise<UpdateClassResponse> => {
     const response = await api.put<UpdateClassResponse>(
-      `/Classes/${classId}`,
+      `/api/classes/${classId}`,
       data
     );
     return response.data;
@@ -54,7 +54,7 @@ export const classesApi = {
    */
   deleteClass: async (classId: string): Promise<DeleteClassResponse> => {
     const response = await api.delete<DeleteClassResponse>(
-      `/Classes/${classId}`
+      `/api/classes/${classId}`
     );
     // Handle 204 No Content or empty response
     return response.data || { success: true };
@@ -65,7 +65,7 @@ export const classesApi = {
    * No parameters required - exports all classes
    */
   exportClassesToPdf: async (): Promise<{ blob: Blob; filename: string }> => {
-    const response = await api.get<Blob>("/Reports/report-classes-pdf", {
+    const response = await api.get<Blob>("/api/Reports/report-classes-pdf", {
       responseType: "blob",
     });
 
@@ -91,7 +91,7 @@ export const classesApi = {
    * No parameters required - exports all classes
    */
   exportClassesToExcel: async (): Promise<{ blob: Blob; filename: string }> => {
-    const response = await api.get<Blob>("/Reports/report-classes-excel", {
+    const response = await api.get<Blob>("/api/Reports/report-classes-excel", {
       responseType: "blob",
     });
 

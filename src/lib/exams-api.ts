@@ -15,7 +15,7 @@ export const examsApi = {
    * Get all exams
    */
   getExams: async (): Promise<GetExamsResponse> => {
-    const response = await api.get<GetExamsResponse>("/Exam");
+    const response = await api.get<GetExamsResponse>("/api/Exam");
     return response.data;
   },
 
@@ -23,7 +23,7 @@ export const examsApi = {
    * Get a single exam by ID
    */
   getExam: async (examId: string): Promise<GetExamResponse> => {
-    const response = await api.get<GetExamResponse>(`/Exam/${examId}`);
+    const response = await api.get<GetExamResponse>(`/api/Exam/${examId}`);
     return response.data;
   },
 
@@ -31,7 +31,7 @@ export const examsApi = {
    * Delete an exam by ID
    */
   deleteExam: async (examId: string): Promise<{ success: boolean }> => {
-    await api.delete(`/Exam/${examId}`);
+    await api.delete(`/api/Exam/${examId}`);
     return { success: true };
   },
 
@@ -46,7 +46,7 @@ export const examsApi = {
     formData.append("BarcodeData", data.barcodeData);
 
     const response = await api.post<UploadExamResponse>(
-      "/Exam/upload-exam",
+      "/api/Exam/upload-exam",
       formData,
       {
         headers: {
@@ -71,7 +71,7 @@ export const examsApi = {
       };
 
       const response = await api.post<Blob>(
-        "/Exam/generate-download-exams",
+        "/api/Exam/generate-download-exams",
         requestBody,
         {
           responseType: "blob",

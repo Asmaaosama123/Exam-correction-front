@@ -7,6 +7,7 @@ import { HelpFab } from "@/components/ui/help-fab";
 import { Label } from "@/components/ui/label";
 
 import {
+  Dialog,
   DialogContent,
   DialogDescription,
   DialogFooter,

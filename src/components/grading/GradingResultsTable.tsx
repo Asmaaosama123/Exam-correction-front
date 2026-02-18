@@ -8,9 +8,10 @@ import {
   User,
   Calendar,
   Filter,
+  FileImage,
+  ExternalLink,
 } from "lucide-react";
 import { StudentDetailsModal } from "./StudentDetailsModal";
-import { ImageModal } from "./ImageModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -331,10 +332,18 @@ export function GradingResultsTable() {
                             />
                           )}
                           {result.annotatedImageUrl && (
-                            <ImageModal
-                              imageUrl={result.annotatedImageUrl}
-                              filename={`${result.studentName}_${result.examName}`}
-                            />
+                            <a
+                              href={result.annotatedImageUrl?.startsWith('http')
+                                ? result.annotatedImageUrl
+                                : `${import.meta.env.VITE_AI_SERVER_URL}/${result.annotatedImageUrl.replace(/^\/+/, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 hover:border-indigo-300 hover:text-indigo-800 transition-all duration-200 shadow-sm hover:shadow"
+                            >
+                              <FileImage className="h-3.5 w-3.5" />
+                              <span>عرض</span>
+                              <ExternalLink className="h-3 w-3 opacity-70" />
+                            </a>
                           )}
                         </div>
                       </td>

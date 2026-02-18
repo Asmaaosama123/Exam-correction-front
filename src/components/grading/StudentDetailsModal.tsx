@@ -58,30 +58,28 @@ export function StudentDetailsModal({
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border-0 shadow-2xl p-0">
         <div className="bg-gradient-to-br from-slate-50 to-white p-6">
           {/* Header بتدرج لوني حسب النتيجة */}
-          <div className={`p-6 -m-6 mb-6 rounded-t-2xl ${
-            isPassing 
-              ? "bg-gradient-to-r from-emerald-500/10 via-emerald-400/5 to-transparent border-b border-emerald-200" 
+          <div className={`p-6 -m-6 mb-6 rounded-t-2xl ${isPassing
+              ? "bg-gradient-to-r from-emerald-500/10 via-emerald-400/5 to-transparent border-b border-emerald-200"
               : "bg-gradient-to-r from-rose-500/10 via-rose-400/5 to-transparent border-b border-rose-200"
-          }`}>
+            }`}>
             <div className="flex flex-wrap items-center justify-between">
               <div>
-              <h2 className="text-3xl font-bold flex items-center gap-2">
-  <span className="bg-primary/10 p-2 rounded-xl">
-    <BookOpen className="h-6 w-6 text-primary" />
-  </span>
-  الطالب: {studentName}
-</h2>
+                <h2 className="text-3xl font-bold flex items-center gap-2">
+                  <span className="bg-primary/10 p-2 rounded-xl">
+                    <BookOpen className="h-6 w-6 text-primary" />
+                  </span>
+                  الطالب: {studentName}
+                </h2>
 
                 <p className="text-muted-foreground mt-1">
                   درجة التصحيح: <span className="font-bold text-foreground">{score}</span> من {total}
                 </p>
               </div>
               <div className="mt-2 sm:mt-0">
-                <div className={`px-4 py-2 rounded-full text-lg font-bold shadow-sm ${
-                  isPassing
+                <div className={`px-4 py-2 rounded-full text-lg font-bold shadow-sm ${isPassing
                     ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                     : "bg-rose-100 text-rose-800 border border-rose-300"
-                }`}>
+                  }`}>
                   {percentage}%
                 </div>
               </div>
@@ -102,11 +100,10 @@ export function StudentDetailsModal({
               </thead>
               <tbody>
                 {details.map((detail, idx) => (
-                  <tr 
-                    key={detail.id} 
-                    className={`border-b last:border-0 hover:bg-slate-50/80 transition-colors ${
-                      idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"
-                    }`}
+                  <tr
+                    key={detail.id}
+                    className={`border-b last:border-0 hover:bg-slate-50/80 transition-colors ${idx % 2 === 0 ? "bg-white" : "bg-slate-50/30"
+                      }`}
                   >
                     <td className="p-4 font-mono text-sm">{detail.id}</td>
                     <td className="p-4">

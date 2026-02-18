@@ -1,9 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ImageModal } from "./ImageModal";
 import { StudentDetailsModal } from "./StudentDetailsModal";
-import { FileCheck, RefreshCw, Users, Award } from "lucide-react";
+import { FileCheck, RotateCw, Users, Award, FileImage, ExternalLink } from "lucide-react";
 
 interface GradingDetail {
   id: string;
@@ -148,12 +147,18 @@ export function GradedExamResult({
                     />
 
                     {result.annotated_image_url && (
-                      <ImageModal
-                        imageUrl={result.annotated_image_url?.startsWith('http')
+                      <a
+                        href={result.annotated_image_url?.startsWith('http')
                           ? result.annotated_image_url
                           : `${import.meta.env.VITE_AI_SERVER_URL}/${result.annotated_image_url.replace(/^\/+/, '')}`}
-                        filename={result.filename}
-                      />
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 hover:border-indigo-300 hover:text-indigo-800 transition-all duration-200 shadow-sm hover:shadow"
+                      >
+                        <FileImage className="h-4 w-4" />
+                        <span>عرض الوثيقة</span>
+                        <ExternalLink className="h-3 w-3 opacity-70" />
+                      </a>
                     )}
                   </div>
                 </div>
@@ -179,7 +184,7 @@ export function GradedExamResult({
               size="lg"
               className="border-2 hover:bg-slate-100 px-6"
             >
-              <RefreshCw className="ml-2 h-5 w-5" />
+              <RotateCw className="ml-2 h-5 w-5" />
               تحديث النموذج
             </Button>
           </div>

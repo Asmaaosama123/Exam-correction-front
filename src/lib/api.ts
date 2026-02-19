@@ -126,12 +126,11 @@ api.interceptors.response.use(
 );
 
 // Type guard to check if error has ApiErrorResponse structure
-function isApiErrorResponse(error: unknown): error is ApiErrorResponse {
+function isApiErrorResponse(error: unknown): error is any {
   return (
     typeof error === "object" &&
     error !== null &&
-    "status" in error &&
-    "title" in error
+    (("status" in error && "title" in error) || ("Code" in error && "Description" in error) || ("code" in error && "description" in error))
   );
 }
 
@@ -204,8 +203,14 @@ export const getErrorMessage = (error: unknown): string => {
     // Handle legacy error format
     if (isLegacyErrorResponse(apiError)) {
       if (apiError.errors.length > 0) {
-        return apiError.errors[0].description;
+        const firstErr = apiError.errors[0];
+        return (firstErr as any).description || (firstErr as any).Description || (firstErr as any).title || "";
       }
+    }
+
+    // Handle single Error record (PascalCase or camelCase)
+    if ((apiError as any).Description || (apiError as any).description) {
+      return (apiError as any).Description || (apiError as any).description;
     }
 
     // Fallback to title

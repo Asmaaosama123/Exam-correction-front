@@ -98,6 +98,7 @@ export default function ExamTemplateSetup() {
 
   // حالة اللغة المختارة (عربي / إنجليزي)
   const [examLanguage, setExamLanguage] = useState<Language>("en");
+  const [examIdError, setExamIdError] = useState<string | null>(null);
 
   // دليل المستخدم
 
@@ -256,8 +257,7 @@ export default function ExamTemplateSetup() {
       return { x: 0, y: 0, page: 1 };
 
     const rect = canvasRef.current.getBoundingClientRect();
-    const scrollTop = containerRef.current.scrollTop;
-    const docY = scrollTop + (clientY - rect.top);
+    const docY = clientY - rect.top; // No scrollTop here, rect.top already accounts for viewport position
 
     let accumulatedHeight = 0;
     let page = 1;
@@ -358,9 +358,13 @@ export default function ExamTemplateSetup() {
     toast.success(`تم إضافة السؤال. ارسم السؤال التالي`);
   };
 
-  // ========== أحداث الفأرة على الـ Canvas ==========
-  const handleCanvasMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // ========== أحداث الإشارة (Pointer Events) للعمل على الفأرة واللمس ==========
+  const handleCanvasPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!selectedFile || !selectedQuestionType || !isCreatingQuestion) return;
+
+    // Capture pointer to track movement even outside the element
+    e.currentTarget.setPointerCapture(e.pointerId);
+
     const { x, y, page } = getCanvasCoordinates(e.clientX, e.clientY);
     setIsDrawing(true);
     setDrawStart({ x, y, page });
@@ -380,7 +384,7 @@ export default function ExamTemplateSetup() {
     });
   };
 
-  const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleCanvasPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDrawing || !drawStart || !previewOption) return;
     const { x, y } = getCanvasCoordinates(e.clientX, e.clientY);
     const newX = Math.min(drawStart.x, x);
@@ -390,8 +394,10 @@ export default function ExamTemplateSetup() {
     setPreviewOption({ ...previewOption, x: newX, y: newY, width: newWidth, height: newHeight });
   };
 
-  const handleCanvasMouseUp = () => {
+  const handleCanvasPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDrawing || !drawStart || !previewOption || !selectedQuestionType) return;
+
+    e.currentTarget.releasePointerCapture(e.pointerId);
 
     if (previewOption.width > 10 && previewOption.height > 10) {
       if (currentQuestion) {
@@ -607,14 +613,17 @@ export default function ExamTemplateSetup() {
   // ========== حفظ نموذج المعلم ==========
   const handleSaveTemplate = async () => {
     if (!examId.trim()) {
+      setExamIdError("الرجاء إدخال رقم الامتحان");
       toast.error("الرجاء إدخال رقم الامتحان");
       return;
     }
     const examIdNum = parseInt(examId);
     if (isNaN(examIdNum)) {
+      setExamIdError("رقم الامتحان يجب أن يتكون من أرقام فقط");
       toast.error("رقم الامتحان يجب أن يتكون من أرقام فقط");
       return;
     }
+    setExamIdError(null);
     if (!selectedFile) {
       toast.error("الرجاء رفع ملف الامتحان أولاً");
       return;
@@ -718,10 +727,19 @@ export default function ExamTemplateSetup() {
                 <Input
                   id="examId"
                   value={examId}
-                  onChange={(e) => setExamId(e.target.value)}
+                  onChange={(e) => {
+                    setExamId(e.target.value);
+                    if (e.target.value.trim()) setExamIdError(null);
+                  }}
                   placeholder="أدخل رقم الاختبار"
                   type="number"
+                  className={examIdError ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {examIdError && (
+                  <p className="text-xs font-medium text-destructive mt-1">
+                    {examIdError}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>لغة الاختبار</Label>
@@ -1102,7 +1120,6 @@ export default function ExamTemplateSetup() {
                     </div>
                   )}
 
-                  {/* طبقة الرسم */}
                   {pdfDimensions && (
                     <div
                       ref={canvasRef}
@@ -1112,11 +1129,12 @@ export default function ExamTemplateSetup() {
                         pointerEvents: isCreatingQuestion ? "auto" : "none",
                         width: `${canvasWidth * scale}px`,
                         height: `${totalPdfHeight}px`,
+                        touchAction: "none"
                       }}
-                      onMouseDown={handleCanvasMouseDown}
-                      onMouseMove={handleCanvasMouseMove}
-                      onMouseUp={handleCanvasMouseUp}
-                      onMouseLeave={handleCanvasMouseUp}
+                      onPointerDown={handleCanvasPointerDown}
+                      onPointerMove={handleCanvasPointerMove}
+                      onPointerUp={handleCanvasPointerUp}
+                      onPointerLeave={handleCanvasPointerUp}
                     >
                       {/* الأسئلة المكتملة - بألوان أفتح */}
                       {questions.map((question) => (
@@ -1141,7 +1159,7 @@ export default function ExamTemplateSetup() {
                                   question.type === "true_false" ? "bg-green-500 text-white" :
                                     "bg-purple-500 text-white"
                                   }`}>
-                                  س{question.index} - {question.type === "true_false" ? "صح/خطأ" : option.label} - ص{option.page}
+                                  س{question.index} - {question.type === "true_false" ? "صح/خطأ" : option.label}
                                 </div>
                               </div>
                             );
@@ -1164,7 +1182,7 @@ export default function ExamTemplateSetup() {
                             }}
                           >
                             <div className="absolute -top-6 right-0 text-xs bg-orange-500 text-white px-2 py-1 rounded">
-                              {currentQuestion.type === "true_false" ? "صح/خطأ" : option.label} - ص{option.page}
+                              {currentQuestion.type === "true_false" ? "صح/خطأ" : option.label}
                             </div>
                           </div>
                         );
@@ -1182,7 +1200,7 @@ export default function ExamTemplateSetup() {
                           }}
                         >
                           <div className="absolute -top-6 right-0 text-xs bg-red-500 text-white px-2 py-1 rounded">
-                            {selectedQuestionType === "true_false" ? "صح/خطأ" : previewOption.label} - ص{previewOption.page}
+                            {selectedQuestionType === "true_false" ? "صح/خطأ" : previewOption.label}
                           </div>
                         </div>
                       )}
@@ -1211,7 +1229,6 @@ export default function ExamTemplateSetup() {
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2">
                         <Badge>سؤال {question.index}</Badge>
-                        <Badge variant="outline">صفحة {question.page}</Badge>
                       </div>
                       <div className="flex items-center gap-2">
                         <Select
@@ -1337,7 +1354,7 @@ export default function ExamTemplateSetup() {
               <Button
                 type="button"
                 onClick={handleSaveTemplate}
-                disabled={!examId || !selectedFile || questions.length === 0 || isLoading}
+                disabled={!selectedFile || questions.length === 0 || isLoading}
               >
                 {isLoading ? "جاري الحفظ..." : "حفظ نموذج المعلم"}
               </Button>
@@ -1443,6 +1460,6 @@ export default function ExamTemplateSetup() {
         </HelpFab>
         {/* ---------------------------------------------------------------------- */}
       </div>
-    </MainLayout>
+    </MainLayout >
   );
 }

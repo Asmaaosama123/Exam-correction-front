@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 
 import { toast } from "sonner";
 import { useProcessExam } from "@/hooks/use-grading";
+import { getErrorMessage } from "@/lib/api";
 import type { ExamResult } from "@/types/grading";
 
 const Grading = () => {
@@ -31,7 +32,7 @@ const Grading = () => {
         throw new Error("لا توجد نتائج في الاستجابة");
       }
     } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || err.message || "حدث خطأ غير معروف";
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
       toast.error(errorMessage);
     }

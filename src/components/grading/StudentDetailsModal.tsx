@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, BookOpen, ChevronLeft } from "lucide-react";
@@ -56,11 +56,12 @@ export function StudentDetailsModal({
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border-0 shadow-2xl p-0">
+        <DialogTitle className="sr-only">تفاصيل نتيجة الطالب {studentName}</DialogTitle>
         <div className="bg-gradient-to-br from-slate-50 to-white p-6">
           {/* Header بتدرج لوني حسب النتيجة */}
           <div className={`p-6 -m-6 mb-6 rounded-t-2xl ${isPassing
-              ? "bg-gradient-to-r from-emerald-500/10 via-emerald-400/5 to-transparent border-b border-emerald-200"
-              : "bg-gradient-to-r from-rose-500/10 via-rose-400/5 to-transparent border-b border-rose-200"
+            ? "bg-gradient-to-r from-emerald-500/10 via-emerald-400/5 to-transparent border-b border-emerald-200"
+            : "bg-gradient-to-r from-rose-500/10 via-rose-400/5 to-transparent border-b border-rose-200"
             }`}>
             <div className="flex flex-wrap items-center justify-between">
               <div>
@@ -77,8 +78,8 @@ export function StudentDetailsModal({
               </div>
               <div className="mt-2 sm:mt-0">
                 <div className={`px-4 py-2 rounded-full text-lg font-bold shadow-sm ${isPassing
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                    : "bg-rose-100 text-rose-800 border border-rose-300"
+                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                  : "bg-rose-100 text-rose-800 border border-rose-300"
                   }`}>
                   {percentage}%
                 </div>

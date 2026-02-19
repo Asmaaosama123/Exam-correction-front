@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Camera,
 } from "lucide-react";
+import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -46,49 +47,59 @@ export function GradePaperUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const stitchImages = async (files: File[]): Promise<{ url: string, width: number, height: number, file: File }> => {
-    return new Promise((resolve, reject) => {
-      const images: HTMLImageElement[] = [];
-      let loadedCount = 0;
+  const mergeImagesToPdf = async (files: File[]): Promise<{ file: File }> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const sortedFiles = [...files].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+        );
 
-      files.forEach((file, index) => {
-        const img = new Image();
-        img.onload = () => {
-          images[index] = img;
-          loadedCount++;
-          if (loadedCount === files.length) {
-            const maxWidth = Math.max(...images.map(i => i.width));
-            const totalHeight = images.reduce((sum, i) => sum + i.height, 0);
+        let pdf: jsPDF | null = null;
 
-            const canvas = document.createElement('canvas');
-            canvas.width = maxWidth;
-            canvas.height = totalHeight;
-            const ctx = canvas.getContext('2d');
+        for (let i = 0; i < sortedFiles.length; i++) {
+          const file = sortedFiles[i];
+          const img = new Image();
+          const url = URL.createObjectURL(file);
 
-            if (!ctx) {
-              reject(new Error("Failed to get canvas context"));
-              return;
-            }
+          await new Promise((res, rej) => {
+            img.onload = () => {
+              const imgWidth = img.width;
+              const imgHeight = img.height;
+              const mmWidth = imgWidth * 0.264583;
+              const mmHeight = imgHeight * 0.264583;
 
-            let currentY = 0;
-            images.forEach(img => {
-              ctx.drawImage(img, 0, currentY);
-              currentY += img.height;
-            });
-
-            canvas.toBlob((blob) => {
-              if (blob) {
-                const stitchedFile = new File([blob], "stitched_grading_images.png", { type: "image/png" });
-                resolve({ url: URL.createObjectURL(blob), width: maxWidth, height: totalHeight, file: stitchedFile });
-              } else {
-                reject(new Error("Failed to create blob"));
+              if (i === 0) {
+                pdf = new jsPDF({
+                  orientation: mmWidth > mmHeight ? "landscape" : "portrait",
+                  unit: "mm",
+                  format: [mmWidth, mmHeight]
+                });
+              } else if (pdf) {
+                pdf.addPage([mmWidth, mmHeight], mmWidth > mmHeight ? "landscape" : "portrait");
               }
-            }, "image/png");
-          }
-        };
-        img.onerror = () => reject(new Error(`Failed to load image ${file.name}`));
-        img.src = URL.createObjectURL(file);
-      });
+
+              if (pdf) {
+                pdf.addImage(img, "JPEG", 0, 0, mmWidth, mmHeight, undefined, "NONE");
+              }
+
+              URL.revokeObjectURL(url);
+              res(null);
+            };
+            img.onerror = () => {
+              URL.revokeObjectURL(url);
+              rej(new Error(`فشل تحميل الصورة: ${file.name}`));
+            };
+            img.src = url;
+          });
+        }
+
+        if (!pdf) throw new Error("لم يتم إنشاء ملف PDF");
+        const pdfBlob = pdf.output("blob");
+        const pdfFile = new File([pdfBlob], `batch_grading_${Date.now()}.pdf`, { type: "application/pdf" });
+        resolve({ file: pdfFile });
+      } catch (error) {
+        reject(error);
+      }
     });
   };
 
@@ -121,7 +132,7 @@ export function GradePaperUpload({
       setSelectedFile(files[0]);
     } else {
       try {
-        const { file } = await stitchImages(files);
+        const { file } = await mergeImagesToPdf(files);
         setSelectedFile(file);
       } catch (err) {
         toast.error("حدث خطأ أثناء معالجة الصور");
@@ -181,7 +192,7 @@ export function GradePaperUpload({
       <CardHeader className="border-b border-slate-100 bg-white/50 backdrop-blur-sm">
         <CardTitle className="text-2xl font-bold flex items-center gap-2">
           <Upload className="h-6 w-6 text-primary" />
-          تصحيح ورقة اختبار
+          تصحيح
         </CardTitle>
         <CardDescription className="text-base">
           ارفع ورقة الاختبار الممسوحة ضوئياً أو استخدم الكاميرا لتصحيحها
@@ -262,7 +273,7 @@ export function GradePaperUpload({
               ) : (
                 <>
                   <CheckCircle2 className="w-5 h-5 ml-2" />
-                  تصحيح الورقة
+                  تصحيح
                 </>
               )}
             </Button>

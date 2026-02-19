@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type { ExamResult } from "@/types/grading";
 import jsPDF from "jspdf";
 import { gradingApi } from "@/lib/grading-api";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 
 interface CameraScannerProps {
   onComplete?: (results: ExamResult[]) => void;
@@ -448,6 +448,7 @@ export function CameraScanner({
                         </button>
                       </DialogTrigger>
                       <DialogContent className="max-w-4xl w-full p-0 overflow-hidden bg-black/90 border-0">
+                        <DialogTitle className="sr-only">معاينة الصورة</DialogTitle>
                         <div className="relative w-full h-[80vh] flex items-center justify-center">
                           <img src={img.src} alt="Full view" className="max-w-full max-h-full object-contain" />
                         </div>

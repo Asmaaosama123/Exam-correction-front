@@ -97,7 +97,7 @@ export function GradedExamResult({
         {/* الجدول العصري - كروت للطلاب بدلاً من جدول تقليدي (لمسة كريتف) */}
         <div className="grid grid-cols-1 gap-4">
           {results.map((result) => {
-            const studentNumber = extractStudentNumber(result.filename);
+            const studentNumber = result.student_info?.student_id || extractStudentNumber(result.filename);
             const { score, total, details } = result.details;
             const percentage = ((score / total) * 100).toFixed(1);
             const isPassing = (score / total) >= 0.6;

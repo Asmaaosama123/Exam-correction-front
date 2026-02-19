@@ -63,10 +63,28 @@ export function GradePaperUpload({
 
           await new Promise((res, rej) => {
             img.onload = () => {
-              const imgWidth = img.width;
-              const imgHeight = img.height;
-              const mmWidth = imgWidth * 0.264583;
-              const mmHeight = imgHeight * 0.264583;
+              // 1. Calculate optimal dimensions (Max width 1600px)
+              const MAX_WIDTH = 1600;
+              const scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
+              const targetWidth = img.width * scale;
+              const targetHeight = img.height * scale;
+
+              // 2. Use canvas to resize and compress as JPEG
+              const canvas = document.createElement("canvas");
+              canvas.width = targetWidth;
+              canvas.height = targetHeight;
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, targetWidth, targetHeight);
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+              }
+
+              const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.75);
+
+              // 3. Add to PDF with dynamic page size
+              const mmWidth = targetWidth * 0.264583;
+              const mmHeight = targetHeight * 0.264583;
 
               if (i === 0) {
                 pdf = new jsPDF({
@@ -79,7 +97,7 @@ export function GradePaperUpload({
               }
 
               if (pdf) {
-                pdf.addImage(img, "JPEG", 0, 0, mmWidth, mmHeight, undefined, "NONE");
+                pdf.addImage(compressedDataUrl, "JPEG", 0, 0, mmWidth, mmHeight, undefined, "FAST");
               }
 
               URL.revokeObjectURL(url);

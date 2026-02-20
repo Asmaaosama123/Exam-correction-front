@@ -140,6 +140,11 @@ export function GradePaperUpload({
       return;
     }
 
+    if (files.length > 50) {
+      toast.error("لا يمكن رفع أكثر من 50 صورة في المرة الواحدة");
+      return;
+    }
+
     const invalidFiles = files.filter(f => !ACCEPTED_TYPES.includes(f.type) && !f.name.toLowerCase().endsWith('.pdf'));
     if (invalidFiles.length > 0) {
       toast.error("بعض الملفات غير مدعومة. يرجى اختيار PDF أو صور فقط.");

@@ -5,8 +5,6 @@ import { GradedExamResult } from "@/components/grading/GradedExamResult";
 import { GradingResultsTable } from "@/components/grading/GradingResultsTable";
 import { XCircle, Upload, CheckCircle2, Camera, FileText } from "lucide-react";
 import { HelpFab } from "@/components/ui/help-fab";
-import { Button } from "@/components/ui/button";
-
 import { toast } from "sonner";
 import { useProcessExam } from "@/hooks/use-grading";
 import { getErrorMessage } from "@/lib/api";
@@ -81,7 +79,6 @@ const Grading = () => {
             onUpdateModel={() => alert("تحديث النموذج - قيد التطوير")}
           />
         )}
-
 
         {/* زر المساعدة الثابت باستخدام المكون الموحد */}
         <HelpFab

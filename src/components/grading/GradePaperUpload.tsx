@@ -140,8 +140,8 @@ export function GradePaperUpload({
       return;
     }
 
-    if (files.length > 50) {
-      toast.error("لا يمكن رفع أكثر من 50 صورة في المرة الواحدة");
+    if (files.length > 150) {
+      toast.error("لا يمكن رفع أكثر من 150 صورة في المرة الواحدة");
       return;
     }
 

@@ -13,7 +13,7 @@ export const api: AxiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 30000,
+  timeout: 300000,
 });
 
 api.interceptors.request.use(

@@ -39,23 +39,16 @@ const Grading = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-8 p-6 bg-gradient-to-br from-slate-50/50 to-white">
+      <div className="flex flex-1 flex-col gap-8 p-6 bg-gradient-to-br from-slate-50/50 to-white dark:from-slate-950 dark:to-slate-900">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-l from-primary to-primary/70 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold bg-gradient-to-l from-primary to-primary/70 bg-clip-text text-transparent dark:from-emerald-400 dark:to-emerald-600">
               التصحيح والنتائج
             </h1>
-            <p className="text-muted-foreground mt-2 text-lg">
+            <p className="text-muted-foreground mt-2 text-lg dark:text-slate-400">
               تصحيح أوراق الاختبارات باستخدام الذكاء الاصطناعي وعرض النتائج
             </p>
           </div>
-          {/* <Button
-            onClick={() => setShowCamera(true)}
-            className="bg-primary text-white shadow-md"
-          >
-            <Camera className="ml-2 h-4 w-4" />
-            فتح الكاميرا
-          </Button> */}
         </div>
 
         <GradePaperUpload

@@ -184,6 +184,14 @@ function extractApiError(error: unknown): ApiErrorResponse | null {
     return error;
   }
 
+  // Handle case where error is a string or has a message property but not in standard format
+  if (typeof error === "string") {
+    return { title: error, status: 0, type: "about:blank", errors: [] } as import("@/types/auth").LegacyApiErrorResponse;
+  }
+  if (error && typeof error === "object" && "message" in error) {
+    return { title: (error as any).message, status: 0, type: "about:blank", errors: [] } as import("@/types/auth").LegacyApiErrorResponse;
+  }
+
   return null;
 }
 

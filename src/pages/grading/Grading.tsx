@@ -24,14 +24,16 @@ const Grading = () => {
     try {
       const data = await processExamMutation.mutateAsync(file);
 
-      if (data.results && data.results.length > 0) {
+      if (data && data.results && data.results.length > 0) {
         setGradedResults(data.results);
       } else {
-        throw new Error("لا توجد نتائج في الاستجابة");
+        throw new Error("لم يتم العثور على نتائج في الاستجابة. يرجى مراجعة ملف الإدخال.");
       }
     } catch (err: any) {
+      console.error("Grading upload error:", err);
       const errorMessage = getErrorMessage(err);
       setError(errorMessage);
+      setGradedResults(null); // Clear potential stale results
       toast.error(errorMessage);
     }
   };

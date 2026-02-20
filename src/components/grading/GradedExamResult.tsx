@@ -58,8 +58,8 @@ export function GradedExamResult({
 
   // إحصائيات عامة
   const totalStudents = results.length;
-  const totalScore = results.reduce((acc, r) => acc + r.details.score, 0);
-  const totalPossible = results.reduce((acc, r) => acc + r.details.total, 0);
+  const totalScore = results.reduce((acc, r) => acc + (r.details?.score || 0), 0);
+  const totalPossible = results.reduce((acc, r) => acc + (r.details?.total || 0), 0);
   const avgPercentage = totalPossible ? ((totalScore / totalPossible) * 100).toFixed(1) : "0";
 
   if (!results || results.length === 0) {

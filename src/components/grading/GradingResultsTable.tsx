@@ -338,7 +338,7 @@ export function GradingResultsTable() {
                                 : `${import.meta.env.VITE_AI_SERVER_URL}/${result.annotatedImageUrl.replace(/^\/+/, '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 hover:border-indigo-300 hover:text-indigo-800 transition-all duration-200 shadow-sm hover:shadow"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 dark:border-indigo-900 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 text-indigo-700 dark:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-800 dark:hover:text-indigo-300 transition-all duration-200 shadow-sm hover:shadow"
                             >
                               <FileImage className="h-3.5 w-3.5" />
                               <span>عرض</span>

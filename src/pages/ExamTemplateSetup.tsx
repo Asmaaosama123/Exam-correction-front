@@ -277,11 +277,15 @@ export default function ExamTemplateSetup() {
 
   // ========== ترتيب الخيارات حسب الاتجاه ==========
   const sortOptionsByDirection = useCallback(
-    (options: OptionBox[], direction: AnswerDirection = "horizontal"): OptionBox[] => {
+    (options: OptionBox[], direction: AnswerDirection = "horizontal", language: Language = "ar"): OptionBox[] => {
       const optionsCopy = [...options];
       if (direction === "horizontal") {
         return optionsCopy.sort((a, b) => {
-          if (Math.abs(a.y - b.y) < 20) return b.x - a.x;
+          if (Math.abs(a.y - b.y) < 20) {
+            // IF English -> Left to Right (Ascending X)
+            // IF Arabic -> Right to Left (Descending X)
+            return language === "en" ? a.x - b.x : b.x - a.x;
+          }
           return a.y - b.y;
         });
       } else {
@@ -331,7 +335,7 @@ export default function ExamTemplateSetup() {
       }
       // ترتيب الخيارات وتسميتها حسب اللغة المختارة
       if (question.answerDirection) {
-        const sortedOptions = sortOptionsByDirection(question.options, question.answerDirection);
+        const sortedOptions = sortOptionsByDirection(question.options, question.answerDirection, examLanguage);
         const labels = getLabels(examLanguage, requiredCount);
         sortedOptions.forEach((opt, idx) => {
           if (idx < requiredCount) opt.label = labels[idx];
@@ -408,7 +412,7 @@ export default function ExamTemplateSetup() {
         };
 
         if (selectedQuestionType === "mcq") {
-          const sortedOptions = sortOptionsByDirection(updatedQuestion.options, questionSettings.mcq.direction);
+          const sortedOptions = sortOptionsByDirection(updatedQuestion.options, questionSettings.mcq.direction, examLanguage);
           const requiredCount = updatedQuestion.mcqOptionCount || questionSettings.mcq.optionCount;
           const labels = getLabels(examLanguage, requiredCount);
           const maxLabels = Math.min(sortedOptions.length, requiredCount);
@@ -516,7 +520,7 @@ export default function ExamTemplateSetup() {
     };
 
     if (newType === "mcq") {
-      const sortedOptions = sortOptionsByDirection(updatedQuestion.options, settings.direction);
+      const sortedOptions = sortOptionsByDirection(updatedQuestion.options, settings.direction, examLanguage);
       const labels = getLabels(examLanguage, settings.optionCount);
       sortedOptions.forEach((opt, idx) => {
         if (idx < settings.optionCount) opt.label = labels[idx];

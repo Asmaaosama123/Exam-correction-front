@@ -211,13 +211,13 @@ export function GradePaperUpload({
   };
 
   return (
-    <Card className="border-0 shadow-lg overflow-hidden bg-gradient-to-br from-white to-slate-50/80">
-      <CardHeader className="border-b border-slate-100 bg-white/50 backdrop-blur-sm">
-        <CardTitle className="text-2xl font-bold flex items-center gap-2">
-          <Upload className="h-6 w-6 text-primary" />
+    <Card className="border-0 shadow-lg overflow-hidden bg-gradient-to-br from-white to-slate-50/80 dark:from-slate-900 dark:to-slate-950 dark:border dark:border-slate-800">
+      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+        <CardTitle className="text-2xl font-bold flex items-center gap-2 dark:text-slate-100">
+          <Upload className="h-6 w-6 text-primary dark:text-emerald-400" />
           تصحيح
         </CardTitle>
-        <CardDescription className="text-base">
+        <CardDescription className="text-base dark:text-slate-400">
           ارفع ورقة الاختبار الممسوحة ضوئياً أو استخدم الكاميرا لتصحيحها
         </CardDescription>
       </CardHeader>
@@ -231,19 +231,19 @@ export function GradePaperUpload({
             onDragOver={handleDrag}
             onDrop={handleDrop}
             className={`flex items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all ${dragActive
-              ? "border-primary bg-primary/10 scale-[1.02]"
-              : "border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5"
+              ? "border-primary bg-primary/10 scale-[1.02] dark:border-emerald-500 dark:bg-emerald-500/10"
+              : "border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5 dark:border-slate-700 dark:hover:border-emerald-500/50 dark:hover:bg-emerald-500/5"
               }`}
             onClick={() => !isLoading && fileInputRef.current?.click()}
           >
             <div className="flex flex-col items-center justify-center p-6">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <Upload className="w-8 h-8 text-primary" />
+              <div className="w-16 h-16 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center mb-4">
+                <Upload className="w-8 h-8 text-primary dark:text-emerald-400" />
               </div>
-              <p className="mb-2 text-lg font-medium">
-                <span className="font-bold text-primary">انقر للرفع</span> أو اسحب الملف هنا
+              <p className="mb-2 text-lg font-medium dark:text-slate-200">
+                <span className="font-bold text-primary dark:text-emerald-400">انقر للرفع</span> أو اسحب الملف هنا
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground dark:text-slate-400">
                 PDF, JPG, PNG, WebP, GIF
               </p>
             </div>
@@ -259,14 +259,14 @@ export function GradePaperUpload({
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-xl border border-primary/20">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-transparent dark:from-emerald-500/5 rounded-xl border border-primary/20 dark:border-emerald-500/20">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                  <FileText className="w-6 h-6 text-primary" />
+                <div className="p-3 bg-primary/10 dark:bg-primary/20 rounded-xl">
+                  <FileText className="w-6 h-6 text-primary dark:text-emerald-400" />
                 </div>
                 <div>
-                  <p className="text-base font-semibold">{selectedFile.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-base font-semibold dark:text-slate-200">{selectedFile.name}</p>
+                  <p className="text-sm text-muted-foreground dark:text-slate-400">
                     {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
@@ -285,7 +285,7 @@ export function GradePaperUpload({
             <Button
               onClick={handleGrade}
               disabled={isLoading}
-              className="w-full h-14 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg"
+              className="w-full h-14 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary dark:from-emerald-600 dark:to-emerald-700 dark:hover:from-emerald-700 dark:hover:to-emerald-800 dark:text-white shadow-lg"
               size="lg"
             >
               {isLoading ? (
@@ -305,27 +305,27 @@ export function GradePaperUpload({
 
         <div className="relative pt-4">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-dashed border-slate-300" />
+            <span className="w-full border-t border-dashed border-slate-300 dark:border-slate-700" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-card px-4 text-sm text-muted-foreground">أو</span>
+            <span className="bg-white dark:bg-slate-950 px-4 text-sm text-muted-foreground dark:text-slate-400">أو</span>
           </div>
         </div>
 
         {/* زر الكاميرا - يفتح في نفس الصفحة */}
         <Button
           variant="outline"
-          className="w-full justify-start gap-3 h-auto py-4 border-2 hover:bg-slate-100 transition-all"
+          className="w-full justify-start gap-3 h-auto py-4 border-2 hover:bg-slate-100 dark:hover:bg-slate-900/50 dark:border-slate-800 transition-all dark:text-slate-200"
           onClick={handleCameraScan}
         >
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Camera className="h-5 w-5 text-primary" />
+          <div className="p-2 bg-primary/10 dark:bg-primary/20 rounded-lg">
+            <Camera className="h-5 w-5 text-primary dark:text-emerald-400" />
           </div>
           <div className="flex flex-col items-start text-right">
             <span className="text-base font-medium">
               استخدام الكاميرا
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground dark:text-slate-400">
               التقاط صورة مباشرة من كاميرا الجهاز
             </span>
           </div>

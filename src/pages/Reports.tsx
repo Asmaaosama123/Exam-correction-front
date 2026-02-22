@@ -18,6 +18,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { useState, useEffect } from "react";
 import { ExportStudentsDialog } from "@/components/students/ExportStudentsDialog";
 import { ExportClassesDialog } from "@/components/classes/ExportClassesDialog";
+import { ExportExamsDialog } from "@/components/reports/ExportExamsDialog";
 import { useExportStudents } from "@/hooks/use-students";
 import { useExportClasses } from "@/hooks/use-classes";
 import { HelpFab } from "@/components/ui/help-fab";
@@ -38,8 +39,8 @@ const reportData = [
     downloads: 0,
   },
   {
-    title: "تقارير المتحانات",
-    description: "تقارير المتحانات بصيغة Excel أو PDF",
+    title: "تقارير الاختبارات",
+    description: "تقارير الاختبارات بصيغة Excel أو PDF",
     icon: FileText,
     date: "2025-01-15",
     downloads: 0,
@@ -114,6 +115,8 @@ export default function Reports() {
       setOpenDialog(reportTitle);
     } else if (reportTitle === "تصدير الفصول") {
       // For "تصدير الفصول", open dialog to select format
+      setOpenDialog(reportTitle);
+    } else if (reportTitle === "تقارير الاختبارات") {
       setOpenDialog(reportTitle);
     } else {
       // For other reports, open the dialog
@@ -211,7 +214,7 @@ export default function Reports() {
         {openDialog === "تصدير الطلاب | تقارير الطلاب" && (
           <ExportStudentsDialog
             open={openDialog === "تصدير الطلاب | تقارير الطلاب"}
-            onOpenChange={(open) => {
+            onOpenChange={(open: boolean) => {
               if (!open) setOpenDialog(null);
             }}
           />
@@ -221,6 +224,16 @@ export default function Reports() {
         {openDialog === "تصدير الفصول" && (
           <ExportClassesDialog
             open={openDialog === "تصدير الفصول"}
+            onOpenChange={(open) => {
+              if (!open) setOpenDialog(null);
+            }}
+          />
+        )}
+
+        {/* Export Exams Dialog */}
+        {openDialog === "تقارير الاختبارات" && (
+          <ExportExamsDialog
+            open={openDialog === "تقارير الاختبارات"}
             onOpenChange={(open) => {
               if (!open) setOpenDialog(null);
             }}
@@ -267,9 +280,9 @@ export default function Reports() {
                   <FileText className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold">تقارير الامتحانات</h4>
+                  <h4 className="font-semibold">تقارير الاختبارات</h4>
                   <p className="text-sm text-muted-foreground">
-                    إحصائيات تفصيلية عن كل امتحان (عدد الحضور، الغياب، أعلى/أقل درجة).
+                    إحصائيات تفصيلية عن كل اختبار (عدد الحضور، الغياب، أعلى/أقل درجة).
                   </p>
                 </div>
               </div>

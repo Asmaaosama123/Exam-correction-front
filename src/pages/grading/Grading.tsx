@@ -41,7 +41,7 @@ const Grading = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-1 flex-col gap-8 p-6 bg-gradient-to-br from-slate-50/50 to-white dark:from-slate-950 dark:to-slate-950">
+      <div className="flex flex-1 flex-col gap-8 p-6 bg-background">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-l from-primary to-primary/70 bg-clip-text text-transparent dark:from-emerald-400 dark:to-emerald-600">

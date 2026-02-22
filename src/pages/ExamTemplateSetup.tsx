@@ -47,6 +47,10 @@ const DEFAULT_SETTINGS = {
   essay: {
     optionCount: 1,
     direction: "horizontal" as AnswerDirection
+  },
+  complete: {
+    optionCount: 1,
+    direction: "horizontal" as AnswerDirection
   }
 };
 
@@ -95,6 +99,7 @@ export default function ExamTemplateSetup() {
   const [pdfConverting, setPdfConverting] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfKey, setPdfKey] = useState(0);
+  const [isDrawingEnabled, setIsDrawingEnabled] = useState(true);
 
   // حالة اللغة المختارة (عربي / إنجليزي)
   const [examLanguage, setExamLanguage] = useState<Language>("en");
@@ -317,7 +322,8 @@ export default function ExamTemplateSetup() {
     const messages = {
       mcq: `ارسم ${settings.optionCount} مربعات للاختيارات (${settings.direction === "horizontal" ? "أفقي" : "رأسي"})`,
       true_false: "ارسم مربعاً واحداً لمنطقة الإجابة صح/خطأ",
-      essay: "ارسم مربعاً واحداً لمنطقة الإجابة المقالية"
+      essay: "ارسم مربعاً واحداً لمنطقة الإجابة المقالية",
+      complete: "ارسم مربعاً واحداً لمنطقة الإجابة (أكمل)"
     };
     toast.info(messages[type]);
   };
@@ -376,6 +382,7 @@ export default function ExamTemplateSetup() {
     const optionId = `opt-${Date.now()}`;
     let label = currentOptionLabel;
     if (selectedQuestionType === "true_false") label = "TF";
+    if (selectedQuestionType === "complete") label = "Complete";
 
     setPreviewOption({
       id: optionId,
@@ -602,7 +609,7 @@ export default function ExamTemplateSetup() {
         answer: question.answer,
         roi: roi
       };
-      if (question.type !== "essay") {
+      if (question.type !== "essay" && question.type !== "complete") {
         questionObj.rois = rois;
       }
       return questionObj;
@@ -910,12 +917,42 @@ export default function ExamTemplateSetup() {
                   <Button
                     type="button"
                     size="sm"
+                    variant={selectedQuestionType === "complete" ? "default" : "outline"}
+                    onClick={() => startNewQuestion("complete")}
+                  >
+                    أكمل
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
                     variant="ghost"
                     onClick={() => toast.info("الإعدادات محفوظة لكل نوع سؤال تلقائياً")}
                   >
                     <Settings className="w-4 h-4" />
                   </Button>
                 </div>
+              </div>
+
+              {/* زر تبديل وضع الرسم للموبايل */}
+              <div className="flex md:hidden items-center gap-2 bg-muted p-1 rounded-lg">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={!isDrawingEnabled ? "default" : "ghost"}
+                  onClick={() => setIsDrawingEnabled(false)}
+                  className="h-8 text-xs px-3"
+                >
+                  تحريك (Scroll)
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={isDrawingEnabled ? "default" : "ghost"}
+                  onClick={() => setIsDrawingEnabled(true)}
+                  className="h-8 text-xs px-3"
+                >
+                  رسم (Draw)
+                </Button>
               </div>
 
               {/* إعدادات MCQ السريعة */}
@@ -1080,7 +1117,7 @@ export default function ExamTemplateSetup() {
                   <>
                     <span className="font-medium">وضع الرسم نشط:</span> اسحب على الصورة لرسم المربعات.
                     {selectedQuestionType === "mcq" && ` سيتم إنهاء السؤال تلقائياً عند اكتمال العدد.`}
-                    {(selectedQuestionType === "true_false" || selectedQuestionType === "essay") && " سيتم إنهاء السؤال تلقائياً بعد رسم المربع."}
+                    {(selectedQuestionType === "true_false" || selectedQuestionType === "essay" || selectedQuestionType === "complete") && " سيتم إنهاء السؤال تلقائياً بعد رسم المربع."}
                   </>
                 ) : (
                   "اختر نوع السؤال من الأعلى لبدء الرسم"
@@ -1090,10 +1127,13 @@ export default function ExamTemplateSetup() {
                     ✓ نوع السؤال الحالي: {
                       selectedQuestionType === 'mcq' ? 'سؤال متعدد الاختيارات' :
                         selectedQuestionType === 'true_false' ? 'صح/خطأ' :
-                          'مقالي'
+                          selectedQuestionType === 'essay' ? 'مقالي' : 'أكمل'
                     }
                   </Badge>
                 )}
+                <Badge variant="outline" className={`${isDrawingEnabled ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-50 text-slate-700"} mr-2`}>
+                  وضع: {isDrawingEnabled ? "الرسم نشط" : "التحريك (Scroll) نشط"}
+                </Badge>
               </p>
               <div
                 ref={containerRef}
@@ -1130,10 +1170,10 @@ export default function ExamTemplateSetup() {
                       className={`absolute top-0 left-0 select-none ${isCreatingQuestion ? "cursor-crosshair" : "cursor-default"
                         }`}
                       style={{
-                        pointerEvents: isCreatingQuestion ? "auto" : "none",
+                        pointerEvents: (isCreatingQuestion && isDrawingEnabled) ? "auto" : "none",
                         width: `${canvasWidth * scale}px`,
                         height: `${totalPdfHeight}px`,
-                        touchAction: "none"
+                        touchAction: (isCreatingQuestion && isDrawingEnabled) ? "none" : "auto"
                       }}
                       onPointerDown={handleCanvasPointerDown}
                       onPointerMove={handleCanvasPointerMove}
@@ -1150,7 +1190,8 @@ export default function ExamTemplateSetup() {
                                 key={option.id}
                                 className={`absolute border-2 ${question.type === "mcq" ? "border-blue-300 bg-blue-50/30" :
                                   question.type === "true_false" ? "border-green-300 bg-green-50/30" :
-                                    "border-purple-300 bg-purple-50/30"
+                                    question.type === "essay" ? "border-purple-300 bg-purple-50/30" :
+                                      "border-indigo-300 bg-indigo-50/30"
                                   }`}
                                 style={{
                                   left: `${option.x * scale}px`,
@@ -1161,7 +1202,8 @@ export default function ExamTemplateSetup() {
                               >
                                 <div className={`absolute -top-6 right-0 text-xs px-2 py-1 rounded ${question.type === "mcq" ? "bg-blue-500 text-white" :
                                   question.type === "true_false" ? "bg-green-500 text-white" :
-                                    "bg-purple-500 text-white"
+                                    question.type === "essay" ? "bg-purple-500 text-white" :
+                                      "bg-indigo-500 text-white"
                                   }`}>
                                   س{question.index} - {question.type === "true_false" ? "صح/خطأ" : option.label}
                                 </div>
@@ -1246,6 +1288,7 @@ export default function ExamTemplateSetup() {
                             <SelectItem value="mcq">سؤال متعدد الاختيارات</SelectItem>
                             <SelectItem value="true_false">صح/خطأ</SelectItem>
                             <SelectItem value="essay">مقالي</SelectItem>
+                            <SelectItem value="complete">أكمل</SelectItem>
                           </SelectContent>
                         </Select>
                         <Button
@@ -1327,6 +1370,14 @@ export default function ExamTemplateSetup() {
                         <div className="flex items-center gap-2">
                           <Check className="w-4 h-4 text-green-500" />
                           هذا السؤال سيتم تصحيحه يدوياً (إجابة مقالية).
+                        </div>
+                      </div>
+                    )}
+                    {question.type === "complete" && (
+                      <div className="text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Check className="w-4 h-4 text-green-500" />
+                          هذا السؤال سيتم تصحيحه يدوياً (أكمل).
                         </div>
                       </div>
                     )}

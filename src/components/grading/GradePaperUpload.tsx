@@ -140,8 +140,8 @@ export function GradePaperUpload({
       return;
     }
 
-    if (files.length > 150) {
-      toast.error("لا يمكن رفع أكثر من 150 صورة في المرة الواحدة");
+    if (files.length > 1000) {
+      toast.error("لا يمكن رفع أكثر من 1000 صورة في المرة الواحدة");
       return;
     }
 
@@ -211,8 +211,8 @@ export function GradePaperUpload({
   };
 
   return (
-    <Card className="border-0 shadow-lg overflow-hidden bg-gradient-to-br from-white to-slate-50/80 dark:from-slate-900 dark:to-slate-950 dark:border dark:border-slate-800">
-      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+    <Card className="border-0 shadow-lg overflow-hidden bg-gradient-to-br from-white to-slate-50/80 dark:from-slate-950 dark:to-slate-950 dark:border dark:border-slate-800">
+      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm">
         <CardTitle className="text-2xl font-bold flex items-center gap-2 dark:text-slate-100">
           <Upload className="h-6 w-6 text-primary dark:text-emerald-400" />
           تصحيح

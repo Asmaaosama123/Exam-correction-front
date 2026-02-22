@@ -1,4 +1,4 @@
-export type QuestionType = "mcq" | "true_false" | "essay";
+export type QuestionType = "mcq" | "true_false" | "essay" | "complete";
 export type AnswerDirection = "horizontal" | "vertical";
 export type Language = "ar" | "en";
 

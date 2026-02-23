@@ -9,6 +9,7 @@ interface GradingDetail {
   gt: string;
   pred: string;
   ok: boolean;
+  points: number; // ✅ الجديد
 }
 
 interface StudentDetailsModalProps {
@@ -95,6 +96,7 @@ export function StudentDetailsModal({
                   <th className="text-right p-4 text-sm font-semibold text-muted-foreground uppercase">النوع</th>
                   <th className="text-right p-4 text-sm font-semibold text-muted-foreground uppercase">الإجابة الصحيحة</th>
                   <th className="text-right p-4 text-sm font-semibold text-muted-foreground uppercase">إجابة الطالب</th>
+                  <th className="text-right p-4 text-sm font-semibold text-muted-foreground uppercase">الدرجة</th>
                   <th className="text-right p-4 text-sm font-semibold text-muted-foreground uppercase">النتيجة</th>
                 </tr>
               </thead>
@@ -122,6 +124,9 @@ export function StudentDetailsModal({
                       }>
                         {translateAnswer(detail.pred, detail.type)}
                       </span>
+                    </td>
+                    <td className="p-4 text-sm font-semibold">
+                      {detail.points} درجات
                     </td>
                     <td className="p-4">
                       {detail.ok ? (

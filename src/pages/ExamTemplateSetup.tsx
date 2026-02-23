@@ -1298,8 +1298,8 @@ export default function ExamTemplateSetup() {
                           <Label className="text-xs">الدرجة:</Label>
                           <Input
                             type="number"
-                            step="0.25"
-                            min="0.25"
+                            step="0.125"
+                            min="0.125"
                             className="w-20 h-8 text-xs"
                             value={question.points || 1}
                             onChange={(e) => {

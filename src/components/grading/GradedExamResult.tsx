@@ -12,6 +12,7 @@ interface GradingDetail {
   conf: number;
   ok: boolean;
   method: string;
+  points: number; // ✅ الجديد
 }
 
 interface ExamResult {
@@ -145,8 +146,8 @@ export function GradedExamResult({
                   <div className="flex items-center gap-2">
                     <StudentDetailsModal
                       studentName={result.student_info?.student_name || "غير معروف"}
-                      details={details.map(({ id, type, gt, pred, ok }) => ({
-                        id, type, gt, pred, ok
+                      details={details.map(({ id, type, gt, pred, ok, points }) => ({
+                        id, type, gt, pred, ok, points
                       }))}
                       score={score}
                       total={total}

@@ -65,25 +65,34 @@ export const classesApi = {
    * No parameters required - exports all classes
    */
   exportClassesToPdf: async (): Promise<{ blob: Blob; filename: string }> => {
-    const response = await api.get<Blob>("/api/Reports/report-classes-pdf", {
-      responseType: "blob",
-    });
+    try {
+      const response = await api.get<Blob>("/api/Reports/report-classes-pdf", {
+        responseType: "blob",
+      });
 
-    // Extract filename from Content-Disposition header if available
-    const contentDisposition = response.headers["content-disposition"];
-    let filename = `classes_export_${new Date().toISOString().split("T")[0]
-      }.pdf`;
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = `classes_export_${new Date().toISOString().split("T")[0]}.pdf`;
 
-    if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(
-        /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-      );
-      if (filenameMatch && filenameMatch[1]) {
-        filename = filenameMatch[1].replace(/['"]/g, "");
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, "");
+        }
       }
-    }
 
-    return { blob: response.data, filename };
+      return { blob: response.data, filename };
+    } catch (error: any) {
+      if (error.response?.data instanceof Blob && error.response.data.type === "application/json") {
+        const text = await error.response.data.text();
+        try {
+          const jsonError = JSON.parse(text);
+          error.response.data = jsonError;
+        } catch (e) {
+          // Ignore parsing error
+        }
+      }
+      throw error;
+    }
   },
 
   /**
@@ -91,24 +100,33 @@ export const classesApi = {
    * No parameters required - exports all classes
    */
   exportClassesToExcel: async (): Promise<{ blob: Blob; filename: string }> => {
-    const response = await api.get<Blob>("/api/Reports/report-classes-excel", {
-      responseType: "blob",
-    });
+    try {
+      const response = await api.get<Blob>("/api/Reports/report-classes-excel", {
+        responseType: "blob",
+      });
 
-    // Extract filename from Content-Disposition header if available
-    const contentDisposition = response.headers["content-disposition"];
-    let filename = `classes_export_${new Date().toISOString().split("T")[0]
-      }.xlsx`;
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = `classes_export_${new Date().toISOString().split("T")[0]}.xlsx`;
 
-    if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(
-        /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/
-      );
-      if (filenameMatch && filenameMatch[1]) {
-        filename = filenameMatch[1].replace(/['"]/g, "");
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, "");
+        }
       }
-    }
 
-    return { blob: response.data, filename };
+      return { blob: response.data, filename };
+    } catch (error: any) {
+      if (error.response?.data instanceof Blob && error.response.data.type === "application/json") {
+        const text = await error.response.data.text();
+        try {
+          const jsonError = JSON.parse(text);
+          error.response.data = jsonError;
+        } catch (e) {
+          // Ignore parsing error
+        }
+      }
+      throw error;
+    }
   },
 };

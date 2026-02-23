@@ -48,7 +48,7 @@ export function ExportExamsDialog({
 
         setIsExporting(true);
         try {
-            const endpoint = format === "excel" ? "report-exam-results-excel" : "exam-results-pdf";
+            const endpoint = format === "excel" ? "report-exam-results-excel" : "report-exam-results-pdf";
             const response = await api.get(`/api/Reports/${endpoint}?examId=${selectedExamId}`, {
                 responseType: "blob",
             });

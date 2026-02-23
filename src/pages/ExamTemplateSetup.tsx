@@ -381,8 +381,8 @@ export default function ExamTemplateSetup() {
 
     const optionId = `opt-${Date.now()}`;
     let label = currentOptionLabel;
-    if (selectedQuestionType === "true_false") label = "TF";
-    if (selectedQuestionType === "complete") label = "Complete";
+    if (selectedQuestionType === "true_false") label = "صح/خطأ";
+    if (selectedQuestionType === "complete") label = "أكمل";
 
     setPreviewOption({
       id: optionId,
@@ -1103,6 +1103,8 @@ export default function ExamTemplateSetup() {
                     </>
                   ) : selectedQuestionType === "true_false" ? (
                     "ارسم مربعاً واحداً لمنطقة الإجابة صح/خطأ"
+                  ) : selectedQuestionType === "complete" ? (
+                    "ارسم مربعاً واحداً لمنطقة الإجابة (أكمل)"
                   ) : (
                     "ارسم مربعاً واحداً لمنطقة الإجابة المقالية"
                   )}

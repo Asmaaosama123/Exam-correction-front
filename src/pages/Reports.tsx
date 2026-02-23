@@ -40,7 +40,7 @@ const reportData = [
   },
   {
     title: "تقارير الاختبارات",
-    description: "تقارير الاختبارات بصيغة Excel أو PDF",
+    description: "تقارير نتائج الطلاب بصيغة Excel أو PDF",
     icon: FileText,
     date: "2025-01-15",
     downloads: 0,

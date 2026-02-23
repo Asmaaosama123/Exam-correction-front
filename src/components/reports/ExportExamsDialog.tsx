@@ -31,12 +31,14 @@ export function ExportExamsDialog({
     onOpenChange,
 }: ExportExamsDialogProps) {
     const [selectedExamId, setSelectedExamId] = useState<string>("");
+    const [format, setFormat] = useState<"excel" | "pdf">("excel");
     const [isExporting, setIsExporting] = useState(false);
     const { data: examsData, isLoading: isLoadingExams } = useGetExams();
 
     useEffect(() => {
         if (!open) {
             setSelectedExamId("");
+            setFormat("excel");
             setIsExporting(false);
         }
     }, [open]);
@@ -46,12 +48,13 @@ export function ExportExamsDialog({
 
         setIsExporting(true);
         try {
-            const response = await api.get(`/api/Reports/report-exam-results-excel?examId=${selectedExamId}`, {
+            const endpoint = format === "excel" ? "report-exam-results-excel" : "report-exam-results-pdf";
+            const response = await api.get(`/api/Reports/${endpoint}?examId=${selectedExamId}`, {
                 responseType: "blob",
             });
 
             const contentDisposition = response.headers["content-disposition"];
-            let filename = "درجات_الاختبار.xlsx";
+            let filename = format === "excel" ? "درجات_الاختبار.xlsx" : "درجات_الاختبار.pdf";
             if (contentDisposition) {
                 const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
                 if (filenameMatch && filenameMatch[1]) {
@@ -97,7 +100,7 @@ export function ExportExamsDialog({
                 <DialogHeader>
                     <DialogTitle>تصدير درجات الاختبار</DialogTitle>
                     <DialogDescription>
-                        اختر الاختبار الذي تريد تصدير درجات طلابه بصيغة Excel
+                        اختر الاختبار الذي تريد تصدير درجات طلابه بصيغة Excel أو PDF
                     </DialogDescription>
                 </DialogHeader>
 
@@ -130,9 +133,29 @@ export function ExportExamsDialog({
 
                     <div className="space-y-3">
                         <Label>صيغة التصدير</Label>
-                        <div className="flex flex-col items-center gap-2 rounded-lg border-2 p-4 border-primary bg-accent">
-                            <FileSpreadsheet className="h-6 w-6 text-primary" />
-                            <span className="text-sm font-medium">Excel</span>
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                type="button"
+                                onClick={() => setFormat("excel")}
+                                className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${format === "excel"
+                                    ? "border-primary bg-accent"
+                                    : "border-muted bg-transparent hover:border-muted-foreground/50"
+                                    }`}
+                            >
+                                <FileSpreadsheet className={`h-6 w-6 ${format === "excel" ? "text-primary" : "text-muted-foreground"}`} />
+                                <span className={`text-sm font-medium ${format === "excel" ? "text-primary" : "text-muted-foreground"}`}>Excel</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setFormat("pdf")}
+                                className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${format === "pdf"
+                                    ? "border-primary bg-accent"
+                                    : "border-muted bg-transparent hover:border-muted-foreground/50"
+                                    }`}
+                            >
+                                <AlertCircle className={`h-6 w-6 rotate-180 ${format === "pdf" ? "text-primary" : "text-muted-foreground"}`} />
+                                <span className={`text-sm font-medium ${format === "pdf" ? "text-primary" : "text-muted-foreground"}`}>PDF</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -159,7 +182,7 @@ export function ExportExamsDialog({
                         ) : (
                             <>
                                 <Download className="h-4 w-4 ml-2" />
-                                تصدير
+                                تصدير {format.toUpperCase()}
                             </>
                         )}
                     </Button>

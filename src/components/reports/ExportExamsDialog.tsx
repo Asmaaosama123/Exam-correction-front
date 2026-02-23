@@ -84,9 +84,29 @@ export function ExportExamsDialog({
 
             toast.success("تم تصدير الدرجات بنجاح");
             onOpenChange(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Export failed", error);
-            toast.error("فشل تصدير الدرجات. يرجى المحاولة مرة أخرى.");
+
+            let errorMessage = "فشل تصدير الدرجات. يرجى المحاولة مرة أخرى.";
+
+            // Try to parse the error from the blob if it's JSON
+            if (error.response?.data instanceof Blob && error.response.data.type === "application/json") {
+                try {
+                    const text = await error.response.data.text();
+                    const jsonError = JSON.parse(text);
+                    if (jsonError.errors && jsonError.errors[0]?.Description) {
+                        errorMessage = jsonError.errors[0].Description;
+                    } else if (jsonError.description) {
+                        errorMessage = jsonError.description;
+                    }
+                } catch (e) {
+                    // Ignore parsing error
+                }
+            } else if (error.response?.data?.errors?.[0]?.Description) {
+                errorMessage = error.response.data.errors[0].Description;
+            }
+
+            toast.error(errorMessage);
         } finally {
             setIsExporting(false);
         }

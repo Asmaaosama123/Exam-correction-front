@@ -121,16 +121,16 @@ export function GradingResultsTable() {
   };
 
   return (
-    <Card className="dark:bg-black dark:border-slate-800">
+    <Card>
       <CardHeader>
-        <CardTitle className="dark:text-slate-100">نتائج التصحيح</CardTitle>
-        <CardDescription className="dark:text-slate-400">
+        <CardTitle>نتائج التصحيح</CardTitle>
+        <CardDescription>
           عرض جميع نتائج التصحيح مع إمكانية التصفية والبحث
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters */}
-        <div className="bg-slate-50/50 dark:bg-black p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-wrap items-end gap-4">
+        <div className="bg-muted/50 p-4 rounded-2xl border flex flex-wrap items-end gap-4">
           {/* Exam Filter */}
           <div className="flex-1 min-w-[200px] space-y-2">
             <Label htmlFor="exam-filter" className="text-sm font-semibold flex items-center gap-2">
@@ -225,7 +225,7 @@ export function GradingResultsTable() {
                 placeholder="ابحث عن اختبار أو طالب..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                className="pr-10 h-10 border-slate-200 dark:border-slate-800 dark:bg-black focus:border-primary focus:ring-primary/20 transition-all shadow-sm"
+                className="pr-10 h-10 transition-all shadow-sm"
               />
             </div>
           </div>
@@ -236,11 +236,11 @@ export function GradingResultsTable() {
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex gap-4">
-                <Skeleton className="h-12 flex-1 dark:bg-slate-900" />
-                <Skeleton className="h-12 flex-1 dark:bg-slate-900" />
-                <Skeleton className="h-12 flex-1 dark:bg-slate-900" />
-                <Skeleton className="h-12 flex-1 dark:bg-slate-900" />
-                <Skeleton className="h-12 w-32 dark:bg-slate-900" />
+                <Skeleton className="h-12 flex-1" />
+                <Skeleton className="h-12 flex-1" />
+                <Skeleton className="h-12 flex-1" />
+                <Skeleton className="h-12 flex-1" />
+                <Skeleton className="h-12 w-32" />
               </div>
             ))}
           </div>
@@ -252,10 +252,10 @@ export function GradingResultsTable() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="overflow-x-auto rounded-xl border shadow-sm">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50/80 dark:bg-black border-b border-slate-200 dark:border-slate-800">
+                  <tr className="bg-muted/80 border-b">
                     <th className="text-right p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       اسم الطالب
                     </th>
@@ -279,36 +279,36 @@ export function GradingResultsTable() {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y">
                   {data?.items.map((result) => (
                     <tr
                       key={result.id}
-                      className="transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/40 group"
+                      className="transition-colors hover:bg-muted/50 group"
                     >
                       <td className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
-                            <User className="h-4 w-4 text-primary dark:text-emerald-400" />
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-4 w-4 text-primary" />
                           </div>
-                          <span className="font-semibold text-slate-700 dark:text-slate-200">
+                          <span className="font-semibold px-2">
                             {result.studentName || "غير معروف"}
                           </span>
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                          <FileCheck className="h-4 w-4 text-slate-400" />
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <FileCheck className="h-4 w-4" />
                           <span>{result.examName || "غير معروف"}</span>
                         </div>
                       </td>
                       <td className="p-4">
-                        <Badge variant="outline" className="font-normal border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                        <Badge variant="outline" className="font-normal border-border text-muted-foreground">
                           {result.examSubject}
                         </Badge>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                          <GraduationCap className="h-4 w-4 text-slate-400" />
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <GraduationCap className="h-4 w-4" />
                           <span>{result.className}</span>
                         </div>
                       </td>
@@ -338,7 +338,7 @@ export function GradingResultsTable() {
                                 : `${import.meta.env.VITE_AI_SERVER_URL}/${result.annotatedImageUrl.replace(/^\/+/, '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 dark:border-indigo-900 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 text-indigo-700 dark:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 hover:text-indigo-800 dark:hover:text-indigo-300 transition-all duration-200 shadow-sm hover:shadow"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all duration-200 shadow-sm hover:shadow"
                             >
                               <FileImage className="h-3.5 w-3.5" />
                               <span>عرض</span>
@@ -354,7 +354,7 @@ export function GradingResultsTable() {
             </div>
 
             {data?.items.length === 0 && (
-              <div className="py-20 text-center bg-slate-50/30 rounded-2xl border-2 border-dashed border-slate-100">
+              <div className="py-20 text-center bg-muted/30 rounded-2xl border-2 border-dashed border-muted">
                 <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-sm mb-4">
                   <Search className="h-10 w-10 text-slate-300" />
                 </div>
@@ -369,13 +369,13 @@ export function GradingResultsTable() {
 
             {/* Pagination */}
             {data && data.items.length > 0 && (
-              <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 bg-slate-50/50 dark:bg-black rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 bg-muted/50 rounded-2xl border">
                 <div className="flex items-center gap-6">
                   {data.totalPages > 1 && (
-                    <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                    <div className="text-sm font-medium text-muted-foreground">
                       الصفحة <span className="text-primary">{pageNumber}</span> من {data.totalPages}
-                      <span className="mx-2 text-slate-300 dark:text-slate-700">|</span>
-                      الإجمالي: <span className="text-slate-700 dark:text-slate-300">{data.totalCount}</span> نتيجة
+                      <span className="mx-2 text-border">|</span>
+                      الإجمالي: <span className="text-foreground">{data.totalCount}</span> نتيجة
                     </div>
                   )}
                   <div className="flex items-center gap-3">
@@ -391,7 +391,7 @@ export function GradingResultsTable() {
                     >
                       <SelectTrigger
                         id="page-size"
-                        className="w-16 h-8 bg-white dark:bg-black border-slate-200 dark:border-slate-800 text-xs font-bold"
+                        className="w-16 h-8 bg-background border-border text-xs font-bold"
                         disabled={isLoading}
                       >
                         <SelectValue />
@@ -411,7 +411,7 @@ export function GradingResultsTable() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-white dark:bg-black border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 h-9"
+                      className="h-9"
                       onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
                       disabled={!data.hasPreviousPage || isLoading}
                     >
@@ -426,7 +426,7 @@ export function GradingResultsTable() {
                             key={i}
                             variant={pageNumber === pNum ? "default" : "ghost"}
                             size="sm"
-                            className="w-9 h-9 dark:bg-black dark:hover:bg-slate-900"
+                            className="w-9 h-9"
                             onClick={() => setPageNumber(pNum)}
                           >
                             {pNum}
@@ -437,7 +437,7 @@ export function GradingResultsTable() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-white dark:bg-black border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 h-9"
+                      className="h-9"
                       onClick={() =>
                         setPageNumber((p) => Math.min(data.totalPages, p + 1))
                       }

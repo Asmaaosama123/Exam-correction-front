@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Download, Loader2, AlertCircle, FileText, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getErrorMessage } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -100,7 +101,7 @@ export function ExportClassesDialog({
             <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3">
               <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-destructive" />
               <div className="flex-1 text-sm text-destructive">
-                حدث خطأ أثناء التصدير. يرجى المحاولة مرة أخرى.
+                {getErrorMessage(exportMutation.error)}
               </div>
             </div>
           )}

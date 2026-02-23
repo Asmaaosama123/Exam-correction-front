@@ -8,6 +8,7 @@ import {
   // CheckSquare,
   BarChart3,
   CheckSquare,
+  Play,
 } from "lucide-react";
 import {
   Sidebar,
@@ -59,6 +60,11 @@ const menuItems = [
     title: "التقارير",
     icon: BarChart3,
     href: "/reports",
+  },
+  {
+    title: "فيديو توضيحي",
+    icon: Play,
+    href: "/tutorial",
   },
 ];
 

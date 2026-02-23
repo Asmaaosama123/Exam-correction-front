@@ -15,6 +15,7 @@ import Terms from "@/pages/terms/Terms";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import Grading from "@/pages/grading/Grading";
 import ExamTemplateSetup from "@/pages/ExamTemplateSetup";
+import Tutorial from "@/pages/Tutorial";
 
 // ✅ استيراد صفحة الكاميرا باستخدام Lazy Loading
 const CameraScan = lazy(() => import("@/pages/grading/CameraScan"));
@@ -101,8 +102,15 @@ const routes = [
     element: <Privacy />,
   },
   {
-    path: "/terms",
     element: <Terms />,
+  },
+  {
+    path: "/tutorial",
+    element: (
+      <AuthGuard>
+        <Tutorial />
+      </AuthGuard>
+    ),
   },
   {
     path: "/camera-scan",

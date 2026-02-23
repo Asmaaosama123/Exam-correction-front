@@ -22,6 +22,7 @@ export interface Question {
     page: number;
     answerDirection?: AnswerDirection;
     mcqOptionCount?: number;
+    points?: number; // ✅ الجديد
 }
 
 export interface UploadTeacherExamRequest {

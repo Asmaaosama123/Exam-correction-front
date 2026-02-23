@@ -455,7 +455,8 @@ export default function ExamTemplateSetup() {
           options: [previewOption],
           page: previewOption.page,
           answerDirection: settings.direction,
-          mcqOptionCount: selectedQuestionType === "mcq" ? settings.optionCount : undefined
+          mcqOptionCount: selectedQuestionType === "mcq" ? settings.optionCount : undefined,
+          points: 1 // ✅ القيمة الافتراضية
         };
         setCurrentQuestion(newQuestion);
 
@@ -607,7 +608,7 @@ export default function ExamTemplateSetup() {
         id: question.index.toString(),
         type: question.type,
         answer: question.answer,
-        roi: roi
+        points: 1 // ✅ القيمة الافتراضية
       };
       if (question.type !== "essay" && question.type !== "complete") {
         questionObj.rois = rois;
@@ -1293,6 +1294,24 @@ export default function ExamTemplateSetup() {
                             <SelectItem value="complete">أكمل</SelectItem>
                           </SelectContent>
                         </Select>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs">الدرجة:</Label>
+                          <Input
+                            type="number"
+                            step="0.25"
+                            min="0.25"
+                            className="w-20 h-8 text-xs"
+                            value={question.points || 1}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              if (!isNaN(val)) {
+                                setQuestions(prev => prev.map(q =>
+                                  q.id === question.id ? { ...q, points: val } : q
+                                ));
+                              }
+                            }}
+                          />
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"
@@ -1392,6 +1411,9 @@ export default function ExamTemplateSetup() {
                       {question.type === "mcq" && (
                         <Badge variant="outline">الخيارات: {question.mcqOptionCount || 4}</Badge>
                       )}
+                      <Badge variant="success" className="bg-primary/10 text-primary border-primary/20">
+                        الدرجة: {question.points || 1}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>

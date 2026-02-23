@@ -121,7 +121,7 @@ export function GradingResultsTable() {
   };
 
   return (
-    <Card className="dark:bg-slate-950 dark:border-slate-800">
+    <Card className="dark:bg-black dark:border-slate-800">
       <CardHeader>
         <CardTitle className="dark:text-slate-100">نتائج التصحيح</CardTitle>
         <CardDescription className="dark:text-slate-400">
@@ -130,7 +130,7 @@ export function GradingResultsTable() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Filters */}
-        <div className="bg-slate-50/50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-wrap items-end gap-4">
+        <div className="bg-slate-50/50 dark:bg-black p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-wrap items-end gap-4">
           {/* Exam Filter */}
           <div className="flex-1 min-w-[200px] space-y-2">
             <Label htmlFor="exam-filter" className="text-sm font-semibold flex items-center gap-2">
@@ -225,7 +225,7 @@ export function GradingResultsTable() {
                 placeholder="ابحث عن اختبار أو طالب..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                className="pr-10 h-10 border-slate-200 dark:border-slate-800 dark:bg-slate-950 focus:border-primary focus:ring-primary/20 transition-all shadow-sm"
+                className="pr-10 h-10 border-slate-200 dark:border-slate-800 dark:bg-black focus:border-primary focus:ring-primary/20 transition-all shadow-sm"
               />
             </div>
           </div>
@@ -255,7 +255,7 @@ export function GradingResultsTable() {
             <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                  <tr className="bg-slate-50/80 dark:bg-black border-b border-slate-200 dark:border-slate-800">
                     <th className="text-right p-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       اسم الطالب
                     </th>
@@ -369,7 +369,7 @@ export function GradingResultsTable() {
 
             {/* Pagination */}
             {data && data.items.length > 0 && (
-              <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between p-4 bg-slate-50/50 dark:bg-black rounded-2xl border border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-6">
                   {data.totalPages > 1 && (
                     <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -391,7 +391,7 @@ export function GradingResultsTable() {
                     >
                       <SelectTrigger
                         id="page-size"
-                        className="w-16 h-8 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-xs font-bold"
+                        className="w-16 h-8 bg-white dark:bg-black border-slate-200 dark:border-slate-800 text-xs font-bold"
                         disabled={isLoading}
                       >
                         <SelectValue />
@@ -411,7 +411,7 @@ export function GradingResultsTable() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 h-9"
+                      className="bg-white dark:bg-black border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 h-9"
                       onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
                       disabled={!data.hasPreviousPage || isLoading}
                     >
@@ -426,7 +426,7 @@ export function GradingResultsTable() {
                             key={i}
                             variant={pageNumber === pNum ? "default" : "ghost"}
                             size="sm"
-                            className="w-9 h-9 dark:bg-slate-950 dark:hover:bg-slate-900"
+                            className="w-9 h-9 dark:bg-black dark:hover:bg-slate-900"
                             onClick={() => setPageNumber(pNum)}
                           >
                             {pNum}
@@ -437,7 +437,7 @@ export function GradingResultsTable() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 h-9"
+                      className="bg-white dark:bg-black border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 h-9"
                       onClick={() =>
                         setPageNumber((p) => Math.min(data.totalPages, p + 1))
                       }

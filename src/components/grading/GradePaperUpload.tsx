@@ -308,7 +308,7 @@ export function GradePaperUpload({
             <span className="w-full border-t border-dashed border-slate-300 dark:border-slate-700" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-white dark:bg-slate-950 px-4 text-sm text-muted-foreground dark:text-slate-400">أو</span>
+            <span className="bg-white dark:bg-black px-4 text-sm text-muted-foreground dark:text-slate-400">أو</span>
           </div>
         </div>
 

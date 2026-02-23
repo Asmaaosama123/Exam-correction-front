@@ -1295,19 +1295,21 @@ export default function ExamTemplateSetup() {
                           </SelectContent>
                         </Select>
 
-                        <div className="flex items-center gap-2 bg-muted/40 p-1.5 px-3 rounded-lg border border-dashed flex-1 sm:flex-none justify-center">
-                          <Label className="text-xs font-semibold whitespace-nowrap">الدرجة:</Label>
+                        <div className="flex items-center gap-2 bg-muted/40 p-1.5 px-3 rounded-xl border border-dashed flex-1 sm:flex-none justify-center min-h-[48px]">
+                          <Label className="text-sm font-bold whitespace-nowrap">الدرجة:</Label>
                           <Input
-                            type="number"
-                            step="0.125"
-                            min="0.125"
-                            className="w-20 h-8 text-xs font-bold bg-background"
+                            type="text"
+                            inputMode="decimal"
+                            pattern="[0-9]*[.,]?[0-9]*"
+                            className="w-24 h-10 text-center text-sm font-bold bg-background border-2 focus-visible:ring-primary shadow-sm rounded-lg"
                             value={question.points || 1}
                             onChange={(e) => {
-                              const val = parseFloat(e.target.value);
-                              if (!isNaN(val)) {
+                              // التحقق من أن القيمة المدخلة رقمية (بما في ذلك الكسور)
+                              const valStr = e.target.value.replace(/[^\d.]/g, '');
+                              const val = parseFloat(valStr);
+                              if (!isNaN(val) || valStr === "") {
                                 setQuestions(prev => prev.map(q =>
-                                  q.id === question.id ? { ...q, points: val } : q
+                                  q.id === question.id ? { ...q, points: valStr === "" ? 0 : val } : q
                                 ));
                               }
                             }}

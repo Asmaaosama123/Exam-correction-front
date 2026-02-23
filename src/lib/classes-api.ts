@@ -65,7 +65,7 @@ export const classesApi = {
    * No parameters required - exports all classes
    */
   exportClassesToPdf: async (): Promise<{ blob: Blob; filename: string }> => {
-    const response = await api.get<Blob>("/Reports/report-classes-pdf", {
+    const response = await api.get<Blob>("/api/Reports/report-classes-pdf", {
       responseType: "blob",
     });
 

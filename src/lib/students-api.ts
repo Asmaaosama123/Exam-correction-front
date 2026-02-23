@@ -119,8 +119,8 @@ export const studentsApi = {
 
     const url =
       data.classIds.length > 0
-        ? `/Reports/report-students-pdf?${queryParams.toString()}`
-        : "/Reports/report-students-pdf";
+        ? `/api/Reports/report-students-pdf?${queryParams.toString()}`
+        : "/api/Reports/report-students-pdf";
 
     const response = await api.get<Blob>(url, {
       responseType: "blob",

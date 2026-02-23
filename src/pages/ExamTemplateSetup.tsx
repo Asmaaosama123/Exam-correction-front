@@ -603,12 +603,12 @@ export default function ExamTemplateSetup() {
         ];
       }
 
-      const roi = calculateOverallROI(question);
+      calculateOverallROI(question);
       const questionObj: any = {
         id: question.index.toString(),
         type: question.type,
         answer: question.answer,
-        points: 1 // ✅ القيمة الافتراضية
+        points: question.points || 1 // ✅ استخدام الدرجة المحددة من المعلم
       };
       if (question.type !== "essay" && question.type !== "complete") {
         questionObj.rois = rois;
@@ -1275,16 +1275,16 @@ export default function ExamTemplateSetup() {
               {questions.map((question) => (
                 <Card key={question.id}>
                   <CardContent className="pt-4">
-                    <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
                       <div className="flex items-center gap-2">
-                        <Badge>سؤال {question.index}</Badge>
+                        <Badge className="px-3 py-1 text-sm">سؤال {question.index}</Badge>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                         <Select
                           value={question.type}
                           onValueChange={(value: QuestionType) => updateQuestionType(question.id, value)}
                         >
-                          <SelectTrigger className="w-32">
+                          <SelectTrigger className="w-full sm:w-36 h-9">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1294,13 +1294,14 @@ export default function ExamTemplateSetup() {
                             <SelectItem value="complete">أكمل</SelectItem>
                           </SelectContent>
                         </Select>
-                        <div className="flex items-center gap-2">
-                          <Label className="text-xs">الدرجة:</Label>
+
+                        <div className="flex items-center gap-2 bg-muted/40 p-1.5 px-3 rounded-lg border border-dashed flex-1 sm:flex-none justify-center">
+                          <Label className="text-xs font-semibold whitespace-nowrap">الدرجة:</Label>
                           <Input
                             type="number"
                             step="0.125"
                             min="0.125"
-                            className="w-20 h-8 text-xs"
+                            className="w-20 h-8 text-xs font-bold bg-background"
                             value={question.points || 1}
                             onChange={(e) => {
                               const val = parseFloat(e.target.value);
@@ -1312,13 +1313,15 @@ export default function ExamTemplateSetup() {
                             }}
                           />
                         </div>
+
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteQuestion(question.id)}
+                          className="text-destructive hover:bg-destructive/10 h-9 w-9 p-0"
                         >
-                          <Trash2 className="w-4 h-4 text-destructive" />
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>

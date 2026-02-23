@@ -6,6 +6,7 @@ export interface GradingDetail {
   conf: number;
   ok: boolean;
   method: string;
+  points: number;
 }
 
 export interface ExamResult {

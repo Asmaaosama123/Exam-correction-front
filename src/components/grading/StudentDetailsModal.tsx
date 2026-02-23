@@ -125,8 +125,8 @@ export function StudentDetailsModal({
                         {translateAnswer(detail.pred, detail.type)}
                       </span>
                     </td>
-                    <td className="p-4 text-sm font-semibold">
-                      {detail.points} درجات
+                    <td className="p-4 text-sm font-semibold text-primary">
+                      {detail.points ?? 1} درجة
                     </td>
                     <td className="p-4">
                       {detail.ok ? (

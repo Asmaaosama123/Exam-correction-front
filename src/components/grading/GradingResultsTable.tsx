@@ -93,12 +93,24 @@ export function GradingResultsTable() {
         responseType: "blob",
       });
 
-      const contentDisposition = response.headers["content-disposition"];
-      let filename = format === "excel" ? "درجات_الاختبار.xlsx" : "درجات_الاختبار.pdf";
+      const contentDisposition = response.headers["content-disposition"] || response.headers["Content-Disposition"];
+
+      // Default filename fallback using exam title if possible
+      const selectedExam = examsData?.find(e => String(e.id) === selectedExamId);
+      const cleanTitle = selectedExam?.title?.replace(/[\\/:*?"<>|]/g, "_") || "درجات_الاختبار";
+      let filename = format === "excel" ? `${cleanTitle}.xlsx` : `${cleanTitle}.pdf`;
+
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        // Try to extract filename from content-disposition
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
         if (filenameMatch && filenameMatch[1]) {
           filename = decodeURIComponent(filenameMatch[1].replace(/['"]/g, ""));
+        } else {
+          // Try filename* (UTF-8)
+          const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;\n]*)/i);
+          if (filenameStarMatch && filenameStarMatch[1]) {
+            filename = decodeURIComponent(filenameStarMatch[1]);
+          }
         }
       }
 

@@ -95,6 +95,8 @@ export default function ExamTemplateSetup() {
 
   const [answerDialogOpen, setAnswerDialogOpen] = useState(false);
   const [examId, setExamId] = useState<string>("");
+  // خريطة نصية مؤقتة لإدخال الدرجات (تدعم الكسور أثناء الكتابة)
+  const [pointsInputMap, setPointsInputMap] = useState<Record<string, string>>({});
   const isLoading = uploadTeacherExamMutation.isPending;
   const [pdfConverting, setPdfConverting] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -1300,18 +1302,32 @@ export default function ExamTemplateSetup() {
                           <Input
                             type="text"
                             inputMode="decimal"
-                            pattern="[0-9]*[.,]?[0-9]*"
                             className="w-24 h-10 text-center text-sm font-bold bg-background border-2 focus-visible:ring-primary shadow-sm rounded-lg"
-                            value={question.points || 1}
+                            value={pointsInputMap[question.id] ?? String(question.points ?? 1)}
                             onChange={(e) => {
-                              // التحقق من أن القيمة المدخلة رقمية (بما في ذلك الكسور)
-                              const valStr = e.target.value.replace(/[^\d.]/g, '');
-                              const val = parseFloat(valStr);
-                              if (!isNaN(val) || valStr === "") {
+                              // رفض أي حرف غير رقم أو نقطة
+                              const raw = e.target.value.replace(/[^0-9.]/g, '');
+                              // منع أكثر من نقطة واحدة
+                              const parts = raw.split('.');
+                              const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : raw;
+                              // تحديث النص المؤقت دائماً
+                              setPointsInputMap(prev => ({ ...prev, [question.id]: sanitized }));
+                              // تحديث القيمة الرقمية فقط لو الـ input كامل
+                              const val = parseFloat(sanitized);
+                              if (!isNaN(val)) {
                                 setQuestions(prev => prev.map(q =>
-                                  q.id === question.id ? { ...q, points: valStr === "" ? 0 : val } : q
+                                  q.id === question.id ? { ...q, points: val } : q
                                 ));
                               }
+                            }}
+                            onBlur={(e) => {
+                              // عند الخروج من الحقل: تطبيع القيمة
+                              const val = parseFloat(e.target.value);
+                              const finalVal = isNaN(val) || val <= 0 ? 1 : val;
+                              setQuestions(prev => prev.map(q =>
+                                q.id === question.id ? { ...q, points: finalVal } : q
+                              ));
+                              setPointsInputMap(prev => ({ ...prev, [question.id]: String(finalVal) }));
                             }}
                           />
                         </div>

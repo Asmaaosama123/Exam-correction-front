@@ -126,7 +126,7 @@ export function StudentDetailsModal({
                       </span>
                     </td>
                     <td className="p-4 text-sm font-semibold text-primary">
-                      {detail.points ?? 1} درجة
+                      {detail.points} درجة
                     </td>
                     <td className="p-4">
                       {detail.ok ? (

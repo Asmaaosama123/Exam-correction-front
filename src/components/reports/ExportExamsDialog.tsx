@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Download, Loader2, AlertCircle, FileSpreadsheet } from "lucide-react";
+import { Download, Loader2, AlertCircle, FileSpreadsheet, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,

@@ -101,15 +101,15 @@ export function GradingResultsTable() {
       let filename = format === "excel" ? `${cleanTitle}.xlsx` : `${cleanTitle}.pdf`;
 
       if (contentDisposition) {
-        // Try to extract filename from content-disposition
-        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
-        if (filenameMatch && filenameMatch[1]) {
-          filename = decodeURIComponent(filenameMatch[1].replace(/['"]/g, ""));
+        // Prioritize filename* (UTF-8)
+        const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;\n]*)/i);
+        if (filenameStarMatch && filenameStarMatch[1]) {
+          filename = decodeURIComponent(filenameStarMatch[1]);
         } else {
-          // Try filename* (UTF-8)
-          const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;\n]*)/i);
-          if (filenameStarMatch && filenameStarMatch[1]) {
-            filename = decodeURIComponent(filenameStarMatch[1]);
+          // Fallback to standard filename
+          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = decodeURIComponent(filenameMatch[1].replace(/['"]/g, ""));
           }
         }
       }

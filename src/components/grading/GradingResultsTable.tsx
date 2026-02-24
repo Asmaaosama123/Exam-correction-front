@@ -10,8 +10,13 @@ import {
   Filter,
   FileImage,
   ExternalLink,
+  Download,
+  Loader2,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
-import { StudentDetailsModal } from "./StudentDetailsModal";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +51,7 @@ export function GradingResultsTable() {
   );
   const [searchValue, setSearchValue] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [isExporting, setIsExporting] = useState<"excel" | "pdf" | null>(null);
 
   // Debounce search
   useEffect(() => {
@@ -72,6 +78,46 @@ export function GradingResultsTable() {
     classId: selectedClassId,
     searchValue: debouncedSearch || undefined,
   });
+
+  const handleExport = async (format: "excel" | "pdf") => {
+    if (!selectedExamId) {
+      toast.error("يرجى اختيار اختبار أولاً للتصدير");
+      return;
+    }
+
+    setIsExporting(format);
+    try {
+      const endpoint = format === "excel" ? "report-exam-results-excel" : "report-exam-results-pdf";
+      const response = await api.get(`/api/Reports/${endpoint}?examId=${selectedExamId}`, {
+        responseType: "blob",
+      });
+
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = format === "excel" ? "درجات_الاختبار.xlsx" : "درجات_الاختبار.pdf";
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = decodeURIComponent(filenameMatch[1].replace(/['"]/g, ""));
+        }
+      }
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("تم تصدير الدرجات بنجاح");
+    } catch (error: any) {
+      console.error("Export failed", error);
+      toast.error("فشل تصدير الدرجات. يرجى المحاولة مرة أخرى.");
+    } finally {
+      setIsExporting(null);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     try {
@@ -228,6 +274,38 @@ export function GradingResultsTable() {
                 className="pr-10 h-10 transition-all shadow-sm"
               />
             </div>
+          </div>
+
+          {/* Export Buttons */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-all font-bold"
+              onClick={() => handleExport("excel")}
+              disabled={!selectedExamId || !!isExporting}
+            >
+              {isExporting === "excel" ? (
+                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+              ) : (
+                <FileSpreadsheet className="w-4 h-4 ml-2" />
+              )}
+              تصدير Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-all font-bold"
+              onClick={() => handleExport("pdf")}
+              disabled={!selectedExamId || !!isExporting}
+            >
+              {isExporting === "pdf" ? (
+                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+              ) : (
+                <FileText className="w-4 h-4 ml-2" />
+              )}
+              تصدير PDF
+            </Button>
           </div>
         </div>
 

@@ -1297,39 +1297,61 @@ export default function ExamTemplateSetup() {
                           </SelectContent>
                         </Select>
 
-                        <div className="flex items-center gap-2 bg-muted/40 p-1.5 px-3 rounded-xl border border-dashed flex-1 sm:flex-none justify-center min-h-[48px]">
-                          <Label className="text-sm font-bold whitespace-nowrap">الدرجة:</Label>
-                          <Input
-                            type="text"
-                            inputMode="decimal"
-                            className="w-24 h-10 text-center text-sm font-bold bg-background border-2 focus-visible:ring-primary shadow-sm rounded-lg"
-                            value={pointsInputMap[question.id] ?? String(question.points ?? 1)}
-                            onChange={(e) => {
-                              // رفض أي حرف غير رقم أو نقطة
-                              const raw = e.target.value.replace(/[^0-9.]/g, '');
-                              // منع أكثر من نقطة واحدة
-                              const parts = raw.split('.');
-                              const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : raw;
-                              // تحديث النص المؤقت دائماً
-                              setPointsInputMap(prev => ({ ...prev, [question.id]: sanitized }));
-                              // تحديث القيمة الرقمية فقط لو الـ input كامل
-                              const val = parseFloat(sanitized);
-                              if (!isNaN(val)) {
+                        <div className="flex flex-col gap-2 bg-muted/40 p-2 rounded-xl border border-dashed flex-1 sm:flex-none">
+                          <div className="flex items-center gap-2 justify-center">
+                            <Label className="text-sm font-bold whitespace-nowrap">الدرجة:</Label>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              className="w-20 h-9 text-center text-sm font-bold bg-background border-2 focus-visible:ring-primary shadow-sm rounded-lg"
+                              value={pointsInputMap[question.id] ?? String(question.points ?? 1)}
+                              onChange={(e) => {
+                                // رفض أي حرف غير رقم أو نقطة
+                                const raw = e.target.value.replace(/[^0-9.]/g, '');
+                                // منع أكثر من نقطة واحدة
+                                const parts = raw.split('.');
+                                const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : raw;
+                                // تحديث النص المؤقت دائماً
+                                setPointsInputMap(prev => ({ ...prev, [question.id]: sanitized }));
+                                // تحديث القيمة الرقمية فقط لو الـ input كامل
+                                const val = parseFloat(sanitized);
+                                if (!isNaN(val)) {
+                                  setQuestions(prev => prev.map(q =>
+                                    q.id === question.id ? { ...q, points: val } : q
+                                  ));
+                                }
+                              }}
+                              onBlur={(e) => {
+                                // عند الخروج من الحقل: تطبيع القيمة
+                                const val = parseFloat(e.target.value);
+                                const finalVal = isNaN(val) || val <= 0 ? 1 : val;
                                 setQuestions(prev => prev.map(q =>
-                                  q.id === question.id ? { ...q, points: val } : q
+                                  q.id === question.id ? { ...q, points: finalVal } : q
                                 ));
-                              }
-                            }}
-                            onBlur={(e) => {
-                              // عند الخروج من الحقل: تطبيع القيمة
-                              const val = parseFloat(e.target.value);
-                              const finalVal = isNaN(val) || val <= 0 ? 1 : val;
-                              setQuestions(prev => prev.map(q =>
-                                q.id === question.id ? { ...q, points: finalVal } : q
-                              ));
-                              setPointsInputMap(prev => ({ ...prev, [question.id]: String(finalVal) }));
-                            }}
-                          />
+                                setPointsInputMap(prev => ({ ...prev, [question.id]: String(finalVal) }));
+                              }}
+                            />
+                          </div>
+
+                          <div className="flex gap-1 justify-center">
+                            {[0.25, 0.5, 1, 2].map(pts => (
+                              <Button
+                                key={pts}
+                                type="button"
+                                variant={question.points === pts ? "default" : "outline"}
+                                size="sm"
+                                className="h-7 px-2 text-[10px] font-bold"
+                                onClick={() => {
+                                  setQuestions(prev => prev.map(q =>
+                                    q.id === question.id ? { ...q, points: pts } : q
+                                  ));
+                                  setPointsInputMap(prev => ({ ...prev, [question.id]: String(pts) }));
+                                }}
+                              >
+                                {pts === 0.25 ? "¼" : pts === 0.5 ? "½" : pts}
+                              </Button>
+                            ))}
+                          </div>
                         </div>
 
                         <Button

@@ -1,0 +1,196 @@
+import { api } from "./api";
+import type {
+  GetStudentsRequest,
+  GetStudentsResponse,
+  GetStudentRequest,
+  GetStudentResponse,
+  AddStudentRequest,
+  AddStudentResponse,
+  UpdateStudentRequest,
+  UpdateStudentResponse,
+  DeleteStudentResponse,
+  ImportStudentsResponse,
+  ImportStudentsRequest,
+  ExportStudentsRequest,
+} from "@/types/students";
+
+// Students API endpoints
+export const studentsApi = {
+  getStudents: async (
+    params: GetStudentsRequest
+  ): Promise<GetStudentsResponse> => {
+    const queryParams = new URLSearchParams({
+      pageNumber: String(params.pageNumber || 1),
+      pageSize: String(params.pageSize || 10),
+    });
+
+    if (params.classId) {
+      queryParams.append("classId", params.classId);
+    }
+
+    if (params.SearchValue) {
+      queryParams.append("SearchValue", params.SearchValue);
+    }
+
+    const response = await api.get<GetStudentsResponse>(
+      `/api/students?${queryParams.toString()}`
+    );
+    return response.data;
+  },
+
+  getStudent: async (
+    params: GetStudentRequest
+  ): Promise<GetStudentResponse> => {
+    const queryParams = new URLSearchParams({
+      classId: params.classId,
+    });
+
+    const response = await api.get<GetStudentResponse>(
+      `/api/students/${params.studentId}?${queryParams.toString()}`
+    );
+    return response.data;
+  },
+
+  addStudent: async (
+    classId: string,
+    data: AddStudentRequest
+  ): Promise<AddStudentResponse> => {
+    const queryParams = new URLSearchParams({
+      classId,
+    });
+
+    const response = await api.post<AddStudentResponse>(
+      `/api/students?${queryParams.toString()}`,
+      data
+    );
+    return response.data;
+  },
+
+  updateStudent: async (
+    studentId: string,
+    data: UpdateStudentRequest
+  ): Promise<UpdateStudentResponse> => {
+    const response = await api.put<UpdateStudentResponse>(
+      `/api/students/${studentId}`,
+      data
+    );
+    return response.data;
+  },
+
+  deleteStudent: async (studentId: string): Promise<DeleteStudentResponse> => {
+    const response = await api.delete<DeleteStudentResponse>(
+      `/api/students/${studentId}`
+    );
+    // Handle 204 No Content or empty response
+    return response.data || { success: true };
+  },
+
+  importStudents: async (
+    file: File,
+    data: ImportStudentsRequest
+  ): Promise<ImportStudentsResponse> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    // Backend expects this field name exactly
+    formData.append("ClassId", data.ClassId);
+
+    const response = await api.post<ImportStudentsResponse>(
+      "/api/students/import-students",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  },
+
+  exportStudentsToPdf: async (
+    data: ExportStudentsRequest
+  ): Promise<{ blob: Blob; filename: string }> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (data.classIds.length > 0) {
+        data.classIds.forEach((classId) => {
+          queryParams.append("classIds", classId);
+        });
+      }
+
+      const url = data.classIds.length > 0
+        ? `/api/Reports/report-students-pdf?${queryParams.toString()}`
+        : "/api/Reports/report-students-pdf";
+
+      const response = await api.get<Blob>(url, {
+        responseType: "blob",
+      });
+
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = `students_export_${new Date().toISOString().split("T")[0]}.pdf`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, "");
+        }
+      }
+
+      return { blob: response.data, filename };
+    } catch (error: any) {
+      if (error.response?.data instanceof Blob && error.response.data.type === "application/json") {
+        const text = await error.response.data.text();
+        try {
+          const jsonError = JSON.parse(text);
+          error.response.data = jsonError;
+        } catch (e) {
+          // Ignore parsing error, keep original blob
+        }
+      }
+      throw error;
+    }
+  },
+
+  exportStudentsToExcel: async (
+    data: ExportStudentsRequest
+  ): Promise<{ blob: Blob; filename: string }> => {
+    try {
+      const queryParams = new URLSearchParams();
+      if (data.classIds.length > 0) {
+        data.classIds.forEach((classId) => {
+          queryParams.append("classIds", classId);
+        });
+      }
+
+      const url = data.classIds.length > 0
+        ? `/api/Reports/report-students-excel?${queryParams.toString()}`
+        : "/api/Reports/report-students-excel";
+
+      const response = await api.get<Blob>(url, {
+        responseType: "blob",
+      });
+
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = `students_export_${new Date().toISOString().split("T")[0]}.xlsx`;
+
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, "");
+        }
+      }
+
+      return { blob: response.data, filename };
+    } catch (error: any) {
+      if (error.response?.data instanceof Blob && error.response.data.type === "application/json") {
+        const text = await error.response.data.text();
+        try {
+          const jsonError = JSON.parse(text);
+          error.response.data = jsonError;
+        } catch (e) {
+          // Ignore parsing error
+        }
+      }
+      throw error;
+    }
+  },
+};

@@ -1,0 +1,376 @@
+import { useState, useRef } from "react";
+import {
+  Upload,
+  FileText,
+  X,
+  Loader2,
+  CheckCircle2,
+  Camera,
+} from "lucide-react";
+import jsPDF from "jspdf";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { toast } from "sonner";
+import type { ExamResult } from "@/types/grading";
+
+const ACCEPTED_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+];
+const ACCEPT_ATTR =
+  "application/pdf,image/jpeg,image/jpg,image/png,image/webp,image/gif";
+
+interface GradePaperUploadProps {
+  onUpload: (file: File, templateId?: number) => Promise<void>;
+  isLoading: boolean;
+  onCameraResults?: (results: ExamResult[]) => void;
+}
+
+export function GradePaperUpload({
+  onUpload,
+  isLoading,
+}: GradePaperUploadProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [templateIdStr, setTemplateIdStr] = useState<string>("");
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const mergeImagesToPdf = async (files: File[]): Promise<{ file: File }> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const sortedFiles = [...files].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+        );
+
+        let pdf: jsPDF | null = null;
+
+        for (let i = 0; i < sortedFiles.length; i++) {
+          const file = sortedFiles[i];
+          const img = new Image();
+          const url = URL.createObjectURL(file);
+
+          await new Promise((res, rej) => {
+            img.onload = () => {
+              // 1. Calculate optimal dimensions (Max width 1600px)
+              const MAX_WIDTH = 1600;
+              const scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
+              const targetWidth = img.width * scale;
+              const targetHeight = img.height * scale;
+
+              // 2. Use canvas to resize and compress as JPEG
+              const canvas = document.createElement("canvas");
+              canvas.width = targetWidth;
+              canvas.height = targetHeight;
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, targetWidth, targetHeight);
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+              }
+
+              const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.75);
+
+              // 3. Add to PDF with dynamic page size
+              const mmWidth = targetWidth * 0.264583;
+              const mmHeight = targetHeight * 0.264583;
+
+              if (i === 0) {
+                pdf = new jsPDF({
+                  orientation: mmWidth > mmHeight ? "landscape" : "portrait",
+                  unit: "mm",
+                  format: [mmWidth, mmHeight]
+                });
+              } else if (pdf) {
+                pdf.addPage([mmWidth, mmHeight], mmWidth > mmHeight ? "landscape" : "portrait");
+              }
+
+              if (pdf) {
+                pdf.addImage(compressedDataUrl, "JPEG", 0, 0, mmWidth, mmHeight, undefined, "FAST");
+              }
+
+              URL.revokeObjectURL(url);
+              res(null);
+            };
+            img.onerror = () => {
+              URL.revokeObjectURL(url);
+              rej(new Error(`فشل تحميل الصورة: ${file.name}`));
+            };
+            img.src = url;
+          });
+        }
+
+        if (!pdf) throw new Error("لم يتم إنشاء ملف PDF");
+        const pdfBlob = (pdf as any).output("blob");
+        const pdfFile = new File([pdfBlob], `batch_grading_${Date.now()}.pdf`, { type: "application/pdf" });
+        resolve({ file: pdfFile });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement> | File | File[]) => {
+    let files: File[] = [];
+
+    if (Array.isArray(e)) {
+      files = e;
+    } else if (e instanceof File) {
+      files = [e];
+    } else {
+      files = Array.from(e.target.files || []);
+    }
+
+    if (files.length === 0) return;
+
+    const hasPdf = files.some(f => f.name.toLowerCase().endsWith('.pdf'));
+    if (hasPdf && files.length > 1) {
+      toast.error("لا يمكن رفع أكثر من ملف PDF واحد");
+      return;
+    }
+
+    if (files.length > 1000) {
+      toast.error("لا يمكن رفع أكثر من 1000 صورة في المرة الواحدة");
+      return;
+    }
+
+    const invalidFiles = files.filter(f => !ACCEPTED_TYPES.includes(f.type) && !f.name.toLowerCase().endsWith('.pdf'));
+    if (invalidFiles.length > 0) {
+      toast.error("بعض الملفات غير مدعومة. يرجى اختيار PDF أو صور فقط.");
+      return;
+    }
+
+    if (files.length === 1 && files[0].name.toLowerCase().endsWith('.pdf')) {
+      setSelectedFile(files[0]);
+    } else {
+      try {
+        const { file } = await mergeImagesToPdf(files);
+        setSelectedFile(file);
+      } catch (err) {
+        toast.error("حدث خطأ أثناء معالجة الصور");
+        console.error(err);
+      }
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileSelect(e);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleGrade = async () => {
+    if (!selectedFile) {
+      toast.error("يرجى اختيار ملف للتصحيح");
+      return;
+    }
+    const tid = parseInt(templateIdStr, 10);
+    await onUpload(selectedFile, isNaN(tid) ? undefined : tid);
+    handleRemoveFile();
+  };
+
+  // فتح الكاميرا باستخدام input native
+  const handleCameraScan = () => {
+    cameraInputRef.current?.click();
+  };
+
+  const handleCameraInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleFileSelect(e);
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+  };
+
+  return (
+    <Card className="border-0 shadow-lg overflow-hidden bg-card dark:border dark:border-border">
+      <CardHeader className="border-b bg-card/50 backdrop-blur-sm p-4 sm:p-6">
+        <CardTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+          <Upload className="h-5 w-5 sm:h-6 sm:h-6 text-primary" />
+          تصحيح الاختبارات
+        </CardTitle>
+        <CardDescription className="text-sm sm:text-base">
+          ارفع ورقة الاختبار الممسوحة ضوئياً أو استخدم الكاميرا لتصحيحها فوراً
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="space-y-6 p-6">
+        {/* رفع الملفات */}
+        {!selectedFile ? (
+          <div
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            className={`flex items-center justify-center w-full h-48 border-2 border-dashed rounded-xl cursor-pointer transition-all ${dragActive
+              ? "border-primary bg-primary/10 scale-[1.02]"
+              : "border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5"
+              }`}
+            onClick={() => !isLoading && fileInputRef.current?.click()}
+          >
+            <div className="flex flex-col items-center justify-center p-4 sm:p-6 text-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 flex items-center justify-center mb-3 sm:mb-4">
+                <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+              </div>
+              <p className="mb-1 text-base sm:text-lg font-medium">
+                <span className="font-bold text-primary">انقر للرفع</span> أو اسحب الملف هنا
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-[250px] sm:max-w-none">
+                يدعم الملفات من نوع PDF وجميع أنواع الصور
+              </p>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              accept={ACCEPT_ATTR}
+              onChange={handleFileInputChange}
+              disabled={isLoading}
+            />
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary/5 to-transparent rounded-xl border border-primary/20">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <FileText className="w-6 h-6 text-primary" />
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-base font-semibold truncate max-w-[150px] sm:max-w-[300px]">{selectedFile.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRemoveFile}
+                disabled={isLoading}
+                className="hover:bg-destructive/10 hover:text-destructive"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            {/* Template ID Input (Advanced Option) */}
+            <div className="border border-border/50 rounded-xl overflow-hidden bg-background/50">
+              <details className="group">
+                <summary className="flex items-center justify-between p-4 cursor-pointer font-medium text-sm text-foreground/80 hover:text-foreground transition-colors list-none [&::-webkit-details-marker]:hidden">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <span>خيارات متقدمة (تصحيح بدون باركود)</span>
+                  </div>
+                  <span className="transition group-open:rotate-180">
+                    <svg fill="none" height="24" shapeRendering="geometricPrecision" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="24"><path d="M6 9l6 6 6-6"></path></svg>
+                  </span>
+                </summary>
+                <div className="p-4 pt-0 border-t border-border/50">
+                  <label htmlFor="templateId" className="block text-sm font-semibold mb-2">رقم نموذج المعلم (اختياري)</label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    أدخل رقم النموذج الخاص بالمعلم إذا كانت ورقة الإجابة لا تحتوي على باركود. إذا تركت هذا الحقل فارغاً، سيتم التعرف على الامتحان باستخدام الباركود.
+                  </p>
+                  <input
+                    id="templateId"
+                    type="number"
+                    value={templateIdStr}
+                    onChange={(e) => setTemplateIdStr(e.target.value)}
+                    placeholder="مثال: 12"
+                    className="w-full sm:w-64 px-3 py-2 border rounded-lg bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  />
+                </div>
+              </details>
+            </div>
+
+            <Button
+              onClick={handleGrade}
+              disabled={isLoading}
+              className="w-full h-14 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg"
+              size="lg"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                  جاري التصحيح...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-5 h-5 ml-2" />
+                  تصحيح
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        <div className="relative pt-4">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-dashed border-slate-300 dark:border-slate-700" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-4 text-sm text-muted-foreground">أو</span>
+          </div>
+        </div>
+
+        {/* زر الكاميرا - يفتح في نفس الصفحة */}
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-3 h-auto py-3 sm:py-4 border-2 hover:bg-accent/50 transition-all rounded-xl"
+          onClick={handleCameraScan}
+        >
+          <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+            <Camera className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex flex-col items-start text-right overflow-hidden">
+            <span className="text-sm sm:text-base font-bold text-slate-700">
+              استخدام الكاميرا
+            </span>
+            <span className="text-[11px] sm:text-xs text-muted-foreground truncate w-full">
+              التقاط صورة مباشرة من كاميرا الجهاز
+            </span>
+          </div>
+        </Button>
+
+        {/* Hidden Camera Input */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          className="hidden"
+          accept="image/*"
+          capture="environment"
+          onChange={handleCameraInputChange}
+          disabled={isLoading}
+        />
+      </CardContent>
+    </Card>
+  );
+}

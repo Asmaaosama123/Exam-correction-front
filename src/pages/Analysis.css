@@ -1,0 +1,95 @@
+body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    background: white;
+}
+
+/* Professional report styling */
+.report-page {
+    padding: 2cm;
+    min-height: 29.7cm;
+    /* A4 height */
+}
+
+.cover-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.logo-container {
+    margin-bottom: 2rem;
+}
+
+.report-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 3rem;
+    color: #1a1a1a;
+}
+
+.exam-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 600px;
+    margin-top: 2rem;
+    border: 2px solid #e2e8f0;
+    padding: 2rem;
+    border-radius: 1rem;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.detail-label {
+    font-size: 0.875rem;
+    color: #718096;
+    font-weight: 600;
+}
+
+.detail-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2d3748;
+}
+
+
+/* Custom analysis grid/flex helpers if needed, but prefixed to avoid conflicts */
+.analysis-card-custom {
+    background: white;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.analysis-grid-3 {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.analysis-flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .analysis-grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .analysis-flex-between {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

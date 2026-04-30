@@ -1,0 +1,214 @@
+/* Student Report Premium Styles */
+
+.student-report-container {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    flex: 1;
+}
+
+.report-header-section {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .report-header-section {
+        flex-direction: row;
+        align-items: center;
+    }
+}
+
+/* Premium Selection Card */
+.selection-card-premium {
+    border: none !important;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    border-radius: 2rem !important;
+    box-shadow: 0 20px 25px -5px rgba(15, 139, 76, 0.05), 0 8px 10px -6px rgba(15, 139, 76, 0.05) !important;
+}
+
+.student-summary-banner {
+    margin-top: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background-color: rgba(16, 185, 129, 0.04);
+    border-radius: 2rem;
+    border: 1px solid rgba(16, 185, 129, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.student-initials-box {
+    height: 3.5rem;
+    width: 3.5rem;
+    border-radius: 1.25rem;
+    background-color: #0f8b4c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 2px solid white;
+    box-shadow: 0 10px 15px -3px rgba(15, 139, 76, 0.2);
+}
+
+/* Status Cards Grid */
+.status-cards-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .status-cards-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.card-status-primary {
+    border: none !important;
+    background: linear-gradient(135deg, #0f8b4c 0%, #064e3b 100%);
+    color: white !important;
+    border-radius: 1rem !important;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.1) !important;
+}
+
+.card-status-secondary {
+    border: 1px solid rgba(226, 232, 240, 0.3) !important;
+    background-color: white !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Chart & Skill Evolution */
+.report-main-card {
+    border: none !important;
+    border-radius: 2.5rem !important;
+    background-color: white !important;
+    box-shadow: 0 25px 50px -12px rgba(148, 163, 184, 0.15) !important;
+    border: 1px solid #f1f5f9 !important;
+    overflow: hidden;
+}
+
+.chart-wrapper-premium {
+    height: 450px;
+    width: 100%;
+    background-color: white;
+    border-radius: 1.5rem;
+    padding: 1rem;
+    border: 1px solid #f8fafc;
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+}
+
+.skills-evolution-grid {
+    display: grid;
+    gap: 2rem;
+}
+
+@media (min-width: 768px) {
+    .skills-evolution-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .skills-evolution-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.skill-evolution-item {
+    padding: 1.75rem;
+    border-radius: 2.5rem;
+    background-color: #f8fafc;
+    border: 1px solid #f1f5f9;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.skill-evolution-item:hover {
+    background-color: white;
+    box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.05);
+    border-bottom: 8px solid #10b981;
+}
+
+/* Exam Table Premium */
+.exam-table-container {
+    overflow-x: auto;
+}
+
+.exam-table-premium {
+    width: 100%;
+    text-align: right;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.exam-table-premium thead th {
+    padding: 1.75rem 3rem;
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    background-color: rgba(248, 250, 252, 0.7);
+    backdrop-filter: blur(4px);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.exam-table-premium tbody tr {
+    transition: all 0.2s ease;
+}
+
+.exam-table-premium tbody tr:hover {
+    background-color: rgba(16, 185, 129, 0.03);
+}
+
+/* Strength & Weakness Boxes */
+.analysis-card-premium {
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.analysis-header-strength {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    background-color: rgba(16, 185, 129, 0.1);
+}
+
+.analysis-header-weakness {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    background-color: rgba(244, 63, 94, 0.1);
+}
+
+/* Utility Animations */
+@keyframes pulse-soft {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+}
+
+.animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+}

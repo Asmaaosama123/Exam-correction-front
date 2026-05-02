@@ -1,6 +1,6 @@
 // components/ExamTemplateSetup.tsx
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, PlusCircle as PlusCircleIcon, BarChart3, Camera, Image as ImageIcon, Save, Loader2, ChevronDown, ChevronUp, Sparkles, Wand2 } from "lucide-react";
+import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, PlusCircle as PlusCircleIcon, BarChart3, Camera, Image as ImageIcon, Save, Loader2, ChevronDown, ChevronUp, Sparkles, Wand2, Pencil } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { HelpFab } from "@/components/ui/help-fab";
@@ -707,20 +707,28 @@ export default function ExamTemplateSetup() {
         questionsData.push({
           id: question.index || currentIdCounter++,
           type: question.type,
+          text: question.text,
           answer: question.teacherAnswer || question.geminiAnswer,
           points: question.points || 1,
-          rois: {} // No ROIs for AI identified questions
+          page: question.page || 1,
+          rois: {}
         });
         return;
       }
 
       // Existing logic for manual questions
       const overallRoi = calculateOverallROI(question);
+      const pageOffset = getPageOffset(question.page) / scale;
 
       if (question.type === "essay" || question.type === "complete" || question.type === "matching") {
         const subQuestions = question.essaySubQuestions || [];
         const commonRois = {
-          "main": overallRoi
+          "main": [
+            overallRoi[0],
+            Math.round(overallRoi[1] + pageOffset),
+            overallRoi[2],
+            overallRoi[3]
+          ]
         };
 
         if (subQuestions.length > 0) {
@@ -730,6 +738,7 @@ export default function ExamTemplateSetup() {
               type: question.type,
               answer: sub.answer,
               points: sub.points || 1,
+              page: question.page,
               rois: commonRois
             });
           });
@@ -739,6 +748,7 @@ export default function ExamTemplateSetup() {
             type: question.type,
             answer: question.answer || null,
             points: question.points || 1,
+            page: question.page,
             rois: commonRois
           });
         }
@@ -749,7 +759,7 @@ export default function ExamTemplateSetup() {
           question.options.forEach(option => {
             rois[option.label] = [
               Math.round(option.x),
-              Math.round(option.y),
+              Math.round(option.y + pageOffset),
               Math.round(option.width),
               Math.round(option.height)
             ];
@@ -757,7 +767,7 @@ export default function ExamTemplateSetup() {
         } else if (question.type === "true_false" && question.options.length >= 1) {
           rois["TF"] = [
             Math.round(question.options[0].x),
-            Math.round(question.options[0].y),
+            Math.round(question.options[0].y + pageOffset),
             Math.round(question.options[0].width),
             Math.round(question.options[0].height)
           ];
@@ -768,13 +778,19 @@ export default function ExamTemplateSetup() {
           type: question.type,
           answer: question.answer,
           points: question.points || 1,
+          page: question.page,
           rois: rois
         });
       }
     });
 
     return JSON.stringify({
-      canvas: { width: canvasWidth, height: canvasHeight },
+      canvas: { 
+        width: canvasWidth, 
+        height: pdfDimensions.height, // استخدم الطول الكلي الحقيقي
+        totalHeight: pdfDimensions.height,
+        pageCount: numPages
+      },
       questions: questionsData
     });
   };
@@ -1210,7 +1226,7 @@ export default function ExamTemplateSetup() {
                 </div>
                 <Separator orientation="vertical" className="h-4" />
                 <div className="flex items-center gap-1">
-                  <Badge variant="outline">{questions.length}</Badge>
+                  <Badge variant="outline">{questions.length || aiQuestions.length}</Badge>
                   <span className="text-muted-foreground">سؤال</span>
                 </div>
               </div>
@@ -1248,10 +1264,10 @@ export default function ExamTemplateSetup() {
                   variant="default"
                   size="sm"
                   onClick={() => setAnswerDialogOpen(true)}
-                  disabled={questions.length === 0}
+                  disabled={questions.length === 0 && aiQuestions.length === 0}
                 >
                   <Check className="w-4 h-4 ml-1" />
-                  الإجابات ({questions.length})
+                  الإجابات ({questions.length > 0 ? questions.length : aiQuestions.length})
                 </Button>
               </div>
 
@@ -1846,13 +1862,22 @@ export default function ExamTemplateSetup() {
 
                           <div className="p-4 sm:p-5 space-y-5">
                             <div className="space-y-2">
-                              <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <FileText className="w-3.5 h-3.5" />
-                                نص السؤال المكتشف
+                              <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <FileText className="w-3.5 h-3.5" />
+                                  نص السؤال المكتشف
+                                </div>
+                                <div className="flex items-center gap-1 text-primary/60">
+                                  <Pencil className="w-3 h-3" />
+                                  <span className="text-[9px] lowercase">(يمكنك التعديل)</span>
+                                </div>
                               </Label>
-                              <p className="text-sm sm:text-base font-semibold text-slate-700 bg-slate-50/50 p-4 rounded-xl border border-slate-100 leading-relaxed">
-                                {q.text}
-                              </p>
+                              <Textarea
+                                value={q.text}
+                                onChange={(e) => updateAiQuestion(q.id, 'text', e.target.value)}
+                                className="text-sm sm:text-base font-semibold text-slate-700 bg-white border-2 border-dashed border-slate-200 hover:border-primary/30 hover:bg-slate-50/50 p-4 rounded-xl leading-relaxed min-h-[80px] focus:border-primary/25 focus:bg-white focus:ring-0 transition-all resize-none shadow-sm"
+                                placeholder="نص السؤال هنا..."
+                              />
                             </div>
 
                             <div className="grid grid-cols-1 gap-5">

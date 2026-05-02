@@ -34,7 +34,7 @@ interface StudentFormDialogProps {
   onOpenChange: (open: boolean) => void;
   defaultClassId?: string;
   studentId?: string;
-  onSuccess?: () => void;
+  onSuccess?: (student: any) => void;
 }
 
 export function StudentFormDialog({
@@ -187,8 +187,8 @@ export function StudentFormDialog({
           data: updateData,
         },
         {
-          onSuccess: () => {
-            onSuccess?.();
+          onSuccess: (response) => {
+            onSuccess?.(response);
             onOpenChange(false);
           },
         }
@@ -217,8 +217,8 @@ export function StudentFormDialog({
           classId: selectedClassId,
         },
         {
-          onSuccess: () => {
-            onSuccess?.();
+          onSuccess: (response) => {
+            onSuccess?.(response);
             onOpenChange(false);
           },
         }

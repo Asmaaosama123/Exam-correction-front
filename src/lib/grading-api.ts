@@ -28,7 +28,10 @@ export const gradingApi = {
     return response.data;
   },
 
-  updateManualGrading: async (id: number, corrections: { questionId: string; isCorrect: boolean; selectedAnswer?: string }[]): Promise<void> => {
-    await api.post(`/api/GradingResults/${id}/manual-update`, corrections);
+  updateManualGrading: async (id: number, corrections: { questionId: string; isCorrect: boolean; selectedAnswer?: string }[], studentId?: number): Promise<void> => {
+    await api.post(`/api/GradingResults/${id}/manual-update`, {
+      corrections,
+      studentId,
+    });
   },
 };

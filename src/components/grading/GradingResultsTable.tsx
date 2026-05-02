@@ -14,6 +14,7 @@ import {
   FileText,
   FileSpreadsheet,
   AlertCircle,
+  Users,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -43,9 +44,11 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { adminApi, type UserDto } from "@/lib/adminApi";
 import { ManualGradingModal } from "./ManualGradingModal";
+import { useQueryClient } from "@tanstack/react-query";
 import type { GradingDetail } from "@/types/grading";
 
 export function GradingResultsTable() {
+  const queryClient = useQueryClient();
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedExamId, setSelectedExamId] = useState<string | undefined>(
@@ -59,11 +62,14 @@ export function GradingResultsTable() {
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | undefined>(undefined);
   const [teachers, setTeachers] = useState<UserDto[]>([]);
   const [isExporting, setIsExporting] = useState<"excel" | "pdf" | "papers-pdf" | null>(null);
+  const [onlyAnonymous, setOnlyAnonymous] = useState(false);
   const [reviewingPaper, setReviewingPaper] = useState<{
     id: string | number;
+    studentId: string | number;
     studentName: string;
     details: GradingDetail[];
     annotatedImageUrl?: string;
+    classId?: string | number;
   } | null>(null);
 
   const { data: user } = useAuth();
@@ -82,7 +88,7 @@ export function GradingResultsTable() {
   // Reset to first page when filters change
   useEffect(() => {
     setPageNumber(1);
-  }, [selectedExamId, selectedClassId, selectedTeacherId, pageSize]);
+  }, [selectedExamId, selectedClassId, selectedTeacherId, pageSize, onlyAnonymous]);
 
   // Fetch teachers if admin
   useEffect(() => {
@@ -101,6 +107,7 @@ export function GradingResultsTable() {
     classId: selectedClassId,
     searchValue: debouncedSearch || undefined,
     teacherId: selectedTeacherId,
+    onlyAnonymous,
   });
 
   const handleExport = async (format: "excel" | "pdf" | "papers-pdf") => {
@@ -178,6 +185,15 @@ export function GradingResultsTable() {
     }
   };
 
+  const formatArabicNumber = (num: number): string => {
+    const arabicNumbers = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+    return num
+      .toString()
+      .split("")
+      .map((digit) => arabicNumbers[parseInt(digit)])
+      .join("");
+  };
+
   const getGradeBadge = (grade: number, maxGrade?: number) => {
     if (!maxGrade) return <Badge variant="secondary" className="whitespace-nowrap px-2 py-0.5 text-[10px] sm:text-xs font-mono">{grade}</Badge>;
     const percentage = (grade / maxGrade) * 100;
@@ -218,7 +234,39 @@ export function GradingResultsTable() {
           عرض جميع نتائج التصحيح مع إمكانية التصفية والبحث
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
+        {/* Quick Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-3 bg-slate-100/50 p-1.5 rounded-2xl w-fit border border-slate-200">
+          <Button
+            variant={!onlyAnonymous ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setOnlyAnonymous(false)}
+            className={`rounded-xl h-9 px-4 font-bold transition-all ${!onlyAnonymous ? "bg-white text-primary shadow-sm hover:bg-white" : "text-slate-500 hover:text-slate-900"}`}
+          >
+            <Users className="w-4 h-4 ml-2" />
+            كل الطلاب
+          </Button>
+          <Button
+            variant={onlyAnonymous ? "default" : "ghost"}
+            size="sm"
+            onClick={() => {
+              setOnlyAnonymous(true);
+              setSelectedClassId(undefined); // Reset class filter as anonymous papers don't have one
+              setSelectedTeacherId(undefined);
+              setSearchValue("");
+            }}
+            className={`rounded-xl h-9 px-4 font-bold transition-all ${onlyAnonymous ? "bg-rose-500 text-white shadow-sm hover:bg-rose-600" : "text-slate-500 hover:text-rose-600 hover:bg-rose-50/50"}`}
+          >
+            <AlertCircle className="w-4 h-4 ml-2" />
+            طلاب غير معروفين
+            {data?.anonymousCount !== undefined && data.anonymousCount > 0 && (
+              <Badge className="mr-2 bg-rose-100 text-rose-600 border-0 text-[10px] h-4.5 px-1.5 animate-pulse">
+                {data.anonymousCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
+
         {/* Filters */}
         <div className="bg-muted/50 p-4 rounded-2xl border flex flex-col md:grid md:grid-cols-2 lg:flex lg:flex-row items-stretch lg:items-end gap-4">
           {/* Exam Filter */}
@@ -420,6 +468,9 @@ export function GradingResultsTable() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-muted/80 border-b">
+                    <th className="text-right p-3 sm:p-4 text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider w-10 sm:w-14">
+                      #
+                    </th>
                     <th className="text-right p-3 sm:p-4 text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                       اسم الطالب
                     </th>
@@ -449,18 +500,23 @@ export function GradingResultsTable() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {data?.items.map((result) => (
+                  {data?.items.map((result, index) => (
                     <tr
                       key={result.id}
                       className="transition-colors hover:bg-muted/50 group"
                     >
+                      <td className="p-3 sm:p-4 text-[10px] sm:text-xs text-slate-500 font-bold">
+                        {formatArabicNumber((pageNumber - 1) * pageSize + index + 1)}
+                      </td>
                       <td className="p-2 sm:p-4 max-w-[120px] sm:max-w-none">
                         <div className="flex items-center gap-2 sm:gap-3">
                           <div className="hidden sm:flex w-8 h-8 rounded-full bg-primary/10 items-center justify-center shrink-0">
                             <User className="h-4 w-4 text-primary" />
                           </div>
-                          <span className="font-semibold text-[11px] sm:text-sm truncate">
-                            {result.studentName || "غير معروف"}
+                          <span className={`font-semibold text-[11px] sm:text-sm truncate ${(!result.studentId || result.studentId === "0" || result.studentId === 0) ? "text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100" : ""}`}>
+                            {(!result.studentId || result.studentId === "0" || result.studentId === 0 || result.studentName?.includes("طالب مجهول"))
+                              ? `طالب مجهول ${formatArabicNumber((pageNumber - 1) * pageSize + index + 1)}`
+                              : result.studentName || "غير معروف"}
                           </span>
                         </div>
                       </td>
@@ -523,9 +579,11 @@ export function GradingResultsTable() {
                               className="h-6 w-8 sm:w-auto sm:h-8 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 px-0 sm:px-3 text-[10px] sm:text-sm font-bold flex items-center justify-center shrink-0"
                               onClick={() => setReviewingPaper({
                                 id: result.id,
+                                studentId: result.studentId || 0,
                                 studentName: result.studentName,
                                 details: result.questionDetails || [],
-                                annotatedImageUrl: result.annotatedImageUrl
+                                annotatedImageUrl: result.annotatedImageUrl,
+                                classId: result.classId
                               })}
                             >
                               <AlertCircle className="w-3 w-3 sm:h-3.5 sm:h-3.5 sm:ml-1.5" />
@@ -537,7 +595,7 @@ export function GradingResultsTable() {
                               href={(() => {
                                 const annotatedImageUrl = result.annotatedImageUrl;
                                 if (!annotatedImageUrl) return "#";
-                                
+
                                 const baseUrl = "https://examcorrection.wsyelhi.com";
                                 let fullImageUrl = "";
                                 let cleanPath = annotatedImageUrl.trim();
@@ -556,7 +614,7 @@ export function GradingResultsTable() {
                                 } else {
                                   fullImageUrl = cleanPath;
                                 }
-                                
+
                                 return fullImageUrl;
                               })()}
                               target="_blank"
@@ -642,15 +700,26 @@ export function GradingResultsTable() {
                       <ChevronRight className="h-4 w-4 ml-1 sm:ml-2" />
                       السابق
                     </Button>
-                    <div className="flex gap-1">
-                      {[...Array(Math.min(5, data.totalPages))].map((_, i) => {
-                        const pNum = i + 1; // Simplistic paged view
+                    <div className="flex flex-wrap justify-center gap-1">
+                      {[...Array(data.totalPages)].map((_, i) => {
+                        const pNum = i + 1;
+                        // لإصلاح الديزاين ع الموبايل: نظهر فقط الصفحة الحالية وجيرانها أو أول صفحتين
+                        const isVisible =
+                          data.totalPages <= 3 ||
+                          pNum === pageNumber ||
+                          pNum === pageNumber - 1 ||
+                          pNum === pageNumber + 1 ||
+                          (pageNumber === 1 && pNum <= 2) ||
+                          (pageNumber === data.totalPages && pNum >= data.totalPages - 2);
+
+                        if (!isVisible) return null;
+
                         return (
                           <Button
                             key={i}
                             variant={pageNumber === pNum ? "default" : "ghost"}
                             size="sm"
-                            className="w-9 h-9"
+                            className="w-8 h-8 sm:w-9 sm:h-9 text-[11px] sm:text-sm font-bold"
                             onClick={() => setPageNumber(pNum)}
                           >
                             {pNum}
@@ -682,12 +751,16 @@ export function GradingResultsTable() {
           isOpen={!!reviewingPaper}
           onClose={() => setReviewingPaper(null)}
           paperId={reviewingPaper.id}
+          studentId={reviewingPaper.studentId}
           studentName={reviewingPaper.studentName}
           details={reviewingPaper.details}
           annotatedImageUrl={reviewingPaper.annotatedImageUrl}
+          classId={reviewingPaper.classId}
           onSuccess={() => {
             setReviewingPaper(null);
-            // The mutation already invalidates the query, but we can force it here if needed
+            // Re-fetch data to sync all views (table and details modal)
+            queryClient.invalidateQueries({ queryKey: ["grading-results"] });
+            toast.success("تم تحديث البيانات في الجدول بنجاح");
           }}
         />
       )}

@@ -92,7 +92,7 @@ export function GradedExamResult({
       <CardContent className="space-y-6">
         {/* الجدول العصري - كروت للطلاب بدلاً من جدول تقليدي (لمسة كريتف) */}
         <div className="grid grid-cols-1 gap-4">
-          {results.map((result) => {
+          {results.map((result, index) => {
             const studentNumber = result.student_info?.student_id || extractStudentNumber(result.filename);
             const score = result.details?.score || 0;
             const total = result.details?.total || 1;
@@ -115,16 +115,27 @@ export function GradedExamResult({
                 <div className="flex flex-wrap items-center justify-between gap-4 mr-4">
                   {/* بيانات الطالب */}
                   <div className="flex items-center gap-3 sm:gap-4 overflow-hidden">
-                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex-shrink-0 flex items-center justify-center text-base sm:text-lg font-bold shadow-sm ${isPassing
-                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-800"
-                      : "bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-800"
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex-shrink-0 flex items-center justify-center text-base sm:text-lg font-bold shadow-sm ${!result.student_info?.student_name || result.student_info?.student_name?.includes("غير معروف") || result.student_info?.student_name?.includes("مجهول")
+                      ? "bg-slate-100 text-slate-400 border border-slate-200"
+                      : isPassing
+                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-800"
+                        : "bg-amber-100 text-amber-700 border border-amber-200 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-800"
                       }`}>
-                      {studentNumber}
+                      {(!result.student_info?.student_name || result.student_info?.student_name?.includes("غير معروف") || result.student_info?.student_name?.includes("مجهول")) ? (
+                        <Users className="h-5 w-5 sm:h-6 sm:w-6" />
+                      ) : (
+                        studentNumber
+                      )}
                     </div>
                     <div className="overflow-hidden">
-                      <h3 className="font-semibold text-base sm:text-lg dark:text-slate-100 truncate max-w-[140px] sm:max-w-none">
-                        الطالب {result.student_info?.student_name || "غير معروف"}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                          {(!result.student_info?.student_name || result.student_info?.student_name?.includes("غير معروف") || result.student_info?.student_name?.includes("مجهول"))
+                            ? `طالب مجهول ${index + 1}`
+                            : result.student_info?.student_name}
+                        {(!result.student_info?.student_name || result.student_info?.student_name?.includes("غير معروف") || result.student_info?.student_name?.includes("مجهول")) && (
+                          <Badge variant="outline" className="bg-white/50 text-[10px] py-0 px-1.5 border-slate-200 text-slate-400 h-5">بانتظار التعريف</Badge>
+                        )}
+                      </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground font-medium">
                         <span className="whitespace-nowrap">الدرجة: <strong className="text-foreground">{score}</strong> / {total}</span>
                         <span className="hidden sm:inline opacity-30">•</span>
@@ -152,6 +163,7 @@ export function GradedExamResult({
                           className="h-8 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 px-3 font-bold"
                           onClick={() => setReviewingPaper({
                             id: result.paper_id!,
+                            studentId: result.student_info?.student_id || 0,
                             studentName: result.student_info?.student_name || "غير معروف",
                             details: details,
                             annotatedImageUrl: result.annotated_image_url

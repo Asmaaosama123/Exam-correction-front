@@ -55,6 +55,7 @@ export interface GradingResultsFilter {
   classId?: string;
   searchValue?: string;
   teacherId?: string;
+  onlyAnonymous?: boolean;
 }
 
 export interface GradingResultsResponse {
@@ -62,6 +63,7 @@ export interface GradingResultsResponse {
   pageNumber: number;
   totalPages: number;
   totalCount: number;
+  anonymousCount: number;
   hasPreviousPage: boolean;
   hasNextPage: boolean;
 }

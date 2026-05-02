@@ -129,15 +129,18 @@ export function StudentDetailsModal({
                       {detail.points} درجة
                     </td>
                     <td className="p-2 sm:p-4">
-                      {detail.ok ? (
-                        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-800 gap-1 px-1.5 sm:px-3 py-1 sm:py-1.5 hover:bg-emerald-100 text-[9px] sm:text-sm flex w-max items-center">
-                          <CheckCircle className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" /> صحيحة
-                        </Badge>
-                      ) : (
-                        <Badge variant="destructive" className="gap-1 px-1.5 sm:px-3 py-1 sm:py-1.5 bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-800 hover:bg-rose-200 text-[9px] sm:text-sm flex w-max items-center">
-                          <XCircle className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" /> خاطئة
-                        </Badge>
-                      )}
+                      {(() => {
+                        const isCorrect = detail.ok || (detail.pred && detail.gt && detail.pred.trim().toLowerCase() === detail.gt.trim().toLowerCase());
+                        return isCorrect ? (
+                          <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-800 gap-1 px-1.5 sm:px-3 py-1 sm:py-1.5 hover:bg-emerald-100 text-[9px] sm:text-sm flex w-max items-center">
+                            <CheckCircle className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" /> صحيحة
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="gap-1 px-1.5 sm:px-3 py-1 sm:py-1.5 bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-800 hover:bg-rose-200 text-[9px] sm:text-sm flex w-max items-center">
+                            <XCircle className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" /> خاطئة
+                          </Badge>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,10 @@ import {
   ZoomOut,
   Maximize2,
   Image as ImageIcon,
-  FileText
+  FileText,
+  User,
+  Users,
+  UserPlus
 } from "lucide-react";
 import { toast } from "sonner";
 import { useUpdateManualGrading } from "@/hooks/use-grading";
@@ -26,14 +29,25 @@ import type { GradingDetail } from "@/types/grading";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useGetStudents } from "@/hooks/use-students";
+import { StudentFormDialog } from "../students/StudentFormDialog";
 
 interface ManualGradingModalProps {
   isOpen: boolean;
   onClose: () => void;
   paperId: number | string;
+  studentId: number | string;
   studentName: string;
   details: GradingDetail[];
   annotatedImageUrl?: string;
+  classId?: string | number;
   onSuccess?: () => void;
 }
 
@@ -46,17 +60,28 @@ export function ManualGradingModal({
   isOpen,
   onClose,
   paperId,
+  studentId,
   studentName,
   details,
   annotatedImageUrl,
+  classId,
   onSuccess,
 }: ManualGradingModalProps) {
   // Show all questions as requested by the user
   const allQuestions = details;
   const [corrections, setCorrections] = useState<Record<string, CorrectionState>>({});
+  const [selectedStudentId, setSelectedStudentId] = useState<string>(String(studentId));
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [activeTab, setActiveTab] = useState<"image" | "questions">("questions");
   const updateMutation = useUpdateManualGrading();
+
+  // Fetch students for manual mapping if needed
+  const { data: studentsData, isLoading: isLoadingStudents } = useGetStudents({
+    pageNumber: 1,
+    pageSize: 1000, // Fetch many for selection
+    classId: classId ? String(classId) : undefined
+  });
 
   const handleStatusToggle = (questionId: string, isCorrect: boolean) => {
     setCorrections((prev) => ({
@@ -79,14 +104,28 @@ export function ManualGradingModal({
   };
 
   const handleTextChange = (questionId: string, text: string, currentOk: boolean) => {
+    const q = allQuestions.find(x => x.id === questionId);
+    // If the text matches gt, mark as correct automatically
+    const isCorrect = q ? (text.trim().toLowerCase() === q.gt.trim().toLowerCase()) : currentOk;
+
     setCorrections((prev) => ({
       ...prev,
       [questionId]: {
         ...prev[questionId],
-        isCorrect: prev[questionId]?.isCorrect ?? currentOk,
+        isCorrect: isCorrect,
         selectedAnswer: text,
       },
     }));
+  };
+
+  const toArabicOption = (opt: string) => {
+    if (!opt) return opt;
+    const map: Record<string, string> = {
+      'A': 'أ', 'B': 'ب', 'C': 'ج', 'D': 'د', 'E': 'هـ',
+      'TRUE': 'صح', 'FALSE': 'خطأ',
+      'T': 'صح', 'F': 'خطأ'
+    };
+    return map[opt.toUpperCase()] || opt;
   };
 
   const handleSave = async () => {
@@ -96,58 +135,52 @@ export function ManualGradingModal({
       selectedAnswer: state.selectedAnswer,
     }));
 
-    if (correctionList.length === 0) {
-      toast.error("يرجى مراجعة وتعديل سؤال واحد على الأقل");
+    // If student was changed or corrections made
+    const isStudentChanged = String(selectedStudentId) !== String(studentId);
+
+    if (correctionList.length === 0 && !isStudentChanged) {
+      toast.error("يرجى مراجعة وتعديل سؤال واحد على الأقل أو تغيير الطالب");
       return;
     }
 
     try {
-      await updateMutation.mutateAsync({
+      const promise = updateMutation.mutateAsync({
         id: Number(paperId),
         corrections: correctionList,
+        studentId: isStudentChanged ? Number(selectedStudentId) : undefined
       });
-      toast.success("تم تحديث الدرجات بنجاح");
+
+      toast.promise(promise, {
+        loading: 'جاري حفظ التعديلات...',
+        success: 'تم تحديث البيانات بنجاح',
+        error: 'حدث خطأ أثناء التحديث',
+      });
+
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
-      toast.error("فشل تحديث البيانات");
+      console.error(error);
     }
   };
 
-  // 1. خلي الـ Base URL هو الدومين الجديد بتاعك
   const baseUrl = "https://examcorrection.wsyelhi.com";
-
   let fullImageUrl = "";
 
   if (annotatedImageUrl) {
     let cleanPath = annotatedImageUrl.trim();
-
-    // 🔍 الحالة 1: لو اللينك جاي بالـ IP القديم (76.13.51.15)
     if (cleanPath.includes('76.13.51.15:8000')) {
-      // بنقص اللينك وناخد اللي بعد البورت 8000/ بس
       const parts = cleanPath.split(':8000/');
       cleanPath = parts.length > 1 ? parts[1] : cleanPath;
-    }
-
-    // 🔍 الحالة 2: لو اللينك جاي بـ localhost أو 0.0.0.0
-    else if (cleanPath.includes('localhost') || cleanPath.includes('127.0.0.1') || cleanPath.includes('0.0.0.0')) {
+    } else if (cleanPath.includes('localhost') || cleanPath.includes('127.0.0.1') || cleanPath.includes('0.0.0.0')) {
       cleanPath = cleanPath.replace(/^https?:\/\/[^/]+\//, '');
     }
-
-    // 🔍 الحالة 3: تنظيف المسار من "ai-results" المتكررة
-    // لو المسار بيبدأ بـ ai-results/ هنشيلها عشان إحنا هنضيفها بشكل كلي ومنظم
     cleanPath = cleanPath.replace(/^ai-results\//, '');
-
-    // 🔍 الخطوة الأخيرة: تركيب اللينك النهائي
-    // بنجبر اللينك يروح للدومين بتاعك / ai-results / اسم الملف
     if (!cleanPath.startsWith('http')) {
       fullImageUrl = `${baseUrl}/ai-results/${cleanPath.replace(/^\/+/, '')}`;
     } else {
       fullImageUrl = cleanPath;
     }
   }
-
-  console.log("[DEBUG] الصورة النهائية اللي هتظهر:", fullImageUrl);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -160,7 +193,7 @@ export function ManualGradingModal({
             </div>
             <div className="overflow-hidden">
               <DialogTitle className="text-xs sm:text-xl font-bold text-slate-800 truncate">
-                مراجعة إجابات الطالب
+                مراجعة وتعديل الورقة
               </DialogTitle>
               <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-0.5 text-slate-500">
                 <span className="text-[9px] sm:text-sm">الطالب:</span>
@@ -186,6 +219,66 @@ export function ManualGradingModal({
             </Button>
           </div>
         </DialogHeader>
+
+        {/* Student Assignment Area - Only show for truly unknown students */}
+        {(!studentName || studentName?.includes("مجهول") || studentName?.includes("غير معروف")) && (
+          <div className="bg-blue-50/50 border-b p-3 sm:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-800">ربط الورقة بطالب</h4>
+                <p className="text-[10px] sm:text-xs text-slate-500">يمكنك اختيار الطالب يدوياً إذا لم يتم التعرف عليه</p>
+              </div>
+            </div>
+
+            <div className="w-full sm:w-[350px] flex items-center gap-2">
+              <div className="flex-1">
+                <Select
+                  value={selectedStudentId}
+                  onValueChange={setSelectedStudentId}
+                >
+                  <SelectTrigger className="bg-white border-blue-200 h-10">
+                    <SelectValue placeholder="اختر الطالب..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(!studentId || studentId === "0" || studentId === 0) && (
+                      <SelectItem value="0" disabled>طالب غير معروف</SelectItem>
+                    )}
+                    {studentsData?.items.map((st) => (
+                      <SelectItem key={st.id} value={String(st.id)}>
+                        {st.fullName}
+                      </SelectItem>
+                    ))}
+                    {isLoadingStudents && <div className="p-2 text-center text-xs">جاري تحميل الطلاب...</div>}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0 border-blue-200 text-blue-600 hover:bg-blue-50 h-10 w-10"
+                title="إضافة طالب جديد"
+                onClick={() => setIsAddingStudent(true)}
+              >
+                <UserPlus className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <StudentFormDialog
+          open={isAddingStudent}
+          onOpenChange={setIsAddingStudent}
+          onSuccess={(newStudent) => {
+            if (newStudent?.id) {
+              setSelectedStudentId(String(newStudent.id));
+            }
+            toast.success("تم إضافة الطالب بنجاح");
+          }}
+        />
 
         {/* Mobile View Toggle */}
         <div className="flex md:hidden bg-white border-b p-2 sticky top-0 z-20">
@@ -270,7 +363,6 @@ export function ManualGradingModal({
                   const displayIsCorrect = state?.isCorrect ?? q.ok;
                   const displaySelected = state?.selectedAnswer !== undefined ? state.selectedAnswer : q.pred;
 
-                  // Fixed isMcq calculation:
                   const isMcq = (q.type?.toLowerCase() === "mcq" || q.question_type?.toLowerCase() === "mcq") ||
                     (q.type?.toLowerCase() !== "true_false" && q.question_type?.toLowerCase() !== "true_false" && q.options && q.options.length > 0 && !q.options.includes("main"));
 
@@ -298,39 +390,29 @@ export function ManualGradingModal({
                       </div>
 
                       <div className="space-y-4">
-                        {/* Comparison Bar */}
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 bg-white/60 p-2 sm:p-2.5 rounded-lg sm:rounded-xl border border-slate-100">
                           <div className="flex-1 flex flex-col items-center">
                             <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mb-0.5 sm:mb-1">الاجابة النموذجية</span>
                             <span className="w-full text-center text-xs sm:text-base font-extrabold text-blue-600 bg-blue-50 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-blue-100">
-                              {q.gt}
+                              {toArabicOption(q.gt)}
                             </span>
                           </div>
                           <Separator orientation="vertical" className="hidden sm:block h-10" />
                           <Separator orientation="horizontal" className="sm:hidden w-full" />
                           <div className="flex-1 flex flex-col items-center">
-                            <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mb-0.5 sm:mb-1">إجابة الطالب</span>
-                            {isSubjective ? (
-                              <Input
-                                value={displaySelected === "None" ? "" : displaySelected}
-                                onChange={(e) => handleTextChange(q.id, e.target.value, q.ok)}
-                                className="h-8 sm:h-10 text-center font-bold text-xs sm:text-base bg-white border-2 border-primary/20 focus:border-primary shadow-sm"
-                                placeholder="اكتب الإجابة..."
-                              />
-                            ) : (
-                              <span className={`w-full text-center text-xs sm:text-base font-extrabold py-1 sm:py-1.5 rounded-md sm:rounded-lg border ${displaySelected && displaySelected !== "None"
-                                ? 'text-slate-800 bg-slate-100 border-slate-200'
-                                : 'text-slate-300 bg-slate-50 border-slate-100 border-dashed italic'
-                                }`}>
-                                {displaySelected && displaySelected !== "None"
-                                  ? (displaySelected === "Multiple" || displaySelected === "None" ? "أكثر من إجابة" : displaySelected)
-                                  : "متروك"}
-                              </span>
-                            )}
+                            <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mb-0.5 sm:mb-1 flex items-center gap-1">
+                              إجابة الطالب
+                              <span className="text-[7px] sm:text-[8px] text-blue-500 font-normal normal-case">(يمكنك التعديل بالكتابة هنا)</span>
+                            </span>
+                            <Input
+                              value={displaySelected === "None" ? "" : (displaySelected === "Multiple" ? "أكثر من إجابة" : toArabicOption(displaySelected || ""))}
+                              onChange={(e) => handleTextChange(q.id, e.target.value, q.ok)}
+                              className="h-8 sm:h-10 text-center font-bold text-xs sm:text-base bg-white border-2 border-primary/20 focus:border-primary shadow-sm hover:border-primary/40 transition-colors"
+                              placeholder="عدّل إجابة الطالب هنا..."
+                            />
                           </div>
                         </div>
 
-                        {/* Interaction Area */}
                         {isMcq ? (
                           <div className="space-y-4">
                             <div className="space-y-2 sm:space-y-3">
@@ -347,7 +429,7 @@ export function ManualGradingModal({
                                       }`}
                                     onClick={() => handleOptionSelect(q.id, opt, opt === q.gt)}
                                   >
-                                    {opt}
+                                    {toArabicOption(opt)}
                                   </Button>
                                 ))}
 
@@ -448,7 +530,7 @@ export function ManualGradingModal({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={Object.keys(corrections).length === 0 || updateMutation.isPending}
+            disabled={(Object.keys(corrections).length === 0 && String(selectedStudentId) === String(studentId)) || updateMutation.isPending}
             className="px-10 h-12 rounded-xl font-bold text-base bg-gradient-to-r from-primary to-primary/80 shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform order-1 sm:order-2"
           >
             {updateMutation.isPending ? (
@@ -456,7 +538,7 @@ export function ManualGradingModal({
             ) : (
               <Save className="w-5 h-5 ml-2" />
             )}
-            حفظ واعتماد التصحيح
+            حفظ واعتماد البيانات
           </Button>
         </DialogFooter>
       </DialogContent>

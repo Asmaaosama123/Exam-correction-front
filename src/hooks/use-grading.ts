@@ -23,8 +23,8 @@ export function useGetGradingResults(params: GradingResultsFilter) {
 export function useUpdateManualGrading() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, corrections }: { id: number; corrections: { questionId: string; isCorrect: boolean; selectedAnswer?: string }[] }) => 
-      gradingApi.updateManualGrading(id, corrections),
+    mutationFn: ({ id, corrections, studentId }: { id: number; corrections: { questionId: string; isCorrect: boolean; selectedAnswer?: string }[]; studentId?: number }) => 
+      gradingApi.updateManualGrading(id, corrections, studentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["grading-results"] });
     }

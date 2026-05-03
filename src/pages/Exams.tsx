@@ -11,6 +11,7 @@ import {
   Plus,
   Download,
   Info,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { toast } from "sonner";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useGetExams } from "@/hooks/use-exams";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -227,6 +229,9 @@ export default function Exams() {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b">
+                            <th className="text-right p-4 text-sm font-medium text-muted-foreground w-32">
+                              رقم الاختبار (ID)
+                            </th>
                             <th className="text-right p-4 text-sm font-medium text-muted-foreground">
                               اسم الاختبار
                             </th>
@@ -250,6 +255,25 @@ export default function Exams() {
                               key={exam.id}
                               className="border-b transition-colors hover:bg-accent/50"
                             >
+                              <td className="p-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-primary bg-primary/10 px-2 py-1 rounded-md">
+                                    {exam.id}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-muted-foreground hover:text-primary"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(String(exam.id));
+                                      toast.success("تم نسخ رقم الاختبار بنجاح");
+                                    }}
+                                    title="نسخ الرقم"
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </td>
                               <td className="p-4">
                                 <div className="font-medium">{exam.title}</div>
                               </td>

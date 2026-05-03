@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { GradePaperUpload } from "@/components/grading/GradePaperUpload";
 import { GradedExamResult } from "@/components/grading/GradedExamResult";
@@ -12,6 +13,9 @@ import type { ExamResult } from "@/types/grading";
 import { useAuth } from "@/hooks/use-auth";
 
 const Grading = () => {
+  const [searchParams] = useSearchParams();
+  const urlExamId = searchParams.get("examId");
+  
   const { data: user } = useAuth();
   const [gradedResults, setGradedResults] = useState<ExamResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +87,7 @@ const Grading = () => {
         <GradePaperUpload
           onUpload={handleUpload}
           isLoading={isLoading}
+          initialTemplateId={urlExamId ? parseInt(urlExamId) : undefined}
         />
 
         {error && (

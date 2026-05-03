@@ -34,9 +34,13 @@ export interface Question {
 
 
 export interface UploadTeacherExamRequest {
-    ExamId: number;
+    ExamId?: number;
+    Title?: string;
+    Subject?: string;
+    IsBarcode?: boolean;
     File: File;
     QuestionsJson: string;
+    PageCount?: number;
 }
 
 export interface TeacherExamResponse {

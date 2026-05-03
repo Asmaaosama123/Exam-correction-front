@@ -1,6 +1,7 @@
 // components/ExamTemplateSetup.tsx
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, PlusCircle as PlusCircleIcon, BarChart3, Camera, Image as ImageIcon, Save, Loader2, ChevronDown, ChevronUp, Sparkles, Wand2, Pencil } from "lucide-react";
+import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, PlusCircle as PlusCircleIcon, BarChart3, Camera, Image as ImageIcon, Save, Loader2, ChevronDown, ChevronUp, Sparkles, Wand2, Pencil, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { HelpFab } from "@/components/ui/help-fab";
@@ -71,6 +72,10 @@ const getLabels = (language: Language, count: number): string[] => {
 };
 
 export default function ExamTemplateSetup() {
+  const navigate = useNavigate();
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [savedExamId, setSavedExamId] = useState<number | null>(null);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pdfDimensions, setPdfDimensions] = useState<{ width: number; height: number } | null>(null);
   const [pageHeights, setPageHeights] = useState<number[]>([]);
@@ -117,6 +122,10 @@ export default function ExamTemplateSetup() {
   // حالة اللغة المختارة (عربي / إنجليزي)
   const [examLanguage, setExamLanguage] = useState<Language>("en");
   const [examIdError, setExamIdError] = useState<string | null>(null);
+
+  const [isBarcodeMode, setIsBarcodeMode] = useState(true);
+  const [examTitle, setExamTitle] = useState("");
+  const [examSubject, setExamSubject] = useState("");
 
   // حالة طي/توسيع الأسئلة في نافذة الإجابات
   const [expandedQuestions, setExpandedQuestions] = useState<Record<string, boolean>>({});
@@ -725,7 +734,7 @@ export default function ExamTemplateSetup() {
         const commonRois = {
           "main": [
             overallRoi[0],
-            Math.round(overallRoi[1] + pageOffset),
+            Math.round(overallRoi[1]), // removed pageOffset
             overallRoi[2],
             overallRoi[3]
           ]
@@ -759,7 +768,7 @@ export default function ExamTemplateSetup() {
           question.options.forEach(option => {
             rois[option.label] = [
               Math.round(option.x),
-              Math.round(option.y + pageOffset),
+              Math.round(option.y), // removed pageOffset
               Math.round(option.width),
               Math.round(option.height)
             ];
@@ -767,7 +776,7 @@ export default function ExamTemplateSetup() {
         } else if (question.type === "true_false" && question.options.length >= 1) {
           rois["TF"] = [
             Math.round(question.options[0].x),
-            Math.round(question.options[0].y + pageOffset),
+            Math.round(question.options[0].y), // removed pageOffset
             Math.round(question.options[0].width),
             Math.round(question.options[0].height)
           ];
@@ -785,8 +794,8 @@ export default function ExamTemplateSetup() {
     });
 
     return JSON.stringify({
-      canvas: { 
-        width: canvasWidth, 
+      canvas: {
+        width: canvasWidth,
         height: pdfDimensions.height, // استخدم الطول الكلي الحقيقي
         totalHeight: pdfDimensions.height,
         pageCount: numPages
@@ -798,18 +807,31 @@ export default function ExamTemplateSetup() {
 
   // ========== حفظ نموذج المعلم ==========
   const handleSaveTemplate = async () => {
-    if (!examId.trim()) {
-      setExamIdError("الرجاء إدخال رقم الامتحان");
-      toast.error("الرجاء إدخال رقم الامتحان");
-      return;
+    let examIdNum: number | undefined = undefined;
+
+    if (isBarcodeMode) {
+      if (!examId.trim()) {
+        setExamIdError("الرجاء إدخال رقم الامتحان");
+        toast.error("الرجاء إدخال رقم الامتحان");
+        return;
+      }
+      examIdNum = parseInt(examId);
+      if (isNaN(examIdNum)) {
+        setExamIdError("رقم الامتحان يجب أن يتكون من أرقام فقط");
+        toast.error("رقم الامتحان يجب أن يتكون من أرقام فقط");
+        return;
+      }
+      setExamIdError(null);
+    } else {
+      if (!examTitle.trim()) {
+        toast.error("الرجاء إدخال اسم الامتحان");
+        return;
+      }
+      if (!examSubject.trim()) {
+        toast.error("الرجاء إدخال المادة الدراسية");
+        return;
+      }
     }
-    const examIdNum = parseInt(examId);
-    if (isNaN(examIdNum)) {
-      setExamIdError("رقم الامتحان يجب أن يتكون من أرقام فقط");
-      toast.error("رقم الامتحان يجب أن يتكون من أرقام فقط");
-      return;
-    }
-    setExamIdError(null);
     if (!selectedFile) {
       toast.error("الرجاء رفع ملف الامتحان أولاً");
       return;
@@ -838,16 +860,27 @@ export default function ExamTemplateSetup() {
     try {
       const questionsJson = prepareQuestionsJson();
 
-      await uploadTeacherExamMutation.mutateAsync({
+      const response = await uploadTeacherExamMutation.mutateAsync({
         ExamId: examIdNum,
+        Title: !isBarcodeMode ? examTitle : undefined,
+        Subject: !isBarcodeMode ? examSubject : undefined,
+        IsBarcode: isBarcodeMode,
         File: selectedFile,
-        QuestionsJson: questionsJson
+        QuestionsJson: questionsJson,
+        PageCount: numPages
       });
 
       // On success (mutationAsync will throw on error)
-      handleRemoveFile();
-      setExamId("");
-      setAnswerDialogOpen(false);
+      if (isBarcodeMode) {
+        handleRemoveFile();
+        setExamId("");
+        setAnswerDialogOpen(false);
+      } else {
+        const newExamId = response.examId || (response as any).ExamId;
+        setSavedExamId(newExamId);
+        setAnswerDialogOpen(false);
+        setSuccessDialogOpen(true);
+      }
 
     } catch (error) {
       console.error("خطأ في عملية الرفع:", error);
@@ -917,26 +950,75 @@ export default function ExamTemplateSetup() {
         {/* بطاقة معلومات الامتحان */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="examId">رقم الاختبار *</Label>
-                <Input
-                  id="examId"
-                  value={examId}
-                  onChange={(e) => {
-                    setExamId(e.target.value);
-                    if (e.target.value.trim()) setExamIdError(null);
+                <Label>نوع الاختبار</Label>
+                <Select
+                  value={isBarcodeMode ? "barcode" : "no-barcode"}
+                  onValueChange={(val) => {
+                    setIsBarcodeMode(val === "barcode");
+                    if (val === "barcode") {
+                      setExamTitle("");
+                      setExamSubject("");
+                    } else {
+                      setExamId("");
+                      setExamIdError(null);
+                    }
                   }}
-                  placeholder="أدخل رقم الاختبار"
-                  type="number"
-                  className={examIdError ? "border-destructive focus-visible:ring-destructive" : ""}
-                />
-                {examIdError && (
-                  <p className="text-xs font-medium text-destructive mt-1">
-                    {examIdError}
-                  </p>
-                )}
+                >
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="barcode">نظام الباركود</SelectItem>
+                    <SelectItem value="no-barcode">بدون باركود</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {isBarcodeMode ? (
+                <div className="space-y-2">
+                  <Label htmlFor="examId">رقم الاختبار *</Label>
+                  <Input
+                    id="examId"
+                    value={examId}
+                    onChange={(e) => {
+                      setExamId(e.target.value);
+                      if (e.target.value.trim()) setExamIdError(null);
+                    }}
+                    placeholder="أدخل رقم الاختبار"
+                    type="number"
+                    className={examIdError ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  {examIdError && (
+                    <p className="text-xs font-medium text-destructive mt-1">
+                      {examIdError}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="examTitle">اسم الاختبار *</Label>
+                    <Input
+                      id="examTitle"
+                      value={examTitle}
+                      onChange={(e) => setExamTitle(e.target.value)}
+                      placeholder="مثال: اختبار الشهر الأول"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="examSubject">المادة الدراسية *</Label>
+                    <Input
+                      id="examSubject"
+                      value={examSubject}
+                      onChange={(e) => setExamSubject(e.target.value)}
+                      placeholder="مثال: الرياضيات"
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="space-y-2">
                 <Label>لغة الاختبار</Label>
                 <div className="flex gap-2">
@@ -1947,10 +2029,10 @@ export default function ExamTemplateSetup() {
                             <div key={`preview-${question.id}`}>
                               {question.options.map((option) => {
                                 const totalHeight = pdfDimensions?.height || 1;
-                                const pageOffset = (option.page <= 1 || pageHeights.length === 0) 
-                                  ? 0 
+                                const pageOffset = (option.page <= 1 || pageHeights.length === 0)
+                                  ? 0
                                   : pageHeights.slice(0, option.page - 1).reduce((sum, h) => sum + h, 0);
-                                
+
                                 const leftPercent = (option.x / canvasWidth) * 100;
                                 const topPercent = ((pageOffset + option.y) / totalHeight) * 100;
                                 const widthPercent = (option.width / canvasWidth) * 100;
@@ -2107,6 +2189,64 @@ export default function ExamTemplateSetup() {
           </div>
         </HelpFab>
         {/* ---------------------------------------------------------------------- */}
+
+        {/* نافذة النجاح لاختبار بدون باركود */}
+        <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+          <DialogContent className="sm:max-w-md text-center border-0 shadow-2xl p-0 rounded-[2.5rem] bg-white overflow-hidden transition-all">
+            <div className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 p-10 text-white relative">
+              <div className="absolute top-4 right-4">
+                 <DialogClose className="rounded-full p-2 hover:bg-white/10 transition-colors">
+                    <X className="h-5 w-5 text-white/70" />
+                 </DialogClose>
+              </div>
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white/20 mb-6 backdrop-blur-md rotate-12 transition-transform hover:rotate-0">
+                <Check className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-3xl font-black mb-2 tracking-tight">تم الحفظ بنجاح!</h3>
+            </div>
+
+            <div className="p-10 space-y-8">
+              <div className="space-y-4">
+                <div className="flex items-center justify-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">
+                   <Sparkles className="h-3 w-3 text-emerald-500" />
+                   رقم الاختبار الخاص بك
+                   <Sparkles className="h-3 w-3 text-emerald-500" />
+                </div>
+                
+                <div className="bg-slate-50 border-2 border-slate-100 rounded-[2rem] p-8 relative group transition-all hover:border-emerald-200 hover:bg-emerald-50/30">
+                  <span className="text-6xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm">
+                    {savedExamId}
+                  </span>
+                  
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(savedExamId?.toString() || "");
+                      toast.success("تم نسخ الرقم بنجاح ✅");
+                    }}
+                    className="absolute -top-3 -right-3 p-3 rounded-2xl bg-white shadow-xl border border-slate-100 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-90 shadow-emerald-500/10"
+                    title="نسخ الرقم"
+                  >
+                    <Save className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  onClick={() => {
+                    setSuccessDialogOpen(false);
+                    navigate(`/grading?examId=${savedExamId}`);
+                  }}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black h-16 text-xl rounded-2xl shadow-2xl shadow-emerald-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group"
+                >
+                  بدء التصحيح الآن
+                  <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-[-5px]" />
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </MainLayout >
   );

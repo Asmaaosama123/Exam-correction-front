@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Upload,
   FileText,
@@ -34,14 +34,21 @@ interface GradePaperUploadProps {
   onUpload: (file: File, templateId?: number) => Promise<void>;
   isLoading: boolean;
   onCameraResults?: (results: ExamResult[]) => void;
+  initialTemplateId?: number;
 }
 
 export function GradePaperUpload({
   onUpload,
   isLoading,
+  initialTemplateId,
 }: GradePaperUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [templateIdStr, setTemplateIdStr] = useState<string>("");
+  const [templateIdStr, setTemplateIdStr] = useState<string>(initialTemplateId?.toString() || "");
+
+  // Update templateIdStr if initialTemplateId changes
+  useEffect(() => {
+    if (initialTemplateId) setTemplateIdStr(initialTemplateId.toString());
+  }, [initialTemplateId]);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);

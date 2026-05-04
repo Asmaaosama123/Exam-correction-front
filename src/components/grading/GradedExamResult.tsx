@@ -129,9 +129,9 @@ export function GradedExamResult({
                     </div>
                     <div className="overflow-hidden">
                       <div className="flex items-center gap-2">
-                          {(!result.student_info?.student_name || result.student_info?.student_name?.includes("غير معروف") || result.student_info?.student_name?.includes("مجهول"))
-                            ? `طالب مجهول ${index + 1}`
-                            : result.student_info?.student_name}
+                        {(!result.student_info?.student_name || result.student_info?.student_name?.includes("غير معروف") || result.student_info?.student_name?.includes("مجهول"))
+                          ? `طالب مجهول ${index + 1}`
+                          : result.student_info?.student_name}
                         {(!result.student_info?.student_name || result.student_info?.student_name?.includes("غير معروف") || result.student_info?.student_name?.includes("مجهول")) && (
                           <Badge variant="outline" className="bg-white/50 text-[10px] py-0 px-1.5 border-slate-200 text-slate-400 h-5">بانتظار التعريف</Badge>
                         )}
@@ -180,7 +180,7 @@ export function GradedExamResult({
                         href={(() => {
                           const annotatedImageUrl = result.annotated_image_url;
                           if (!annotatedImageUrl) return "#";
-                          
+
                           const baseUrl = "https://examcorrection.wsyelhi.com";
                           let fullImageUrl = "";
                           let cleanPath = annotatedImageUrl.trim();
@@ -199,7 +199,7 @@ export function GradedExamResult({
                           } else {
                             fullImageUrl = cleanPath;
                           }
-                          
+
                           return fullImageUrl;
                         })()}
                         target="_blank"

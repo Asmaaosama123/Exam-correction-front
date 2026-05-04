@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { GradePaperUpload } from "@/components/grading/GradePaperUpload";
 import { GradedExamResult } from "@/components/grading/GradedExamResult";
@@ -13,9 +12,6 @@ import type { ExamResult } from "@/types/grading";
 import { useAuth } from "@/hooks/use-auth";
 
 const Grading = () => {
-  const [searchParams] = useSearchParams();
-  const urlExamId = searchParams.get("examId");
-  
   const { data: user } = useAuth();
   const [gradedResults, setGradedResults] = useState<ExamResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,33 +57,32 @@ const Grading = () => {
 
         {/* Quota Alerts */}
         {user && user.isSubscriptionModeEnabled !== false && user.maxAllowedPages > 0 && user.usedPages >= user.maxAllowedPages && user.isSubscribed && (
-            <div className="bg-destructive/15 text-destructive px-5 py-4 rounded-xl border border-destructive/30 flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-3">
-                    <div className="p-1 bg-destructive/20 rounded-full">
-                        <XCircle className="h-5 w-5" />
-                    </div>
-                    <span className="font-medium">لقد استنفدت رصيد الباقة الخاصة بك ({user.maxAllowedPages} ورقة).</span>
-                </div>
-                <a href="/teacher/plans" className="text-sm font-bold underline hover:text-destructive/80">تجديد الباقة</a>
+          <div className="bg-destructive/15 text-destructive px-5 py-4 rounded-xl border border-destructive/30 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-1 bg-destructive/20 rounded-full">
+                <XCircle className="h-5 w-5" />
+              </div>
+              <span className="font-medium">لقد استنفدت رصيد الباقة الخاصة بك ({user.maxAllowedPages} ورقة).</span>
             </div>
+            <a href="/teacher/plans" className="text-sm font-bold underline hover:text-destructive/80">تجديد الباقة</a>
+          </div>
         )}
 
         {user && user.isSubscriptionModeEnabled !== false && user.maxAllowedPages > 0 && (user.usedPages / user.maxAllowedPages) > 0.9 && user.usedPages < user.maxAllowedPages && user.isSubscribed && (
-            <div className="bg-orange-500/15 text-orange-600 px-5 py-4 rounded-xl border border-orange-500/30 flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-3">
-                    <div className="p-1 bg-orange-500/20 rounded-full">
-                        <AlertTriangle className="h-5 w-5" />
-                    </div>
-                    <span className="font-medium">رصيدك يوشك على النفاذ! المتبقي {user.maxAllowedPages - user.usedPages} ورقة فقط.</span>
-                </div>
-                <a href="/teacher/plans" className="text-sm font-bold underline hover:text-orange-700">ترقية الباقة</a>
+          <div className="bg-orange-500/15 text-orange-600 px-5 py-4 rounded-xl border border-orange-500/30 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-1 bg-orange-500/20 rounded-full">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <span className="font-medium">رصيدك يوشك على النفاذ! المتبقي {user.maxAllowedPages - user.usedPages} ورقة فقط.</span>
             </div>
+            <a href="/teacher/plans" className="text-sm font-bold underline hover:text-orange-700">ترقية الباقة</a>
+          </div>
         )}
 
         <GradePaperUpload
           onUpload={handleUpload}
           isLoading={isLoading}
-          initialTemplateId={urlExamId ? parseInt(urlExamId) : undefined}
         />
 
         {error && (

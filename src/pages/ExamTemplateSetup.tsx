@@ -1,7 +1,6 @@
 // components/ExamTemplateSetup.tsx
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, PlusCircle as PlusCircleIcon, BarChart3, Camera, Image as ImageIcon, Save, Loader2, ChevronDown, ChevronUp, Sparkles, Wand2, Pencil, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, PlusCircle as PlusCircleIcon, BarChart3, Camera, Image as ImageIcon, Save, Loader2, ChevronDown, ChevronUp, Sparkles, Wand2, ArrowRight } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { HelpFab } from "@/components/ui/help-fab";
@@ -31,8 +30,9 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StitchedPdfViewer from '@/components/ui/StitchedPdfViewerProps';
+import { useNavigate } from "react-router-dom";
 import { useUploadTeacherExam, useAnalyzeTemplate } from "@/hooks/use-exam-template";
 import type { Question, OptionBox, QuestionType, AnswerDirection, Language } from "@/types/exam-template";
 
@@ -78,7 +78,6 @@ export default function ExamTemplateSetup() {
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pdfDimensions, setPdfDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [pageHeights, setPageHeights] = useState<number[]>([]);
   const [numPages, setNumPages] = useState(1);
   const [scale, setScale] = useState(1);
   const [stitchedImageUrl, setStitchedImageUrl] = useState<string | null>(null);
@@ -89,7 +88,7 @@ export default function ExamTemplateSetup() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const uploadTeacherExamMutation = useUploadTeacherExam();
-  const analyzeTemplateMutation = useAnalyzeTemplate();
+  const analyzeMutation = useAnalyzeTemplate();
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawStart, setDrawStart] = useState<{ x: number; y: number; page: number } | null>(null);
@@ -113,7 +112,8 @@ export default function ExamTemplateSetup() {
   const [examId, setExamId] = useState<string>("");
   // خريطة نصية مؤقتة لإدخال الدرجات (تدعم الكسور أثناء الكتابة)
   const [pointsInputMap, setPointsInputMap] = useState<Record<string, string>>({});
-  const isLoading = uploadTeacherExamMutation.isPending;
+  const [isUploading, setIsUploading] = useState(false);
+  const isLoading = uploadTeacherExamMutation.isPending || isUploading;
   const [pdfConverting, setPdfConverting] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfKey, setPdfKey] = useState(0);
@@ -148,9 +148,11 @@ export default function ExamTemplateSetup() {
     setActiveTab('ai');
 
     try {
-      const data = await analyzeTemplateMutation.mutateAsync(selectedFile);
+      const data = await analyzeMutation.mutateAsync(selectedFile);
 
-      if (!data || !data.questions) throw new Error("استجابة غير صالحة من السيرفر");
+      if (!data || !data.questions) {
+        throw new Error("تنسيق غير صحيح من الذكاء الاصطناعي");
+      }
 
       const formatted = data.questions.map((q: any, idx: number) => ({
         id: `ai-${Date.now()}-${idx}`,
@@ -163,10 +165,10 @@ export default function ExamTemplateSetup() {
       }));
 
       setAiQuestions(formatted);
-      toast.success("تم تحليل الأسئلة بنجاح باستخدام الذكاء الاصطناعي");
+      toast.success("تم تحليل الأسئلة بنجاح باستخدام Gemini");
     } catch (error) {
       console.error("AI Analysis error:", error);
-      toast.error("حدث خطأ أثناء تحليل الأسئلة عبر السيرفر");
+      toast.error("حدث خطأ أثناء تحليل الأسئلة بالتطبيق");
       setIsAiEnabled(false);
     } finally {
       setIsAnalyzing(false);
@@ -188,11 +190,11 @@ export default function ExamTemplateSetup() {
 
 
   const canvasWidth = pdfDimensions?.width || PAGE_SIZES.a4.width;
-  const canvasHeight = (pageHeights.length > 0) ? pageHeights[0] : (pdfDimensions ? (pdfDimensions.height / numPages) : PAGE_SIZES.a4.height);
-  const totalPdfHeight = (pdfDimensions?.height || (PAGE_SIZES.a4.height * numPages)) * scale;
+  const canvasHeight = pdfDimensions?.height || PAGE_SIZES.a4.height;
+  const totalPdfHeight = numPages * canvasHeight * scale;
 
   // ========== إدارة الملفات ==========
-  const stitchImages = async (files: File[]): Promise<{ url: string, width: number, height: number, pageHeights: number[], file: File }> => {
+  const stitchImages = async (files: File[]): Promise<{ url: string, width: number, height: number, file: File }> => {
     return new Promise((resolve, reject) => {
       const images: HTMLImageElement[] = [];
       let loadedCount = 0;
@@ -227,7 +229,7 @@ export default function ExamTemplateSetup() {
               if (blob) {
                 const url = URL.createObjectURL(blob);
                 const stitchedFile = new File([blob], "stitched_images.png", { type: "image/png" });
-                resolve({ url, width: maxWidth, height: totalHeight, pageHeights: images.map(i => i.height), file: stitchedFile });
+                resolve({ url, width: maxWidth, height: totalHeight, file: stitchedFile });
               } else {
                 reject(new Error("Failed to create blob"));
               }
@@ -279,12 +281,11 @@ export default function ExamTemplateSetup() {
     } else {
       // Handle images (one or many)
       try {
-        const { url, width, height, pageHeights: heights, file } = await stitchImages(files);
+        const { url, width, height, file } = await stitchImages(files);
         setSelectedFile(file);
         setStitchedImageUrl(url);
         setPdfDimensions({ width, height });
-        setPageHeights(heights);
-        setNumPages(heights.length);
+        setNumPages(1);
       } catch (err) {
         toast.error("حدث خطأ أثناء معالجة الصور");
         console.error(err);
@@ -309,7 +310,6 @@ export default function ExamTemplateSetup() {
     }
     setSelectedFile(null);
     setPdfDimensions(null);
-    setPageHeights([]);
     setNumPages(1);
     setQuestions([]);
     setCurrentQuestion(null);
@@ -343,18 +343,19 @@ export default function ExamTemplateSetup() {
       return { x: 0, y: 0, page: 1 };
 
     const rect = canvasRef.current.getBoundingClientRect();
-    const docY = (clientY - rect.top) / scale;
+    const docY = clientY - rect.top; // No scrollTop here, rect.top already accounts for viewport position
 
     let accumulatedHeight = 0;
     let page = 1;
-    for (let i = 0; i < pageHeights.length; i++) {
-      if (docY < accumulatedHeight + pageHeights[i]) {
-        page = i + 1;
+    for (let i = 1; i <= numPages; i++) {
+      const pageHeight = canvasHeight * scale;
+      if (docY < accumulatedHeight + pageHeight) {
+        page = i;
         break;
       }
-      accumulatedHeight += pageHeights[i];
+      accumulatedHeight += pageHeight;
     }
-    const y = docY - accumulatedHeight;
+    const y = (docY - accumulatedHeight) / scale;
     const x = (clientX - rect.left) / scale;
     return { x: Math.max(0, x), y: Math.max(0, y), page };
   };
@@ -703,6 +704,7 @@ export default function ExamTemplateSetup() {
     if (!pdfDimensions) return "";
     const canvasWidth = Math.round(pdfDimensions.width);
     const canvasHeight = Math.round(pdfDimensions.height);
+    const totalHeight = Math.round(canvasHeight * numPages);
 
     const questionsData: any[] = [];
     let currentIdCounter = 1;
@@ -711,34 +713,48 @@ export default function ExamTemplateSetup() {
     const activeQuestions = activeTab === 'ai' ? aiQuestions : questions;
 
     activeQuestions.forEach(question => {
-      // Logic for questions from AI (which might not have physical options)
+      // Logic for questions from AI
       if (activeTab === 'ai') {
         questionsData.push({
           id: question.index || currentIdCounter++,
           type: question.type,
-          text: question.text,
           answer: question.teacherAnswer || question.geminiAnswer,
           points: question.points || 1,
-          page: question.page || 1,
           rois: {}
         });
         return;
       }
 
       // Existing logic for manual questions
-      const overallRoi = calculateOverallROI(question);
-      const pageOffset = getPageOffset(question.page) / scale;
+      // Calculate cumulative offset for the question's page
+      const pageYOffset = (question.page - 1) * canvasHeight;
+
+      const getAbsoluteROI = (opt: OptionBox): [number, number, number, number] => [
+        Math.round(opt.x),
+        Math.round(pageYOffset + opt.y),
+        Math.round(opt.width),
+        Math.round(opt.height)
+      ];
 
       if (question.type === "essay" || question.type === "complete" || question.type === "matching") {
         const subQuestions = question.essaySubQuestions || [];
-        const commonRois = {
-          "main": [
-            overallRoi[0],
-            Math.round(overallRoi[1]), // removed pageOffset
-            overallRoi[2],
-            overallRoi[3]
-          ]
-        };
+        // Calculate overall ROI using absolute coordinates
+        let minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
+        question.options.forEach(option => {
+          const absY = pageYOffset + option.y;
+          minX = Math.min(minX, option.x);
+          minY = Math.min(minY, absY);
+          maxX = Math.max(maxX, option.x + option.width);
+          maxY = Math.max(maxY, absY + option.height);
+        });
+        const overallRoiAbs: [number, number, number, number] = [
+          Math.round(minX),
+          Math.round(minY),
+          Math.round(maxX - minX),
+          Math.round(maxY - minY)
+        ];
+
+        const commonRois = { "main": overallRoiAbs };
 
         if (subQuestions.length > 0) {
           subQuestions.forEach(sub => {
@@ -747,7 +763,6 @@ export default function ExamTemplateSetup() {
               type: question.type,
               answer: sub.answer,
               points: sub.points || 1,
-              page: question.page,
               rois: commonRois
             });
           });
@@ -757,7 +772,6 @@ export default function ExamTemplateSetup() {
             type: question.type,
             answer: question.answer || null,
             points: question.points || 1,
-            page: question.page,
             rois: commonRois
           });
         }
@@ -766,20 +780,10 @@ export default function ExamTemplateSetup() {
 
         if (question.type === "mcq") {
           question.options.forEach(option => {
-            rois[option.label] = [
-              Math.round(option.x),
-              Math.round(option.y), // removed pageOffset
-              Math.round(option.width),
-              Math.round(option.height)
-            ];
+            rois[option.label] = getAbsoluteROI(option);
           });
         } else if (question.type === "true_false" && question.options.length >= 1) {
-          rois["TF"] = [
-            Math.round(question.options[0].x),
-            Math.round(question.options[0].y), // removed pageOffset
-            Math.round(question.options[0].width),
-            Math.round(question.options[0].height)
-          ];
+          rois["TF"] = getAbsoluteROI(question.options[0]);
         }
 
         questionsData.push({
@@ -787,19 +791,13 @@ export default function ExamTemplateSetup() {
           type: question.type,
           answer: question.answer,
           points: question.points || 1,
-          page: question.page,
           rois: rois
         });
       }
     });
 
     return JSON.stringify({
-      canvas: {
-        width: canvasWidth,
-        height: pdfDimensions.height, // استخدم الطول الكلي الحقيقي
-        totalHeight: pdfDimensions.height,
-        pageCount: numPages
-      },
+      canvas: { width: canvasWidth, height: totalHeight },
       questions: questionsData
     });
   };
@@ -832,31 +830,13 @@ export default function ExamTemplateSetup() {
         return;
       }
     }
+
     if (!selectedFile) {
       toast.error("الرجاء رفع ملف الامتحان أولاً");
       return;
     }
-    const activeQuestions = activeTab === 'ai' ? aiQuestions : questions;
 
-    if (activeQuestions.length === 0) {
-      toast.error(activeTab === 'ai' ? "الرجاء استخراج الأسئلة باستخدام Gemini أولاً" : "الرجاء رسم الأسئلة على النموذج أولاً");
-      return;
-    }
-
-    const questionsWithoutAnswers = activeQuestions.filter(q => {
-      const hasAnswer = activeTab === 'ai'
-        ? (q.teacherAnswer || q.geminiAnswer)
-        : q.answer;
-      return !hasAnswer && q.type !== "essay";
-    });
-
-    if (questionsWithoutAnswers.length > 0) {
-      toast.error(`يوجد ${questionsWithoutAnswers.length} أسئلة بدون إجابة صحيحة، يرجى تحديد الإجابات`);
-      setAnswerDialogOpen(true);
-      return;
-    }
-
-    // setIsLoading(true); // We can use mutation.isPending if we want to bind it to UI
+    setIsUploading(true);
     try {
       const questionsJson = prepareQuestionsJson();
 
@@ -884,7 +864,8 @@ export default function ExamTemplateSetup() {
 
     } catch (error) {
       console.error("خطأ في عملية الرفع:", error);
-      // Error handled in hook onError with toast
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -903,17 +884,16 @@ export default function ExamTemplateSetup() {
 
   // ========== حساب إزاحة الصفحة ==========
   const getPageOffset = (pageNum: number) => {
-    if (pageNum <= 1 || pageHeights.length === 0) return 0;
-    const offset = pageHeights.slice(0, pageNum - 1).reduce((sum, h) => sum + h, 0);
-    return offset * scale;
+    if (pageNum <= 1) return 0;
+    return (pageNum - 1) * (canvasHeight * scale);
   };
 
   // ========== أحداث StitchedPdfViewer ==========
-  const handleStitchedPdfLoaded = (data: { width: number; height: number; pageCount: number; imageUrl: string; pageHeights: number[] }) => {
+  const handleStitchedPdfLoaded = (data: { width: number; height: number; pageCount: number; imageUrl: string }) => {
     setPdfConverting(false);
     setPdfError(null);
-    setPdfDimensions({ width: data.width, height: data.height });
-    setPageHeights(data.pageHeights);
+    // نأخذ عرض الصفحة الواحدة (الارتفاع الكلي مقسوماً على عدد الصفحات)
+    setPdfDimensions({ width: data.width, height: data.height / data.pageCount });
     setNumPages(data.pageCount);
     setStitchedImageUrl(data.imageUrl);
   };
@@ -1018,7 +998,6 @@ export default function ExamTemplateSetup() {
                   </div>
                 </>
               )}
-
               <div className="space-y-2">
                 <Label>لغة الاختبار</Label>
                 <div className="flex gap-2">
@@ -1308,7 +1287,7 @@ export default function ExamTemplateSetup() {
                 </div>
                 <Separator orientation="vertical" className="h-4" />
                 <div className="flex items-center gap-1">
-                  <Badge variant="outline">{questions.length || aiQuestions.length}</Badge>
+                  <Badge variant="outline">{questions.length}</Badge>
                   <span className="text-muted-foreground">سؤال</span>
                 </div>
               </div>
@@ -1346,10 +1325,10 @@ export default function ExamTemplateSetup() {
                   variant="default"
                   size="sm"
                   onClick={() => setAnswerDialogOpen(true)}
-                  disabled={questions.length === 0 && aiQuestions.length === 0}
+                  disabled={questions.length === 0}
                 >
                   <Check className="w-4 h-4 ml-1" />
-                  الإجابات ({questions.length > 0 ? questions.length : aiQuestions.length})
+                  الإجابات ({questions.length})
                 </Button>
               </div>
 
@@ -1476,7 +1455,7 @@ export default function ExamTemplateSetup() {
                       onPointerUp={handleCanvasPointerUp}
                       onPointerLeave={handleCanvasPointerUp}
                     >
-                      {/* الأسئلة المكتملة - بألوان أفتح */}
+                      {/* الأسئلة المكتملة */}
                       {questions.map((question) => (
                         <div key={question.id}>
                           {question.options.map((option) => {
@@ -1509,7 +1488,7 @@ export default function ExamTemplateSetup() {
                         </div>
                       ))}
 
-                      {/* السؤال الحالي - بلون برتقالي فاتح */}
+                      {/* السؤال الحالي */}
                       {currentQuestion && currentQuestion.options.map((option) => {
                         const pageOffset = getPageOffset(option.page);
                         return (
@@ -1530,7 +1509,7 @@ export default function ExamTemplateSetup() {
                         );
                       })}
 
-                      {/* معاينة المربع الذي يتم رسمه - بلون أحمر فاتح */}
+                      {/* معاينة المربع الذي يتم رسمه */}
                       {previewOption && (
                         <div
                           className="absolute border-2 border-dashed border-red-300 bg-red-50/30"
@@ -1558,15 +1537,15 @@ export default function ExamTemplateSetup() {
         <Dialog open={answerDialogOpen} onOpenChange={setAnswerDialogOpen}>
           <DialogContent className="max-w-[95vw] sm:max-w-[95vw] md:max-w-[95vw] lg:max-w-[1400px] w-full h-[95vh] sm:h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50 border-0 shadow-2xl">
 
-            <DialogHeader className="p-3 sm:p-4 bg-white border-b shrink-0 flex flex-row items-center justify-between">
-              <div className="flex flex-col gap-0.5">
-                <DialogTitle className="text-sm sm:text-xl font-bold">إدخال/تعديل الإجابات والدرجات</DialogTitle>
-                <DialogDescription className="text-[10px] sm:text-xs">
+            <DialogHeader className="p-2 sm:p-4 bg-white border-b shrink-0 flex flex-row items-center justify-between gap-2">
+              <div className="flex flex-col gap-0.5 overflow-hidden">
+                <DialogTitle className="text-xs sm:text-xl font-bold truncate">إدخال/تعديل الإجابات والدرجات</DialogTitle>
+                <DialogDescription className="text-[9px] sm:text-xs">
                   مجموع الدرجات: <span className="font-bold text-primary">{questions.reduce((sum, q) => sum + (q.points || 0), 0)}</span>
                 </DialogDescription>
               </div>
-              <DialogClose className="rounded-full h-8 w-8 flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
-                <X className="h-4 w-4" />
+              <DialogClose className="rounded-full h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors shrink-0">
+                <X className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </DialogClose>
             </DialogHeader>
 
@@ -1881,7 +1860,7 @@ export default function ExamTemplateSetup() {
                     <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100 mb-2">
                       <div className="flex items-center gap-2 text-purple-700 font-bold mb-1">
                         <Sparkles className="w-5 h-5 font-bold" />
-                        <span>تحليل الاختبار باستخدام الذكاء الاصطناعي</span>
+                        <span>تحليل الأمتحان باستخدام الذكاء الاصطناعي</span>
                       </div>
                       <p className="text-xs text-slate-600">
                         بناءً على صورتك المرفوعة، قمنا باستخراج الأسئلة والإجابات النموذجية تلقائياً لتسهيل العملية عليك.
@@ -1895,7 +1874,7 @@ export default function ExamTemplateSetup() {
                           <Loader2 className="w-12 h-12 text-primary animate-spin relative" />
                         </div>
                         <div className="text-center">
-                          <p className="text-slate-800 font-bold text-lg">جاري فحص ورقة الاختبار...</p>
+                          <p className="text-slate-800 font-bold text-lg">جاري فحص ورقة الامتحان...</p>
                           <p className="text-slate-400 text-sm mt-1">يستخدم الذكاء الاصطناعي لاستخراج الأسئلة وتحديد الأنواع</p>
                         </div>
                       </div>
@@ -1944,29 +1923,20 @@ export default function ExamTemplateSetup() {
 
                           <div className="p-4 sm:p-5 space-y-5">
                             <div className="space-y-2">
-                              <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                  <FileText className="w-3.5 h-3.5" />
-                                  نص السؤال المكتشف
-                                </div>
-                                <div className="flex items-center gap-1 text-primary/60">
-                                  <Pencil className="w-3 h-3" />
-                                  <span className="text-[9px] lowercase">(يمكنك التعديل)</span>
-                                </div>
+                              <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                                <FileText className="w-3.5 h-3.5" />
+                                نص السؤال المكتشف
                               </Label>
-                              <Textarea
-                                value={q.text}
-                                onChange={(e) => updateAiQuestion(q.id, 'text', e.target.value)}
-                                className="text-sm sm:text-base font-semibold text-slate-700 bg-white border-2 border-dashed border-slate-200 hover:border-primary/30 hover:bg-slate-50/50 p-4 rounded-xl leading-relaxed min-h-[80px] focus:border-primary/25 focus:bg-white focus:ring-0 transition-all resize-none shadow-sm"
-                                placeholder="نص السؤال هنا..."
-                              />
+                              <p className="text-sm sm:text-base font-semibold text-slate-700 bg-slate-50/50 p-4 rounded-xl border border-slate-100 leading-relaxed">
+                                {q.text}
+                              </p>
                             </div>
 
                             <div className="grid grid-cols-1 gap-5">
                               <div className="space-y-2 group">
                                 <Label className="text-[10px] font-bold text-purple-600 flex items-center gap-1.5 uppercase tracking-widest">
                                   <Sparkles className="w-3.5 h-3.5" />
-                                  الاجابة النموذجية المقترحة
+                                  إجابة Gemini المقترحة
                                 </Label>
                                 <div className="text-xs sm:text-sm text-slate-600 bg-gradient-to-br from-purple-50/30 to-white p-4 rounded-xl border border-purple-100 italic shadow-sm group-hover:shadow-md transition-shadow duration-300">
                                   {q.geminiAnswer}
@@ -1979,13 +1949,13 @@ export default function ExamTemplateSetup() {
                                   الإجابة النموذجية الخاصة بك
                                 </Label>
                                 <Textarea
-                                  placeholder="أضف إجابتك الخاصة هنا إذا أردت استبدال إجابة الذكاء الاصطناعي..."
+                                  placeholder="أضف إجابتك الخاصة هنا إذا أردت استبدال إجابة Gemini..."
                                   value={q.teacherAnswer}
                                   onChange={(e) => updateAiQuestion(q.id, 'teacherAnswer', e.target.value)}
                                   className="text-xs sm:text-sm min-h-[80px] sm:min-h-[100px] rounded-xl bg-slate-50 border-slate-100 focus:bg-white focus:ring-2 focus:ring-purple-400/20 focus:border-purple-300 transition-all resize-none shadow-inner"
                                 />
                                 <p className="text-[10px] text-slate-400 italic font-medium pr-1">
-                                  * سيتم استخدام إجابة الذكاء الاصطناعي تلقائياً إذا تركت هذا الحقل فارغاً.
+                                  * سيتم استخدام إجابة Gemini تلقائياً إذا تركت هذا الحقل فارغاً.
                                 </p>
                               </div>
                             </div>
@@ -2006,10 +1976,10 @@ export default function ExamTemplateSetup() {
                     <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary px-1.5 h-5">س{(activeTab === 'ai' ? aiQuestions : questions).length}</Badge>
                   </div>
 
-                  <div className="flex-1 overflow-auto bg-slate-200/20 p-2 sm:p-4 custom-scrollbar">
+                  <div className="flex-1 overflow-auto bg-slate-200/20 p-2 sm:p-4">
                     <div className="relative mx-auto bg-white mb-20 shadow-xl"
                       style={{
-                        width: pdfDimensions ? `min(100%, ${canvasWidth * 0.6}px)` : '100%',
+                        width: pdfDimensions ? `min(100%, ${canvasWidth * 0.55}px)` : '100%',
                         minHeight: `100px`
                       }}>
                       {stitchedImageUrl && (
@@ -2022,22 +1992,13 @@ export default function ExamTemplateSetup() {
 
                       <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                         {questions.map((question) => {
-                          const currentContainerWidth = pdfDimensions ? Math.min(window.innerWidth * 0.9, canvasWidth * 0.6) : canvasWidth;
-                          const previewScale = pdfDimensions ? currentContainerWidth / canvasWidth : 0.6;
+                          const currentContainerWidth = pdfDimensions ? Math.min(window.innerWidth * 0.85, canvasWidth * 0.55) : canvasWidth;
+                          const previewScale = pdfDimensions ? currentContainerWidth / canvasWidth : 0.55;
 
                           return (
                             <div key={`preview-${question.id}`}>
                               {question.options.map((option) => {
-                                const totalHeight = pdfDimensions?.height || 1;
-                                const pageOffset = (option.page <= 1 || pageHeights.length === 0)
-                                  ? 0
-                                  : pageHeights.slice(0, option.page - 1).reduce((sum, h) => sum + h, 0);
-
-                                const leftPercent = (option.x / canvasWidth) * 100;
-                                const topPercent = ((pageOffset + option.y) / totalHeight) * 100;
-                                const widthPercent = (option.width / canvasWidth) * 100;
-                                const heightPercent = (option.height / totalHeight) * 100;
-
+                                const topPos = ((option.page - 1) * (canvasHeight * previewScale + 0)) + (option.y * previewScale);
                                 return (
                                   <div
                                     key={`preview-opt-${option.id}`}
@@ -2046,10 +2007,10 @@ export default function ExamTemplateSetup() {
                                         "border-purple-500 bg-purple-500/10"
                                       }`}
                                     style={{
-                                      left: `${leftPercent}%`,
-                                      top: `${topPercent}%`,
-                                      width: `${widthPercent}%`,
-                                      height: `${heightPercent}%`,
+                                      left: `${option.x * previewScale}px`,
+                                      top: `${topPos}px`,
+                                      width: `${option.width * previewScale}px`,
+                                      height: `${option.height * previewScale}px`,
                                     }}
                                   >
                                     <div className="absolute -top-3 right-0 bg-black/70 text-white text-[7px] px-0.5 rounded leading-none">
@@ -2070,25 +2031,82 @@ export default function ExamTemplateSetup() {
             </div>
 
 
-            <DialogFooter className="p-3 sm:p-4 bg-white border-t shrink-0 flex flex-row items-center justify-between gap-3 sm:gap-4">
+            <DialogFooter className="p-2 sm:p-4 bg-white border-t shrink-0 flex flex-row items-center justify-between gap-2 sm:gap-4">
               <div className="hidden sm:block text-sm text-slate-500">
                 إجمالي الأسئلة: <span className="font-bold text-slate-800">{(activeTab === 'ai' ? aiQuestions : questions).length}</span>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                <Button type="button" variant="outline" onClick={() => setAnswerDialogOpen(false)} className="flex-1 sm:flex-none h-10 sm:h-11 px-4 sm:px-8 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm">
+                <Button type="button" variant="outline" onClick={() => setAnswerDialogOpen(false)} className="flex-1 sm:flex-none h-9 sm:h-11 px-2 sm:px-8 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-sm">
                   إغلاق
                 </Button>
                 <Button
                   type="button"
                   onClick={handleSaveTemplate}
                   disabled={!selectedFile || (activeTab === 'ai' ? aiQuestions.length === 0 : questions.length === 0) || isLoading}
-                  className="flex-1 sm:flex-none h-10 sm:h-11 px-4 sm:px-10 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm bg-primary shadow-lg shadow-primary/20"
+                  className="flex-1 sm:flex-none h-9 sm:h-11 px-2 sm:px-10 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-sm bg-primary shadow-lg shadow-primary/20"
                 >
-                  {isLoading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Save className="w-4 h-4 sm:w-5 sm:h-5 ml-1.5 sm:ml-2" />}
+                  {isLoading ? <Loader2 className="w-3.5 h-3.5 sm:w-5 sm:h-5 animate-spin" /> : <Save className="w-3.5 h-3.5 sm:w-5 sm:h-5 ml-1 sm:ml-2" />}
                   {isLoading ? "جاري الحفظ..." : "حفظ النموذج"}
                 </Button>
               </div>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* نافذة النجاح لاختبار بدون باركود */}
+        <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+          <DialogContent className="sm:max-w-md text-center border-0 shadow-2xl p-0 rounded-[2.5rem] bg-white overflow-hidden transition-all">
+            <div className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 p-10 text-white relative">
+              <div className="absolute top-4 right-4">
+                <DialogClose className="rounded-full p-2 hover:bg-white/10 transition-colors">
+                  <X className="h-5 w-5 text-white/70" />
+                </DialogClose>
+              </div>
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white/20 mb-6 backdrop-blur-md rotate-12 transition-transform hover:rotate-0">
+                <Check className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-3xl font-black mb-2 tracking-tight">تم الحفظ بنجاح!</h3>
+            </div>
+
+            <div className="p-10 space-y-8">
+              <div className="space-y-4">
+                <div className="flex items-center justify-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">
+                  <Sparkles className="h-3 w-3 text-emerald-500" />
+                  رقم الاختبار الخاص بك
+                  <Sparkles className="h-3 w-3 text-emerald-500" />
+                </div>
+
+                <div className="bg-slate-50 border-2 border-slate-100 rounded-[2rem] p-8 relative group transition-all hover:border-emerald-200 hover:bg-emerald-50/30">
+                  <span className="text-6xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm">
+                    {savedExamId}
+                  </span>
+
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(savedExamId?.toString() || "");
+                      toast.success("تم نسخ الرقم بنجاح ✅");
+                    }}
+                    className="absolute -top-3 -right-3 p-3 rounded-2xl bg-white shadow-xl border border-slate-100 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-90 shadow-emerald-500/10"
+                    title="نسخ الرقم"
+                  >
+                    <Save className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  onClick={() => {
+                    setSuccessDialogOpen(false);
+                    navigate(`/grading?examId=${savedExamId}`);
+                  }}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black h-16 text-xl rounded-2xl shadow-2xl shadow-emerald-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group"
+                >
+                  بدء التصحيح الآن
+                  <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-[-5px]" />
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
@@ -2189,64 +2207,6 @@ export default function ExamTemplateSetup() {
           </div>
         </HelpFab>
         {/* ---------------------------------------------------------------------- */}
-
-        {/* نافذة النجاح لاختبار بدون باركود */}
-        <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
-          <DialogContent className="sm:max-w-md text-center border-0 shadow-2xl p-0 rounded-[2.5rem] bg-white overflow-hidden transition-all">
-            <div className="bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 p-10 text-white relative">
-              <div className="absolute top-4 right-4">
-                 <DialogClose className="rounded-full p-2 hover:bg-white/10 transition-colors">
-                    <X className="h-5 w-5 text-white/70" />
-                 </DialogClose>
-              </div>
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white/20 mb-6 backdrop-blur-md rotate-12 transition-transform hover:rotate-0">
-                <Check className="h-10 w-10 text-white" />
-              </div>
-              <h3 className="text-3xl font-black mb-2 tracking-tight">تم الحفظ بنجاح!</h3>
-            </div>
-
-            <div className="p-10 space-y-8">
-              <div className="space-y-4">
-                <div className="flex items-center justify-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">
-                   <Sparkles className="h-3 w-3 text-emerald-500" />
-                   رقم الاختبار الخاص بك
-                   <Sparkles className="h-3 w-3 text-emerald-500" />
-                </div>
-                
-                <div className="bg-slate-50 border-2 border-slate-100 rounded-[2rem] p-8 relative group transition-all hover:border-emerald-200 hover:bg-emerald-50/30">
-                  <span className="text-6xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm">
-                    {savedExamId}
-                  </span>
-                  
-                  <button 
-                    onClick={() => {
-                      navigator.clipboard.writeText(savedExamId?.toString() || "");
-                      toast.success("تم نسخ الرقم بنجاح ✅");
-                    }}
-                    className="absolute -top-3 -right-3 p-3 rounded-2xl bg-white shadow-xl border border-slate-100 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all active:scale-90 shadow-emerald-500/10"
-                    title="نسخ الرقم"
-                  >
-                    <Save className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <Button
-                  onClick={() => {
-                    setSuccessDialogOpen(false);
-                    navigate(`/grading?examId=${savedExamId}`);
-                  }}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black h-16 text-xl rounded-2xl shadow-2xl shadow-emerald-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 group"
-                >
-                  بدء التصحيح الآن
-                  <ArrowRight className="h-6 w-6 transition-transform group-hover:translate-x-[-5px]" />
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
       </div>
     </MainLayout >
   );

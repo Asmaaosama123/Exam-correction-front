@@ -1325,7 +1325,7 @@ export default function ExamTemplateSetup() {
                   variant="default"
                   size="sm"
                   onClick={() => setAnswerDialogOpen(true)}
-                  disabled={questions.length === 0}
+                  disabled={!selectedFile}
                 >
                   <Check className="w-4 h-4 ml-1" />
                   الإجابات ({questions.length})
@@ -1927,16 +1927,18 @@ export default function ExamTemplateSetup() {
                                 <FileText className="w-3.5 h-3.5" />
                                 نص السؤال المكتشف
                               </Label>
-                              <p className="text-sm sm:text-base font-semibold text-slate-700 bg-slate-50/50 p-4 rounded-xl border border-slate-100 leading-relaxed">
-                                {q.text}
-                              </p>
+                              <Textarea
+                                value={q.text}
+                                onChange={(e) => updateAiQuestion(q.id, 'text', e.target.value)}
+                                className="text-sm sm:text-base font-semibold text-slate-700 bg-slate-50/50 p-4 rounded-xl border border-slate-100 leading-relaxed min-h-[80px] focus:bg-white transition-all resize-none shadow-inner"
+                              />
                             </div>
 
                             <div className="grid grid-cols-1 gap-5">
                               <div className="space-y-2 group">
                                 <Label className="text-[10px] font-bold text-purple-600 flex items-center gap-1.5 uppercase tracking-widest">
                                   <Sparkles className="w-3.5 h-3.5" />
-                                  إجابة Gemini المقترحة
+                                  إجابة الذكاء الاصطناعي النموذجية
                                 </Label>
                                 <div className="text-xs sm:text-sm text-slate-600 bg-gradient-to-br from-purple-50/30 to-white p-4 rounded-xl border border-purple-100 italic shadow-sm group-hover:shadow-md transition-shadow duration-300">
                                   {q.geminiAnswer}
@@ -1949,13 +1951,13 @@ export default function ExamTemplateSetup() {
                                   الإجابة النموذجية الخاصة بك
                                 </Label>
                                 <Textarea
-                                  placeholder="أضف إجابتك الخاصة هنا إذا أردت استبدال إجابة Gemini..."
+                                  placeholder="أضف إجابتك الخاصة هنا إذا أردت استبدال إجابة الذكاء الاصطناعي..."
                                   value={q.teacherAnswer}
                                   onChange={(e) => updateAiQuestion(q.id, 'teacherAnswer', e.target.value)}
                                   className="text-xs sm:text-sm min-h-[80px] sm:min-h-[100px] rounded-xl bg-slate-50 border-slate-100 focus:bg-white focus:ring-2 focus:ring-purple-400/20 focus:border-purple-300 transition-all resize-none shadow-inner"
                                 />
                                 <p className="text-[10px] text-slate-400 italic font-medium pr-1">
-                                  * سيتم استخدام إجابة Gemini تلقائياً إذا تركت هذا الحقل فارغاً.
+                                  * سيتم استخدام إجابة الذكاء الاصطناعي تلقائياً إذا تركت هذا الحقل فارغاً.
                                 </p>
                               </div>
                             </div>

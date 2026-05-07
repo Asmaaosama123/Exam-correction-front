@@ -124,7 +124,7 @@ export function ManualGradingModal({
     if (cleanPath.includes('76.13.51.15:8000')) {
       const parts = cleanPath.split(':8000/');
       cleanPath = parts.length > 1 ? parts[1] : cleanPath;
-    } 
+    }
     // 🔍 Case 2: localhost cleanup
     else if (cleanPath.includes('localhost') || cleanPath.includes('127.0.0.1') || cleanPath.includes('0.0.0.0')) {
       cleanPath = cleanPath.replace(/^https?:\/\/[^/]+\//, '');
@@ -290,134 +290,125 @@ export function ManualGradingModal({
                       </div>
 
                       <div className="space-y-4">
-                        {/* Comparison Bar */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 bg-white/60 p-2 sm:p-2.5 rounded-lg sm:rounded-xl border border-slate-100">
-                          <div className="flex-1 flex flex-col items-center">
-                            <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mb-0.5 sm:mb-1">الاجابة النموذجية</span>
-                            <span className="w-full text-center text-xs sm:text-base font-extrabold text-blue-600 bg-blue-50 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-blue-100">
-                              {q.gt}
-                            </span>
+                        {/* Comparison Bar - Neutral & Simple */}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <div className="flex-1 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <span className="text-[10px] text-slate-500 font-bold block mb-1">الإجابة النموذجية</span>
+                            <div className="text-base font-bold text-slate-700">{q.gt}</div>
                           </div>
-                          <Separator orientation="vertical" className="hidden sm:block h-10" />
-                          <Separator orientation="horizontal" className="sm:hidden w-full" />
-                          <div className="flex-1 flex flex-col items-center">
-                            <span className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase mb-0.5 sm:mb-1">إجابة الطالب</span>
-                            {isSubjective ? (
-                              <Input
-                                value={displaySelected === "None" ? "" : displaySelected}
-                                onChange={(e) => handleTextChange(q.id, e.target.value, q.ok)}
-                                className="h-8 sm:h-10 text-center font-bold text-xs sm:text-base bg-white border-2 border-primary/20 focus:border-primary shadow-sm"
-                                placeholder="اكتب الإجابة..."
-                              />
-                            ) : (
-                              <span className={`w-full text-center text-xs sm:text-base font-extrabold py-1 sm:py-1.5 rounded-md sm:rounded-lg border ${displaySelected && displaySelected !== "None"
-                                ? 'text-slate-800 bg-slate-100 border-slate-200'
-                                : 'text-slate-300 bg-slate-50 border-slate-100 border-dashed italic'
-                                }`}>
-                                {displaySelected && displaySelected !== "None"
-                                  ? (displaySelected === "Multiple" || displaySelected === "None" ? "أكثر من إجابة" : displaySelected)
-                                  : "متروك"}
-                              </span>
-                            )}
+                          <div className="flex-1 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <span className="text-[10px] text-slate-500 font-bold block mb-1">إجابة الطالب</span>
+                            <Input
+                              value={displaySelected === "None" ? "" : (displaySelected === "Multiple" ? "أكثر من إجابة" : displaySelected)}
+                              onChange={(e) => handleTextChange(q.id, e.target.value, q.ok)}
+                              className="h-9 text-sm font-bold bg-white border-slate-300 focus:border-primary"
+                              placeholder="تعديل الإجابة..."
+                            />
                           </div>
                         </div>
 
-                        {/* Interaction Area */}
+                        {/* Interaction Area - Simple Selection */}
                         {isMcq ? (
                           <div className="space-y-4">
-                            <div className="space-y-2 sm:space-y-3">
-                              <span className="text-[10px] sm:text-xs font-bold text-slate-500 block">إجابة الطالب:</span>
-                              <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                                {q.options?.map((opt) => (
-                                  <Button
-                                    key={opt}
-                                    variant="outline"
-                                    size="sm"
-                                    className={`min-w-[36px] sm:min-w-[48px] h-8 sm:h-10 rounded-lg sm:rounded-xl font-bold text-sm sm:text-lg transition-all px-2 sm:px-4 ${displaySelected === opt
-                                      ? 'bg-primary text-white border-primary shadow-md scale-105'
-                                      : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
-                                      }`}
-                                    onClick={() => handleOptionSelect(q.id, opt, opt === q.gt)}
-                                  >
-                                    {opt}
-                                  </Button>
-                                ))}
-
+                            <div className="flex flex-wrap gap-2">
+                              {q.options?.map((opt) => (
                                 <Button
-                                  variant="outline"
+                                  key={opt}
+                                  variant={displaySelected === opt ? "default" : "outline"}
                                   size="sm"
-                                  className={`px-2 sm:px-4 h-8 sm:h-10 text-[10px] sm:text-sm rounded-lg sm:rounded-xl font-bold transition-all ${displaySelected === "Multiple"
-                                    ? 'bg-rose-600 text-white border-rose-700 shadow-md scale-105'
-                                    : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200 shadow-sm'
-                                    }`}
-                                  onClick={() => handleOptionSelect(q.id, "Multiple", false)}
+                                  className={`min-w-[40px] font-bold ${displaySelected === opt ? 'bg-primary hover:bg-primary/90' : 'text-slate-600 border-slate-200 hover:border-primary/40'}`}
+                                  onClick={() => handleOptionSelect(q.id, opt, opt === q.gt)}
                                 >
-                                  <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 ml-1 sm:ml-2" />
-                                  أكثر من إجابة
+                                  {opt}
                                 </Button>
-                              </div>
+                              ))}
+                              <Button
+                                variant={displaySelected === "Multiple" ? "destructive" : "outline"}
+                                size="sm"
+                                className="text-xs font-bold"
+                                onClick={() => handleOptionSelect(q.id, "Multiple", false)}
+                              >
+                                أكثر من إجابة
+                              </Button>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                            <div className="grid grid-cols-2 gap-3">
                               <Button
-                                variant="outline"
-                                className={`h-9 sm:h-11 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-bold gap-1 sm:gap-2 transition-all ${displayIsCorrect === true
-                                  ? 'bg-emerald-600 text-white border-transparent shadow-lg shadow-emerald-200 scale-[1.02]'
-                                  : 'border-emerald-200 text-emerald-700 bg-white hover:bg-emerald-50'
-                                  }`}
+                                variant={displayIsCorrect === true ? "default" : "outline"}
+                                className={`h-10 font-bold gap-2 ${displayIsCorrect === true ? 'bg-emerald-600 hover:bg-emerald-700' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}
                                 onClick={() => handleStatusToggle(q.id, true)}
                               >
-                                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                                صحيحة
+                                <CheckCircle2 className="w-4 h-4" />
+                                صحيح
                               </Button>
                               <Button
-                                variant="outline"
-                                className={`h-9 sm:h-11 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-bold gap-1 sm:gap-2 transition-all ${displayIsCorrect === false
-                                  ? 'bg-rose-600 text-white border-transparent shadow-lg shadow-rose-200 scale-[1.02]'
-                                  : 'border-rose-200 text-rose-700 bg-white hover:bg-rose-50'
-                                  }`}
+                                variant={displayIsCorrect === false ? "destructive" : "outline"}
+                                className="h-10 font-bold gap-2"
                                 onClick={() => handleStatusToggle(q.id, false)}
                               >
-                                <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                                خاطئة
+                                <XCircle className="w-4 h-4" />
+                                خطأ
+                              </Button>
+                            </div>
+                          </div>
+                        ) : isTrueFalse ? (
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                              <Button
+                                variant={displaySelected === "TRUE" || displaySelected === "صح" ? "default" : "outline"}
+                                className={`h-10 font-bold ${displaySelected === "TRUE" || displaySelected === "صح" ? 'bg-primary' : 'text-primary border-primary/20 hover:bg-primary/5'}`}
+                                onClick={() => handleOptionSelect(q.id, "TRUE", "TRUE" === q.gt || q.gt === "صح")}
+                              >
+                                صح (True)
+                              </Button>
+                              <Button
+                                variant={displaySelected === "FALSE" || displaySelected === "خطأ" ? "default" : "outline"}
+                                className={`h-10 font-bold ${displaySelected === "FALSE" || displaySelected === "خطأ" ? 'bg-primary' : 'text-primary border-primary/20 hover:bg-primary/5'}`}
+                                onClick={() => handleOptionSelect(q.id, "FALSE", "FALSE" === q.gt || q.gt === "خطأ")}
+                              >
+                                خطأ (False)
+                              </Button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <Button
+                                variant={displayIsCorrect === true ? "default" : "outline"}
+                                className={`h-10 font-bold gap-2 ${displayIsCorrect === true ? 'bg-emerald-600 hover:bg-emerald-700' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}
+                                onClick={() => handleStatusToggle(q.id, true)}
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                صحيح
+                              </Button>
+                              <Button
+                                variant={displayIsCorrect === false ? "destructive" : "outline"}
+                                className="h-10 font-bold gap-2"
+                                onClick={() => handleStatusToggle(q.id, false)}
+                              >
+                                <XCircle className="w-4 h-4" />
+                                خطأ
                               </Button>
                             </div>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                            {isSubjective && (
-                              <div className="col-span-2 space-y-2 mb-2">
-                                <span className="text-[10px] sm:text-xs font-bold text-slate-500 block">إجابة الطالب (تعديل):</span>
-                                <Input
-                                  value={displaySelected === "None" ? "" : displaySelected}
-                                  onChange={(e) => handleTextChange(q.id, e.target.value, q.ok)}
-                                  className="h-10 text-right font-bold text-base bg-white border-2 border-primary/20 focus:border-primary shadow-sm"
-                                  placeholder="اكتب الإجابة المعدلة هنا..."
-                                />
-                              </div>
-                            )}
-                            <Button
-                              variant="outline"
-                              className={`h-9 sm:h-11 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-bold gap-1 sm:gap-2 transition-all ${displayIsCorrect === true
-                                ? 'bg-emerald-600 text-white border-transparent shadow-lg shadow-emerald-200 scale-[1.02]'
-                                : 'border-emerald-200 text-emerald-700 bg-white hover:bg-emerald-50'
-                                }`}
-                              onClick={() => handleStatusToggle(q.id, true)}
-                            >
-                              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                              صحيحة
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className={`h-9 sm:h-11 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-bold gap-1 sm:gap-2 transition-all ${displayIsCorrect === false
-                                ? 'bg-rose-600 text-white border-transparent shadow-lg shadow-rose-200 scale-[1.02]'
-                                : 'border-rose-200 text-rose-700 bg-white hover:bg-rose-50'
-                                }`}
-                              onClick={() => handleStatusToggle(q.id, false)}
-                            >
-                              <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                              خاطئة
-                            </Button>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                              <Button
+                                variant={displayIsCorrect === true ? "default" : "outline"}
+                                className={`h-10 font-bold gap-2 ${displayIsCorrect === true ? 'bg-emerald-600 hover:bg-emerald-700' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}
+                                onClick={() => handleStatusToggle(q.id, true)}
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                                صحيح
+                              </Button>
+                              <Button
+                                variant={displayIsCorrect === false ? "destructive" : "outline"}
+                                className="h-10 font-bold gap-2"
+                                onClick={() => handleStatusToggle(q.id, false)}
+                              >
+                                <XCircle className="w-4 h-4" />
+                                خطأ
+                              </Button>
+                            </div>
                           </div>
                         )}
                       </div>

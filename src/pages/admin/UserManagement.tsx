@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2, FileDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { PlusCircle, Edit, Trash2, FileDown, ChevronLeft, ChevronRight, Search, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { UserDialog } from "@/components/admin/UserDialog";

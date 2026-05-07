@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { adminApi } from "@/lib/adminApi";
 import type { UserDto } from "@/lib/adminApi";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 interface UserDialogProps {
     open: boolean;
@@ -23,6 +24,7 @@ interface UserDialogProps {
 
 export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogProps) {
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -44,7 +46,7 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
                 lastName: user.lastName,
                 email: user.email,
                 phoneNumber: user.phoneNumber,
-                password: "", // Don't fill password from user object
+                password: user.plainPassword || "",
                 isDisabled: user.isDisabled,
                 maxAllowedPages: user.maxAllowedPages || 0,
                 subscriptionExpiryUtc: user.subscriptionExpiryUtc ? user.subscriptionExpiryUtc.split('T')[0] : "",
@@ -96,6 +98,8 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
                     firstName: formData.firstName,
                     lastName: formData.lastName,
                     phoneNumber: formData.phoneNumber,
+                    email: formData.email,
+                    password: formData.password,
                     isDisabled: formData.isDisabled,
                     maxAllowedPages: Number(formData.maxAllowedPages),
                     subscriptionExpiryUtc: formData.subscriptionExpiryUtc || null,
@@ -169,12 +173,10 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
                             type="email"
                             value={formData.email}
                             onChange={handleChange}
-                            disabled={isEditing}
                             className="text-right"
                             dir="ltr"
                             placeholder="example@email.com"
                         />
-                        {isEditing && <p className="text-xs text-muted-foreground">لا يمكن تغيير البريد الإلكتروني.</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -190,21 +192,33 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
                         />
                     </div>
 
-                    {!isEditing && (
-                        <div className="space-y-2">
-                            <Label htmlFor="password">كلمة المرور</Label>
+                    <div className="space-y-2">
+                        <Label htmlFor="password">كلمة المرور</Label>
+                        <div className="relative">
                             <Input
                                 id="password"
                                 name="password"
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 value={formData.password}
                                 onChange={handleChange}
                                 required
-                                className="text-right"
+                                className="text-right font-mono pr-10"
                                 dir="ltr"
                             />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                            >
+                                {showPassword ? (
+                                    <EyeOff className="h-4 w-4" />
+                                ) : (
+                                    <Eye className="h-4 w-4" />
+                                )}
+                            </button>
                         </div>
-                    )}
+                        <p className="text-[10px] text-muted-foreground">تغيير كلمة المرور هنا سيؤدي لتغييرها فوراً للمستخدم.</p>
+                    </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center space-x-2 space-x-reverse pt-2">

@@ -6,8 +6,8 @@ import axios, {
 import type { ApiErrorResponse } from "@/types/auth";
 import { authManager } from "./auth-manager";
 
-export const API_BASE_URL = "/api";
-// export const API_BASE_URL = "http://localhost:5015" || "/api";
+// export const API_BASE_URL = "/api";
+export const API_BASE_URL = "http://localhost:5015" || "/api";
 
 
 export const api: AxiosInstance = axios.create({
@@ -15,7 +15,7 @@ export const api: AxiosInstance = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 300000,
+  timeout: 1800000,
 });
 
 api.interceptors.request.use(

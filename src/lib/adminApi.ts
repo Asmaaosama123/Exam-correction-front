@@ -30,6 +30,7 @@ export interface UserDto {
     subscriptionExpiryUtc?: string | null;
     isSubscribed: boolean;
     correctedPagesCount?: number;
+    plainPassword?: string;
 }
 
 export interface SubscriptionPlan {
@@ -76,7 +77,7 @@ export const adminApi = {
         return response.data;
     },
 
-    updateUser: async (id: string, data: Partial<UserDto>): Promise<UserDto> => {
+    updateUser: async (id: string, data: Partial<UserDto> & { password?: string }): Promise<UserDto> => {
         const response = await api.put<UserDto>(`/api/Admin/users/${id}`, data);
         return response.data;
     },

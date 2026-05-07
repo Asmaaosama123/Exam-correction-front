@@ -290,8 +290,8 @@ export function GradePaperUpload({
             </div>
 
             {/* Template ID Input (Advanced Option) */}
-            <div className="border border-border/50 rounded-xl overflow-hidden bg-background/50">
-              <details className="group">
+            <div className={`border rounded-xl overflow-hidden transition-all ${initialTemplateId ? 'border-primary/50 bg-primary/5' : 'border-border/50 bg-background/50'}`}>
+              <details className="group" open={!!initialTemplateId}>
                 <summary className="flex items-center justify-between p-4 cursor-pointer font-medium text-sm text-foreground/80 hover:text-foreground transition-colors list-none [&::-webkit-details-marker]:hidden">
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-muted-foreground" />

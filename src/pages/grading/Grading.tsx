@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { GradePaperUpload } from "@/components/grading/GradePaperUpload";
 import { GradedExamResult } from "@/components/grading/GradedExamResult";
@@ -13,6 +14,10 @@ import { useAuth } from "@/hooks/use-auth";
 
 const Grading = () => {
   const { data: user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const urlExamId = searchParams.get("examId");
+  const urlTemplateId = searchParams.get("templateId");
+
   const [gradedResults, setGradedResults] = useState<ExamResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +52,7 @@ const Grading = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl sm:text-4xl font-extrabold bg-gradient-to-l from-primary to-primary/70 bg-clip-text text-transparent">
-              التصحيح والنتائج
+              {urlExamId ? "التصحيح بدون باركود" : "التصحيح والنتائج"}
             </h1>
             <p className="text-muted-foreground mt-2 text-base sm:text-lg max-w-2xl">
               نظام التصحيح الذكي: ارفع أوراق الاختبار ودع الذكاء الاصطناعي يقوم بالباقي مع إمكانية المراجعة اليدوية بدقة عالية.
@@ -83,6 +88,7 @@ const Grading = () => {
         <GradePaperUpload
           onUpload={handleUpload}
           isLoading={isLoading}
+          initialTemplateId={urlExamId ? parseInt(urlExamId) : (urlTemplateId ? parseInt(urlTemplateId) : undefined)}
         />
 
         {error && (

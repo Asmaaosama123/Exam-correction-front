@@ -525,10 +525,12 @@ export function GradingResultsTable() {
                           <div className="hidden sm:flex w-8 h-8 rounded-full bg-primary/10 items-center justify-center shrink-0">
                             <User className="h-4 w-4 text-primary" />
                           </div>
-                          <span className={`font-semibold text-[11px] sm:text-sm truncate ${(!result.studentId || result.studentId === "0" || result.studentId === 0) ? "text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100" : ""}`}>
-                            {(!result.studentId || result.studentId === "0" || result.studentId === 0 || result.studentName?.includes("طالب مجهول"))
-                              ? `طالب مجهول ${formatArabicNumber((pageNumber - 1) * pageSize + index + 1)}`
-                              : result.studentName || "غير معروف"}
+                          <span className={`font-semibold text-[11px] sm:text-sm truncate ${(result.studentName && !result.studentName.includes("طالب مجهول") && !result.studentName.includes("غير معروف")) ? "" : "text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100"}`}>
+                            {result.studentName && !result.studentName.includes("طالب مجهول") && !result.studentName.includes("غير معروف")
+                              ? result.studentName
+                              : (!result.studentId || result.studentId === "0" || result.studentId === 0 || result.studentName?.includes("طالب مجهول"))
+                                ? `طالب مجهول ${formatArabicNumber((pageNumber - 1) * pageSize + index + 1)}`
+                                : result.studentName || "غير معروف"}
                           </span>
                         </div>
                       </td>

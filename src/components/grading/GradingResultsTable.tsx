@@ -15,6 +15,7 @@ import {
   FileSpreadsheet,
   AlertCircle,
   Users,
+  RefreshCcw,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
@@ -228,11 +229,22 @@ export function GradingResultsTable() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>نتائج التصحيح</CardTitle>
-        <CardDescription>
-          عرض جميع نتائج التصحيح مع إمكانية التصفية والبحث
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+        <div>
+          <CardTitle className="text-2xl font-bold">نتائج التصحيح</CardTitle>
+          <CardDescription>
+            عرض جميع نتائج التصحيح مع إمكانية التصفية والبحث
+          </CardDescription>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => queryClient.invalidateQueries({ queryKey: ["grading-results"] })}
+          className="h-9 px-3 gap-2 border-slate-200 hover:bg-slate-100 transition-all text-slate-600"
+        >
+          <RefreshCcw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+          تحديث البيانات
+        </Button>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Quick Filter Tabs */}
@@ -598,7 +610,8 @@ export function GradingResultsTable() {
 
                                 const baseUrl = "https://examcorrection.wsyelhi.com";
                                 let fullImageUrl = "";
-                                let cleanPath = annotatedImageUrl.trim();
+                                // Take the first image if multiple images are joined by '|'
+                                let cleanPath = annotatedImageUrl.split('|')[0].trim();
 
                                 if (cleanPath.includes('76.13.51.15:8000')) {
                                   const parts = cleanPath.split(':8000/');

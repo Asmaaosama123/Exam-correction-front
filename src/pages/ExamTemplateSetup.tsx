@@ -909,30 +909,38 @@ export default function ExamTemplateSetup() {
     <MainLayout>
       <div className="flex flex-1 flex-col gap-6 p-6 h-full overflow-hidden">
         {/* العنوان (بدون أيقونة المساعدة هنا) */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">
-              إعداد نموذج اختبار المعلم
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="relative">
+            <div className="absolute -right-4 top-0 w-1 h-12 bg-primary rounded-full hidden md:block" />
+            <h1 className="text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+              إعداد نموذج إجابة المعلم
+              <Badge className="bg-primary/10 text-primary border-none text-xs px-3 py-1">النسخة المتميزة</Badge>
             </h1>
-            <p className="text-muted-foreground mt-2">
-              ارفع ورقة الاختبار وحدد مناطق الأسئلة على النموذج، ثم قم بتحديد الإجابات الصحيحة لكل سؤال.
+            <p className="text-slate-500 font-medium mt-1">
+              قم برسم مربعات الأسئلة وتحديد الإجابات النموذجية للتصحيح الآلي
             </p>
           </div>
-          {/* <Button
-               onClick={() => setShowCamera(true)}
-               className="bg-primary text-white shadow-md"
-             >
-               <Camera className="ml-2 h-4 w-4" />
-               فتح الكاميرا
-             </Button> */}
+          <div className="flex items-center gap-3">
+             {savedExamId && !isBarcodeMode && (
+               <Badge className="h-10 px-4 bg-emerald-50 text-emerald-700 border-emerald-100 border-2 font-black text-lg rounded-xl">
+                 رقم الاختبار الحالي: {savedExamId}
+               </Badge>
+             )}
+          </div>
         </div>
 
+
         {/* بطاقة معلومات الامتحان */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label>نوع الاختبار</Label>
+        {/* بطاقة معلومات الامتحان - التصميم المطور */}
+        <Card className="border-none shadow-xl bg-gradient-to-br from-white to-slate-50 overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+          <CardContent className="pt-8 relative">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+              <div className="md:col-span-3 space-y-3">
+                <Label className="text-sm font-bold text-slate-500 flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-primary" />
+                  نوع نظام التصحيح
+                </Label>
                 <Select
                   value={isBarcodeMode ? "barcode" : "no-barcode"}
                   onValueChange={(val) => {
@@ -946,74 +954,92 @@ export default function ExamTemplateSetup() {
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full bg-white">
+                  <SelectTrigger className="w-full h-12 bg-white border-2 border-slate-100 rounded-xl font-bold text-slate-700 shadow-sm transition-all hover:border-primary/30">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="barcode">نظام الباركود</SelectItem>
-                    <SelectItem value="no-barcode">بدون باركود</SelectItem>
+                    <SelectItem value="barcode" className="font-bold">نظام الباركود (رقمي)</SelectItem>
+                    <SelectItem value="no-barcode" className="font-bold text-primary">نظام (بدون باركود) - إدخال يدوي</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {isBarcodeMode ? (
-                <div className="space-y-2">
-                  <Label htmlFor="examId">رقم الاختبار *</Label>
-                  <Input
-                    id="examId"
-                    value={examId}
-                    onChange={(e) => {
-                      setExamId(e.target.value);
-                      if (e.target.value.trim()) setExamIdError(null);
-                    }}
-                    placeholder="أدخل رقم الاختبار"
-                    type="number"
-                    className={examIdError ? "border-destructive focus-visible:ring-destructive" : ""}
-                  />
+                <div className="md:col-span-5 space-y-3">
+                  <Label htmlFor="examId" className="text-sm font-bold text-slate-500 flex items-center gap-2">
+                    <PlusCircle className="w-4 h-4 text-primary" />
+                    رقم الاختبار (المطابق للباركود) *
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="examId"
+                      value={examId}
+                      onChange={(e) => {
+                        setExamId(e.target.value);
+                        if (e.target.value.trim()) setExamIdError(null);
+                      }}
+                      placeholder="أدخل رقم الاختبار هنا..."
+                      type="number"
+                      className={`h-12 bg-white border-2 rounded-xl font-black text-lg pl-10 shadow-sm transition-all ${examIdError ? "border-destructive ring-destructive/20" : "border-slate-100 focus:border-primary"}`}
+                    />
+                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  </div>
                   {examIdError && (
-                    <p className="text-xs font-medium text-destructive mt-1">
-                      {examIdError}
+                    <p className="text-xs font-bold text-destructive animate-bounce">
+                      ⚠ {examIdError}
                     </p>
                   )}
                 </div>
               ) : (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="examTitle">اسم الاختبار *</Label>
+                  <div className="md:col-span-3 space-y-3">
+                    <Label htmlFor="examTitle" className="text-sm font-bold text-slate-500 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-primary" />
+                      عنوان الاختبار *
+                    </Label>
                     <Input
                       id="examTitle"
                       value={examTitle}
                       onChange={(e) => setExamTitle(e.target.value)}
-                      placeholder="مثال: اختبار الشهر الأول"
+                      placeholder="مثال: اختبار الميد الأول"
+                      className="h-12 bg-white border-2 border-slate-100 rounded-xl font-bold shadow-sm focus:border-primary"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="examSubject">المادة الدراسية *</Label>
+                  <div className="md:col-span-3 space-y-3">
+                    <Label htmlFor="examSubject" className="text-sm font-bold text-slate-500 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      المادة الدراسية *
+                    </Label>
                     <Input
                       id="examSubject"
                       value={examSubject}
                       onChange={(e) => setExamSubject(e.target.value)}
-                      placeholder="مثال: الرياضيات"
+                      placeholder="مثال: لغة عربية"
+                      className="h-12 bg-white border-2 border-slate-100 rounded-xl font-bold shadow-sm focus:border-primary"
                     />
                   </div>
                 </>
               )}
-              <div className="space-y-2">
-                <Label>لغة الاختبار</Label>
-                <div className="flex gap-2">
+
+              <div className="md:col-span-3 space-y-3">
+                <Label className="text-sm font-bold text-slate-500 flex items-center gap-2">
+                  <Wand2 className="w-4 h-4 text-primary" />
+                  لغة الاختبار
+                </Label>
+                <div className="flex p-1 bg-slate-100 rounded-xl border-2 border-slate-100">
                   <Button
                     type="button"
-                    variant={examLanguage === 'ar' ? 'default' : 'outline'}
+                    variant={examLanguage === 'ar' ? 'default' : 'ghost'}
                     onClick={() => setExamLanguage('ar')}
-                    className="flex-1"
+                    className={`flex-1 h-9 font-bold rounded-lg transition-all ${examLanguage === 'ar' ? 'bg-white text-primary shadow-sm' : 'text-slate-500'}`}
                   >
                     عربي
                   </Button>
                   <Button
                     type="button"
-                    variant={examLanguage === 'en' ? 'default' : 'outline'}
+                    variant={examLanguage === 'en' ? 'default' : 'ghost'}
                     onClick={() => setExamLanguage('en')}
-                    className="flex-1"
+                    className={`flex-1 h-9 font-bold rounded-lg transition-all ${examLanguage === 'en' ? 'bg-white text-primary shadow-sm' : 'text-slate-500'}`}
                   >
                     English
                   </Button>

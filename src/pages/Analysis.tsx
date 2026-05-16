@@ -11,7 +11,8 @@ import {
     Lightbulb,
     Download,
     Loader2,
-    CheckSquare
+    CheckSquare,
+    Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,6 +20,13 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HelpFab } from "@/components/ui/help-fab";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -71,8 +79,10 @@ export default function Analysis() {
 function AnalysisContent() {
     const [selectedExamId, setSelectedExamId] = useState<string>("");
     const [selectedPaperId, setSelectedPaperId] = useState<string>("");
+    const [selectedClassId, setSelectedClassId] = useState<string | undefined>(undefined);
     const [activeTab, setActiveTab] = useState("class");
     const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+    const [isInterventionModalOpen, setIsInterventionModalOpen] = useState(false);
     const radarChartRef = useRef<HTMLDivElement>(null);
     const barChartRef = useRef<HTMLDivElement>(null);
     const strengthRadarChartRef = useRef<HTMLDivElement>(null);
@@ -87,28 +97,28 @@ function AnalysisContent() {
     const studentWeaknessRadarCaptureRef = useRef<HTMLDivElement>(null);
 
 
-
     const { data: exams, isLoading: isLoadingExams } = useGetExams();
-
-    const { data: classReport, isLoading: isLoadingReport } = useGetClassReport(
-        selectedExamId ? parseInt(selectedExamId) : null
-    );
     const { data: examPapers } = useGetExamPapers(
         selectedExamId ? parseInt(selectedExamId) : null
     );
+
+    const { data: classReport, isLoading: isLoadingReport } = useGetClassReport(
+        selectedExamId ? parseInt(selectedExamId) : null,
+        selectedClassId ? (examPapers?.find((p: any) => p.className === selectedClassId)?.classId || undefined) : undefined
+    );
+
     const { data: studentReport, isLoading: isLoadingStudent } = useGetStudentReport(
         selectedPaperId ? parseInt(selectedPaperId) : null
     );
     const selectedExam = exams?.find((e: any) => e.id.toString() === selectedExamId);
 
     const displayClassName = useMemo(() => {
-        if (classReport?.className) return classReport.className;
-        if (examPapers && examPapers.length > 0) {
-            const names = Array.from(new Set(examPapers.map((p: any) => p.className).filter(Boolean)));
-            if (names.length > 0) return names.join(" - ");
+        if (selectedClassId && selectedClassId !== "all") {
+            return selectedClassId;
         }
-        return "-";
-    }, [classReport, examPapers, selectedExam]);
+        const classes = Array.from(new Set(examPapers?.map((p: any) => p.className).filter(Boolean)));
+        return classes.length > 0 ? classes.join(" - ") : "جميع الفصول";
+    }, [selectedClassId, examPapers]);
 
     const classPerformanceData = useMemo(() => {
         if (!classReport?.goalAnalysis) return { labels: [], datasets: [] };
@@ -230,7 +240,7 @@ function AnalysisContent() {
 
     const classWeaknessRadarData = useMemo(() => {
         if (!classReport?.goalAnalysis) return { labels: [], datasets: [] };
-        const weaknesses = classReport.goalAnalysis.filter((g: any) => g.successRate < 50);
+        const weaknesses = classReport.goalAnalysis.filter((g: any) => (g?.successRate ?? 0) < 50);
 
         return {
             labels: weaknesses.map((g: any) => g.goalText),
@@ -285,7 +295,7 @@ function AnalysisContent() {
         // Give it a small timeout to ensure charts and layouts are stabilized
         setTimeout(() => {
             window.print();
-        }, 500);
+        }, 800);
     };
 
     const captureRadarChart = async (): Promise<string | null> => {
@@ -522,6 +532,7 @@ function AnalysisContent() {
             const { blob, filename } = await examsApi.downloadDetailedAnalysisPdf({
                 examId: parseInt(selectedExamId),
                 paperId: activeTab === "students" && selectedPaperId ? parseInt(selectedPaperId) : undefined,
+                classId: selectedClassId && selectedClassId !== "all" ? (examPapers?.find((p: any) => p.className === selectedClassId)?.classId || undefined) : undefined,
                 radarImageBase64: radarImg || undefined,
                 barChartImageBase64: barImg || undefined,
                 strengthRadarImageBase64: sRadarImg || undefined,
@@ -551,7 +562,7 @@ function AnalysisContent() {
 
     return (
         <MainLayout>
-            <div className="flex flex-1 flex-col gap-6 p-6" dir="rtl">
+            <div id="analysis-report-content" className="flex flex-1 flex-col gap-6 p-6" dir="rtl">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 pb-6 border-b">
                     <div>
@@ -561,39 +572,48 @@ function AnalysisContent() {
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-4 items-center no-print w-full md:w-auto">
-                        <div className="w-full md:w-72">
-                            <Select value={selectedExamId} onValueChange={setSelectedExamId}>
-                                <SelectTrigger className="h-11 shadow-sm">
-                                    <SelectValue placeholder="اختر الاختبار لتحليله" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {isLoadingExams ? (
-                                        <div className="p-4 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
-                                    ) : (
-                                        exams?.map((exam) => (
-                                            <SelectItem key={exam.id} value={exam.id.toString()}>
-                                                {exam.title}
-                                            </SelectItem>
-                                        ))
-                                    )}
-                                </SelectContent>
-                            </Select>
+                        {/* Exam Selector */}
+                        <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-2xl border border-border/50 shadow-sm min-w-[240px] md:min-w-[280px] hover:border-primary/30 transition-all">
+                            <FileText className="h-4 w-4 text-primary" />
+                            <div className="flex-1">
+                                <Select value={selectedExamId} onValueChange={(val) => {
+                                    setSelectedExamId(val);
+                                    setSelectedClassId(undefined);
+                                }}>
+                                    <SelectTrigger className="h-9 border-none shadow-none bg-transparent focus:ring-0 px-1 text-sm font-bold">
+                                        <SelectValue placeholder="اختر الاختبار" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl">
+                                        {isLoadingExams ? (
+                                            <div className="p-4 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                                        ) : (
+                                            exams?.map((exam) => (
+                                                <SelectItem key={exam.id} value={exam.id.toString()} className="rounded-lg">
+                                                    {exam.title}
+                                                </SelectItem>
+                                            ))
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
-                        <div className="flex gap-2 w-full md:w-auto">
-                            <Button variant="outline" onClick={handlePrint} className="gap-2 h-11 flex-1 md:flex-none">
+
+
+                        <div className="flex gap-2 w-full md:w-auto mr-auto md:mr-0">
+                            <Button variant="outline" onClick={handlePrint} className="gap-2 h-11 rounded-2xl px-6 border-border/60 hover:bg-muted/80 shadow-sm">
                                 <Printer className="h-4 w-4" />
-                                طباعة
+                                <span className="hidden sm:inline">طباعة</span>
                             </Button>
-                            <Button onClick={handleDownloadPDF} disabled={isDownloadingPDF} className="gap-2 h-11">
+                            <Button onClick={handleDownloadPDF} disabled={isDownloadingPDF} className="gap-2 h-11 rounded-2xl px-6 shadow-md hover:shadow-lg transition-all">
                                 {isDownloadingPDF ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                                {isDownloadingPDF ? "جاري التحميل..." : "تحميل"}
+                                <span>{isDownloadingPDF ? "جاري التحميل..." : "تحميل PDF"}</span>
                             </Button>
                         </div>
                     </div>
                 </div>
 
                 {!selectedExamId ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed rounded-xl bg-muted/50">
+                    <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed rounded-xl bg-muted/50 no-print">
                         <BarChart3 className="h-12 w-12 text-muted-foreground/30 mb-4" />
                         <h3 className="font-medium text-muted-foreground text-xl">يرجى اختيار اختبار لعرض التحليلات</h3>
                     </div>
@@ -604,89 +624,135 @@ function AnalysisContent() {
                     </div>
                 ) : (
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="mb-8 no-print bg-transparent border-none p-0 h-auto flex gap-3 flex-wrap">
-                            <TabsTrigger
-                                value="class"
-                                className="data-[state=active]:bg-primary data-[state=active]:text-white border border-border bg-card rounded-full px-6 py-2.5 transition-all flex gap-2 items-center hover:bg-muted"
-                            >
-                                <BarChart3 className="h-4 w-4" />
-                                التقرير الشامل للفصل
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="detailed"
-                                className="data-[state=active]:bg-primary data-[state=active]:text-white border border-border bg-card rounded-full px-6 py-2.5 transition-all flex gap-2 items-center hover:bg-muted"
-                            >
-                                <FileText className="h-4 w-4" />
-                                تقرير تفصيلي
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="students"
-                                className="data-[state=active]:bg-primary data-[state=active]:text-white border border-border bg-card rounded-full px-6 py-2.5 transition-all flex gap-2 items-center hover:bg-muted"
-                            >
-                                <User className="h-4 w-4" />
-                                التقارير الفردية
-                            </TabsTrigger>
-                        </TabsList>
-
-                        {/* Hidden charts for PDF/Print capture - Rendered off-screen instead of hidden so html2canvas can capture them */}
-                        <div className="pointer-events-none fixed -left-[9999px] top-0 no-print z-[-9999]" aria-hidden="true" style={{ width: '800px' }}>
-                            {/* Class Radars */}
-                            <div ref={classStrengthRadarChartRef} className="w-[800px] h-[600px] bg-white p-10">
-                                <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">رادار نقاط القوة (متوسط الفصل)</h2>
-                                <Radar data={classStrengthRadarData} options={{ maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: true }, pointLabels: { font: { size: 14, family: 'Cairo', weight: 'bold' } } } }, plugins: { legend: { display: false } } }} />
-                            </div>
-                            <div ref={classWeaknessRadarChartRef} className="w-[800px] h-[600px] bg-white p-10">
-                                <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">رادار نقاط الضعف (متوسط الفصل)</h2>
-                                <Radar data={classWeaknessRadarData} options={{ maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: true }, pointLabels: { font: { size: 14, family: 'Cairo', weight: 'bold' } } } }, plugins: { legend: { display: false } } }} />
-                            </div>
-
-                            <div ref={classQuestionBarChartRef} className="w-[1000px] h-[600px] bg-white p-10">
-                                <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">تحليل أداء الأسئلة</h2>
-                                <div style={{ width: '900px', height: '500px' }}>
-                                    <Bar
-                                        key={`q-bar-hidden-${classReport?.questionAnalysis?.length || 0}`}
-                                        data={classQuestionBarData}
-                                        options={{
-                                            animation: false,
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            indexAxis: 'x',
-                                            scales: {
-                                                y: { beginAtZero: true, max: 100, ticks: { font: { family: 'Cairo', size: 14 } } },
-                                                x: { ticks: { font: { family: 'Cairo', size: 12, weight: 'bold' } } }
-                                            },
-                                            plugins: { legend: { display: false } }
-                                        }}
-                                    />
+                        <div className="flex flex-col gap-6 mb-8 no-print w-full" dir="rtl">
+                            {/* Class Selector */}
+                            {selectedExamId && (
+                                <div className="flex justify-start">
+                                    <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-2xl border border-border/50 shadow-sm min-w-[200px] hover:border-primary/30 transition-all">
+                                        <Users className="h-4 w-4 text-primary" />
+                                        <div className="flex-1">
+                                            <Select
+                                                value={selectedClassId || "all"}
+                                                onValueChange={(val) => {
+                                                    setSelectedClassId(val === "all" ? undefined : val);
+                                                    setSelectedPaperId(""); // Reset selected student when class changes
+                                                }}
+                                            >
+                                                <SelectTrigger className="h-9 border-none shadow-none bg-transparent focus:ring-0 px-1 text-sm font-bold">
+                                                    <SelectValue placeholder="جميع الفصول" />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-xl">
+                                                    <SelectItem value="all" className="rounded-lg">جميع الفصول</SelectItem>
+                                                    {Array.from(new Set(examPapers?.map((p: any) => p.className).filter(Boolean)))
+                                                        .map((className: any) => (
+                                                            <SelectItem key={className} value={className} className="rounded-lg">
+                                                                {className}
+                                                            </SelectItem>
+                                                        ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            {/* Individual Student Radars (Captures currently selected student) */}
-                            {studentReport && (
-                                <>
-                                    <div ref={studentRadarCaptureRef} className="w-[800px] h-[600px] bg-white p-10">
-                                        <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">الأداء العام للطالب: {studentReport.studentName}</h2>
-                                        <Radar data={radarData} options={{ maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: true }, pointLabels: { font: { size: 14, family: 'Cairo', weight: 'bold' } } } }, plugins: { legend: { display: false } } }} />
-                                    </div>
-                                    <div ref={studentStrengthRadarCaptureRef} className="w-[800px] h-[600px] bg-white p-10">
-                                        <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">رادار نقاط القوة للطالب</h2>
-                                        <Radar data={strengthRadarData} options={{ maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: true }, pointLabels: { font: { size: 14, family: 'Cairo', weight: 'bold' } } } }, plugins: { legend: { display: false } } }} />
-                                    </div>
-                                    <div ref={studentWeaknessRadarCaptureRef} className="w-[800px] h-[600px] bg-white p-10">
-                                        <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">رادار نقاط الضعف للطالب</h2>
-                                        <Radar data={weaknessRadarData} options={{ maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: true }, pointLabels: { font: { size: 14, family: 'Cairo', weight: 'bold' } } } }, plugins: { legend: { display: false } } }} />
-                                    </div>
-                                </>
                             )}
+
+                            <div className="flex justify-center w-full">
+                                <TabsList className="bg-transparent border-none p-0 h-auto flex gap-3 flex-wrap">
+                                    <TabsTrigger
+                                        value="class"
+                                        className="data-[state=active]:bg-primary data-[state=active]:text-white border border-border bg-card rounded-full px-6 py-2.5 transition-all flex gap-2 items-center hover:bg-muted"
+                                    >
+                                        <BarChart3 className="h-4 w-4" />
+                                        التقرير الشامل للفصل
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="detailed"
+                                        className="data-[state=active]:bg-primary data-[state=active]:text-white border border-border bg-card rounded-full px-6 py-2.5 transition-all flex gap-2 items-center hover:bg-muted"
+                                    >
+                                        <FileText className="h-4 w-4" />
+                                        تحليل تفصيلي للأسئلة
+                                    </TabsTrigger>
+                                    <TabsTrigger
+                                        value="students"
+                                        className="data-[state=active]:bg-primary data-[state=active]:text-white border border-border bg-card rounded-full px-6 py-2.5 transition-all flex gap-2 items-center hover:bg-muted"
+                                    >
+                                        <User className="h-4 w-4" />
+                                        التقارير الفردية
+                                    </TabsTrigger>
+                                </TabsList>
+                            </div>
                         </div>
 
+                        {/* Hidden charts for PDF/Print capture - Rendered off-screen instead of hidden so html2canvas can capture them */}
+                        {classReport && (
+                            <div className="pointer-events-none fixed -left-[9999px] top-0 no-print z-[-9999]" aria-hidden="true" style={{ width: '800px' }}>
+                                {/* Class Radars */}
+                                {classStrengthRadarData?.labels?.length > 0 && (
+                                    <div ref={classStrengthRadarChartRef} className="w-[800px] h-[600px] bg-white p-10">
+                                        <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">رادار نقاط القوة (متوسط الفصل)</h2>
+                                        <Radar data={classStrengthRadarData} options={{ maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: true }, pointLabels: { font: { size: 14, family: 'Cairo', weight: 'bold' } } } }, plugins: { legend: { display: false } } }} />
+                                    </div>
+                                )}
+                                {classWeaknessRadarData?.labels?.length > 0 && (
+                                    <div ref={classWeaknessRadarChartRef} className="w-[800px] h-[600px] bg-white p-10">
+                                        <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">رادار نقاط الضعف (متوسط الفصل)</h2>
+                                        <Radar data={classWeaknessRadarData} options={{ maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: true }, pointLabels: { font: { size: 14, family: 'Cairo', weight: 'bold' } } } }, plugins: { legend: { display: false } } }} />
+                                    </div>
+                                )}
+
+                                {classQuestionBarData?.labels?.length > 0 && (
+                                    <div ref={classQuestionBarChartRef} className="w-[1000px] h-[600px] bg-white p-10">
+                                        <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">تحليل أداء الأسئلة</h2>
+                                        <div style={{ width: '900px', height: '500px' }}>
+                                            <Bar
+                                                key={`q-bar-hidden-${classReport?.questionAnalysis?.length || 0}`}
+                                                data={classQuestionBarData}
+                                                options={{
+                                                    animation: false,
+                                                    responsive: true,
+                                                    maintainAspectRatio: false,
+                                                    indexAxis: 'x',
+                                                    scales: {
+                                                        y: { beginAtZero: true, max: 100, ticks: { font: { family: 'Cairo', size: 14 } } },
+                                                        x: { ticks: { font: { family: 'Cairo', size: 12, weight: 'bold' } } }
+                                                    },
+                                                    plugins: { legend: { display: false } }
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Individual Student Radars (Captures currently selected student) */}
+                                {studentReport && (
+                                    <>
+                                        <div ref={studentRadarCaptureRef} className="w-[800px] h-[600px] bg-white p-10">
+                                            <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">الأداء العام للطالب: {studentReport.studentName}</h2>
+                                            <Radar data={radarData} options={{ maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: true }, pointLabels: { font: { size: 14, family: 'Cairo', weight: 'bold' } } } }, plugins: { legend: { display: false } } }} />
+                                        </div>
+                                        {strengthRadarData?.labels?.length > 0 && (
+                                            <div ref={studentStrengthRadarCaptureRef} className="w-[800px] h-[600px] bg-white p-10">
+                                                <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">رادار نقاط القوة للطالب</h2>
+                                                <Radar data={strengthRadarData} options={{ maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: true }, pointLabels: { font: { size: 14, family: 'Cairo', weight: 'bold' } } } }, plugins: { legend: { display: false } } }} />
+                                            </div>
+                                        )}
+                                        {weaknessRadarData?.labels?.length > 0 && (
+                                            <div ref={studentWeaknessRadarCaptureRef} className="w-[800px] h-[600px] bg-white p-10">
+                                                <h2 className="text-2xl font-bold mb-6 text-center" dir="rtl">رادار نقاط الضعف للطالب</h2>
+                                                <Radar data={weaknessRadarData} options={{ maintainAspectRatio: false, scales: { r: { min: 0, max: 100, ticks: { display: true }, pointLabels: { font: { size: 14, family: 'Cairo', weight: 'bold' } } } }, plugins: { legend: { display: false } } }} />
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )}
                         {/* Class Report Tab */}
                         <TabsContent value="class" className="space-y-6 print:m-0">
                             {/* Class Summary Info Bar */}
-                            <div className="flex flex-col md:flex-row flex-wrap items-center justify-between gap-4 p-4 md:p-6 md:px-10 bg-card rounded-2xl md:rounded-[2rem] shadow-sm border no-print overflow-hidden" dir="rtl">
+                            <div className="flex flex-col md:flex-row flex-wrap items-center justify-between gap-4 p-4 md:p-6 md:px-10 bg-card rounded-2xl md:rounded-[2rem] shadow-sm border overflow-visible" dir="rtl">
                                 <div className="flex flex-wrap items-center gap-4 md:gap-8 w-full md:w-auto">
                                     <div className="flex items-center gap-2 md:gap-3">
-                                        <span className="text-sm md:text-lg font-bold text-muted-foreground whitespace-nowrap">الفصل:</span>
+                                        <span className="text-sm md:text-lg font-bold text-muted-foreground whitespace-nowrap">فصل:</span>
                                         <span className="text-base md:text-xl font-black text-foreground">{displayClassName}</span>
                                     </div>
                                     <div className="hidden md:block h-8 w-[1px] bg-border"></div>
@@ -709,12 +775,13 @@ function AnalysisContent() {
                                 </div>
                             </div>
 
-                            <div className="grid gap-6 md:grid-cols-4 no-print">
+
+                            <div className="grid gap-6 md:grid-cols-4">
                                 <Card className="hover:shadow-md transition-shadow border-r-4 border-r-primary bg-card">
                                     <CardContent className="pt-6">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <div className="text-3xl font-bold text-primary">{classReport?.overallPercentage.toFixed(1)}%</div>
+                                                <div className="text-3xl font-bold text-primary">{(classReport?.overallPercentage ?? 0).toFixed(1)}%</div>
                                                 <p className="text-sm font-medium text-muted-foreground mt-1">المتوسط العام</p>
                                             </div>
                                             <div className="p-3 bg-primary/10 rounded-xl text-primary font-bold">
@@ -723,14 +790,17 @@ function AnalysisContent() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                                <Card className="hover:shadow-md transition-shadow border-r-4 border-r-red-500 bg-card">
+                                <Card
+                                    className="hover:shadow-md transition-shadow border-r-4 border-r-rose-500 bg-card cursor-pointer group"
+                                    onClick={() => setIsInterventionModalOpen(true)}
+                                >
                                     <CardContent className="pt-6">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <div className="text-3xl font-bold text-red-600">{classReport?.failedStudents}</div>
+                                                <div className="text-3xl font-bold text-rose-600 group-hover:scale-110 transition-transform">{classReport?.failedStudents ?? 0}</div>
                                                 <p className="text-sm font-medium text-muted-foreground mt-1">بحاجة لتدخل</p>
                                             </div>
-                                            <div className="p-3 bg-red-500/10 rounded-xl text-red-600">
+                                            <div className="p-3 bg-rose-500/10 rounded-xl text-red-600 group-hover:bg-rose-500/20 transition-colors">
                                                 <AlertTriangle className="h-6 w-6" />
                                             </div>
                                         </div>
@@ -740,7 +810,7 @@ function AnalysisContent() {
                                     <CardContent className="pt-6">
                                         <div className="flex items-center justify-between">
                                             <div>
-                                                <div className="text-3xl font-bold text-green-600">{classReport?.passedStudents}</div>
+                                                <div className="text-3xl font-bold text-green-600">{classReport?.passedStudents ?? 0}</div>
                                                 <p className="text-sm font-medium text-muted-foreground mt-1">المجتادين</p>
                                             </div>
                                             <div className="p-3 bg-green-500/10 rounded-xl text-green-600">
@@ -806,7 +876,7 @@ function AnalysisContent() {
                                     {/* Skill Rows */}
                                     <div className="flex flex-col divide-y px-5 pt-3 pb-4" dir="rtl">
                                         {classReport?.goalAnalysis
-                                            .filter((g: any) => g.successRate >= 50)
+                                            ?.filter((g: any) => g.successRate >= 50)
                                             .sort((a: any, b: any) => b.successRate - a.successRate)
                                             .map((g: any, i: number) => (
                                                 <div key={i} className="flex items-center gap-4 py-3">
@@ -820,11 +890,11 @@ function AnalysisContent() {
                                                                 style={{ width: `${g.successRate}%` }}
                                                             ></div>
                                                         </div>
-                                                        <span className="text-sm font-bold text-teal-600 w-10 text-left">{g.successRate.toFixed(0)}%</span>
+                                                        <span className="text-sm font-bold text-teal-600 w-10 text-left">{(g.successRate ?? 0).toFixed(0)}%</span>
                                                     </div>
                                                 </div>
                                             ))}
-                                        {classReport?.goalAnalysis.filter((g: any) => g.successRate >= 50).length === 0 && (
+                                        {(classReport?.goalAnalysis?.filter((g: any) => g.successRate >= 50).length ?? 0) === 0 && (
                                             <p className="text-sm text-muted-foreground italic py-4 text-center">لا توجد نقاط قوة مسجلة حتى الآن</p>
                                         )}
                                     </div>
@@ -858,14 +928,14 @@ function AnalysisContent() {
                                         <div className="w-1 h-6 bg-rose-500 rounded-full"></div>
                                         <h4 className="text-base font-bold text-foreground">نقاط الضعف (أقل من 50%)</h4>
                                         <span className="mr-auto text-xs font-bold bg-rose-500/10 text-rose-600 px-2.5 py-1 rounded-full">
-                                            {classReport?.goalAnalysis.filter((g: any) => g.successRate < 50).length} مهارات
+                                            {(classReport?.goalAnalysis?.filter((g: any) => g.successRate < 50).length ?? 0)} مهارات
                                         </span>
                                     </div>
 
                                     {/* Skill Rows */}
                                     <div className="flex flex-col divide-y px-5 pt-3 pb-4" dir="rtl">
                                         {classReport?.goalAnalysis
-                                            .filter((g: any) => g.successRate < 50)
+                                            ?.filter((g: any) => g.successRate < 50)
                                             .sort((a: any, b: any) => a.successRate - b.successRate)
                                             .map((g: any, i: number) => (
                                                 <div key={i} className="flex items-center gap-4 py-3">
@@ -879,11 +949,11 @@ function AnalysisContent() {
                                                                 style={{ width: `${g.successRate}%` }}
                                                             ></div>
                                                         </div>
-                                                        <span className="text-sm font-bold text-rose-600 w-10 text-left">{g.successRate.toFixed(0)}%</span>
+                                                        <span className="text-sm font-bold text-rose-600 w-10 text-left">{(g.successRate ?? 0).toFixed(0)}%</span>
                                                     </div>
                                                 </div>
                                             ))}
-                                        {classReport?.goalAnalysis.filter((g: any) => g.successRate < 50).length === 0 && (
+                                        {(classReport?.goalAnalysis?.filter((g: any) => g.successRate < 50).length ?? 0) === 0 && (
                                             <p className="text-sm text-muted-foreground italic py-4 text-center">لا توجد نقاط ضعف مسجلة</p>
                                         )}
                                     </div>
@@ -943,6 +1013,7 @@ function AnalysisContent() {
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
                         </TabsContent>
 
@@ -1014,22 +1085,22 @@ function AnalysisContent() {
 
 
                                                             <td className="px-6 py-4 text-center">
-                                                                <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${q.successRate >= 80 ? "bg-green-100 text-green-700" :
-                                                                    q.successRate >= 50 ? "bg-yellow-100 text-yellow-700" :
+                                                                <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${(q.successRate ?? 0) >= 80 ? "bg-green-100 text-green-700" :
+                                                                    (q.successRate ?? 0) >= 50 ? "bg-yellow-100 text-yellow-700" :
                                                                         "bg-red-100 text-red-700"
                                                                     }`}>
-                                                                    {q.successRate >= 80 ? "أداء متميز" : q.successRate >= 50 ? "أداء مقبول" : "بحاجة لمراجعة"}
+                                                                    {(q.successRate ?? 0) >= 80 ? "أداء متميز" : (q.successRate ?? 0) >= 50 ? "أداء مقبول" : "بحاجة لمراجعة"}
                                                                 </span>
                                                             </td>
                                                             <td className="px-6 py-4 text-center border-l">
                                                                 <div className="flex items-center gap-2 justify-center">
                                                                     <div className="w-16 h-2 bg-muted rounded-full overflow-hidden hidden md:block">
                                                                         <div
-                                                                            className={`h-full ${q.successRate >= 80 ? 'bg-green-500' : q.successRate >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                                                                            style={{ width: `${q.successRate}%` }}
+                                                                            className={`h-full ${(q.successRate ?? 0) >= 80 ? 'bg-green-500' : (q.successRate ?? 0) >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                                                            style={{ width: `${q.successRate ?? 0}%` }}
                                                                         />
                                                                     </div>
-                                                                    <span className="font-bold">{q.successRate.toFixed(1)}%</span>
+                                                                    <span className="font-bold">{(q.successRate ?? 0).toFixed(1)}%</span>
                                                                 </div>
                                                             </td>
                                                             <td className="px-6 py-4 text-center border-l">
@@ -1061,7 +1132,7 @@ function AnalysisContent() {
                                                 <SelectValue placeholder="اختر اسم الطالب" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {examPapers?.map((paper: any) => (
+                                                {examPapers?.filter((p: any) => !selectedClassId || p.className === selectedClassId).map((paper: any) => (
                                                     <SelectItem key={paper.id} value={paper.id.toString()}>
                                                         {paper.studentName}
                                                     </SelectItem>
@@ -1084,11 +1155,16 @@ function AnalysisContent() {
                                     ) : studentReport ? (
                                         <div className="flex flex-col gap-6 w-full max-w-[1200px] mx-auto">
                                             {/* Student Summary Bar */}
-                                            <div className="flex flex-col md:flex-row flex-wrap items-center justify-between gap-4 p-4 md:p-6 md:px-10 bg-card rounded-2xl md:rounded-[2rem] shadow-sm border no-print overflow-hidden" dir="rtl">
+                                            <div className="flex flex-col md:flex-row flex-wrap items-center justify-between gap-4 p-4 md:p-6 md:px-10 bg-card rounded-2xl md:rounded-[2rem] shadow-sm border overflow-visible" dir="rtl">
                                                 <div className="flex flex-wrap items-center gap-4 md:gap-8 w-full md:w-auto">
                                                     <div className="flex items-center gap-2 md:gap-3">
                                                         <span className="text-sm md:text-lg font-bold text-muted-foreground whitespace-nowrap">اسم الطالب:</span>
                                                         <span className="text-base md:text-xl font-black text-foreground">{examPapers?.find((p: any) => p.id.toString() === selectedPaperId)?.studentName}</span>
+                                                    </div>
+                                                    <div className="hidden md:block h-8 w-[1px] bg-border"></div>
+                                                    <div className="flex items-center gap-2 md:gap-3">
+                                                        <span className="text-sm md:text-lg font-bold text-muted-foreground whitespace-nowrap">فصل:</span>
+                                                        <span className="text-base md:text-xl font-black text-foreground">{examPapers?.find((p: any) => p.id.toString() === selectedPaperId)?.className}</span>
                                                     </div>
                                                     <div className="hidden md:block h-8 w-[1px] bg-border"></div>
                                                     <div className="flex items-center gap-2 md:gap-3">
@@ -1112,7 +1188,7 @@ function AnalysisContent() {
                                                     <div className="flex items-center gap-2 md:gap-3">
                                                         <span className="text-sm md:text-lg font-bold text-muted-foreground whitespace-nowrap">النتيجة:</span>
                                                         <span className="text-base md:text-xl font-black text-blue-600">
-                                                            {studentReport.totalCorrect}/{examPapers?.find((p: any) => p.id.toString() === selectedPaperId)?.totalQuestions || studentReport.goalAnalysis.length} ({studentReport.percentage.toFixed(0)}%)
+                                                            {studentReport.totalCorrect}/{examPapers?.find((p: any) => p.id.toString() === selectedPaperId)?.totalQuestions || studentReport.goalAnalysis.length} ({(studentReport.percentage ?? 0).toFixed(0)}%)
                                                         </span>
                                                     </div>
                                                     <div className="hidden md:block h-8 w-[1px] bg-border"></div>
@@ -1120,25 +1196,25 @@ function AnalysisContent() {
                                                     <div className="flex items-center gap-2 md:gap-3">
                                                         <span className="text-sm md:text-lg font-bold text-muted-foreground whitespace-nowrap">الحالة:</span>
                                                         <span className={`text-base md:text-xl font-black
-                                                            ${studentReport.percentage >= 90
+                                                            ${(studentReport.percentage ?? 0) >= 90
                                                                 ? "text-emerald-600"
-                                                                : studentReport.percentage >= 80
+                                                                : (studentReport.percentage ?? 0) >= 80
                                                                     ? "text-green-500"
-                                                                    : studentReport.percentage >= 70
+                                                                    : (studentReport.percentage ?? 0) >= 70
                                                                         ? "text-blue-500"
-                                                                        : studentReport.percentage >= 50
+                                                                        : (studentReport.percentage ?? 0) >= 50
                                                                             ? "text-amber-500"
                                                                             : "text-rose-500"
                                                             }`}
                                                         >
                                                             {
-                                                                studentReport.percentage >= 90
+                                                                (studentReport.percentage ?? 0) >= 90
                                                                     ? "امتياز"
-                                                                    : studentReport.percentage >= 80
+                                                                    : (studentReport.percentage ?? 0) >= 80
                                                                         ? "جيد جدًا"
-                                                                        : studentReport.percentage >= 70
+                                                                        : (studentReport.percentage ?? 0) >= 70
                                                                             ? "جيد"
-                                                                            : studentReport.percentage >= 50
+                                                                            : (studentReport.percentage ?? 0) >= 50
                                                                                 ? "مقبول"
                                                                                 : "ضعيف - بحاجة لدعم"
                                                             }
@@ -1222,7 +1298,7 @@ function AnalysisContent() {
                                                         <div className="w-1 h-6 bg-teal-500 rounded-full"></div>
                                                         <h4 className="text-base font-bold text-foreground">المهارات المتقنة (نقاط القوة)</h4>
                                                         <span className="mr-auto text-xs font-bold bg-teal-500/10 text-teal-600 px-2.5 py-1 rounded-full">
-                                                            {studentReport.goalAnalysis.filter((g: any) => g.successRate >= 50).length} مهارة
+                                                            {studentReport.goalAnalysis.filter((g: any) => (g.successRate ?? 0) >= 50).length} مهارة
                                                         </span>
                                                     </div>
 
@@ -1241,14 +1317,14 @@ function AnalysisContent() {
                                                                         <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
                                                                             <div
                                                                                 className="h-full bg-teal-400 rounded-full"
-                                                                                style={{ width: `${g.successRate}%` }}
+                                                                                style={{ width: `${g.successRate ?? 0}%` }}
                                                                             ></div>
                                                                         </div>
-                                                                        <span className="text-sm font-bold text-teal-600 w-10 text-left">{g.successRate.toFixed(0)}%</span>
+                                                                        <span className="text-sm font-bold text-teal-600 w-10 text-left">{(g.successRate ?? 0).toFixed(0)}%</span>
                                                                     </div>
                                                                 </div>
                                                             ))}
-                                                        {studentReport.goalAnalysis.filter((g: any) => g.successRate >= 50).length === 0 && (
+                                                        {studentReport.goalAnalysis.filter((g: any) => (g.successRate ?? 0) >= 50).length === 0 && (
                                                             <p className="text-sm text-slate-400 italic py-4 text-center">لا توجد نقاط قوة مسجلة حتى الآن</p>
                                                         )}
                                                     </div>
@@ -1530,23 +1606,106 @@ function AnalysisContent() {
                     </Tabs>
                 )}
 
+                {/* Modal for Students Needing Intervention */}
+                <Dialog open={isInterventionModalOpen} onOpenChange={setIsInterventionModalOpen}>
+                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto sm:rounded-2xl border-none p-0 bg-transparent shadow-none" showCloseButton={false}>
+                        <div className="bg-card rounded-2xl shadow-2xl border overflow-hidden flex flex-col border-b-4 border-b-rose-600 w-full" dir="rtl">
+                            <div className="flex items-center justify-between p-5 border-b bg-rose-600/10">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-1 h-6 bg-rose-600 rounded-full"></div>
+                                    <h4 className="text-lg font-bold text-foreground">الطلاب المحتاجون للتدخل (أقل من 50%)</h4>
+                                    <span className="text-xs font-bold bg-rose-600/10 text-rose-600 px-2.5 py-1 rounded-full mr-2">
+                                        {classReport?.studentsNeedingIntervention?.length || 0} طلاب
+                                    </span>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={() => setIsInterventionModalOpen(false)} className="rounded-full hover:bg-rose-100 text-rose-600">
+                                    <XIcon className="h-5 w-5" />
+                                </Button>
+                            </div>
+                            <div className="p-6">
+                                {classReport?.studentsNeedingIntervention && classReport.studentsNeedingIntervention.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {classReport.studentsNeedingIntervention.map((student: any, i: number) => (
+                                            <div key={i} className="flex items-center justify-between p-4 bg-rose-50/50 rounded-xl border border-rose-100 group hover:border-rose-300 transition-colors">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-base font-bold text-foreground">{student.studentName}</span>
+                                                    <span className="text-xs text-muted-foreground">{student.className}</span>
+                                                </div>
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <span className="text-lg font-black text-rose-600">{(student.percentage ?? 0).toFixed(1)}%</span>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-8 text-xs border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white transition-all rounded-lg px-4"
+                                                        onClick={() => {
+                                                            const paper = examPapers?.find((p: any) => p.studentId === student.studentId);
+                                                            if (paper) {
+                                                                setSelectedPaperId(paper.id.toString());
+                                                                setActiveTab("students");
+                                                                setIsInterventionModalOpen(false);
+                                                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                            }
+                                                        }}
+                                                    >
+                                                        عرض التقرير المفصل
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                                        <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+                                            <CheckSquare className="h-8 w-8 text-emerald-600" />
+                                        </div>
+                                        <p className="text-lg text-muted-foreground font-medium">لا يوجد طلاب بحاجة لتدخل عاجل في هذا النطاق.</p>
+                                        <p className="text-sm text-muted-foreground mt-1">جميع الطلاب حققوا نسبة أعلى من 50%</p>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-4 bg-muted/30 border-t flex justify-end">
+                                <Button onClick={() => setIsInterventionModalOpen(false)} className="rounded-xl px-8">إغلاق</Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
-            
-            <HelpFab
+
+        <HelpFab
                 title="كيفية استخدام تحليل النتائج"
                 description="توفر لك هذه الصفحة إحصائيات متقدمة ورسوم بيانية لأداء الفصول والطلاب."
                 tooltip="دليل استخدام التحليل"
             >
                 <div className="space-y-4">
-                    <p className="text-muted-foreground">كيف تقرأ الرسوم البيانية؟</p>
+                    <p className="text-muted-foreground font-bold">كيف تقرأ الرسوم البيانية؟</p>
                     <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground mt-2">
-                        <li><strong>التقرير الشامل:</strong> يعرض متوسط الفصل كاملاً ويحدد نقاط الضعف والقوة لكل سؤال وهدف.</li>
-                        <li><strong>التقرير التفصيلي:</strong> يقارن أداء الطالب بمتوسط الفصل لمساعدتك في تحديد مستوى كل طالب قياساً بزملائه.</li>
-                        <li><strong>التقارير الفردية:</strong> يمكنك من خلاله اختيار طالب معين ومراجعة تفاصيل أسئلته ونقاط قوته وضعفه.</li>
+                        <li><strong>التقرير الشامل:</strong> يعرض نظرة عامة على أداء الفصل، نقاط القوة والضعف، والخطة العلاجية المقترحة.</li>
+                        <li><strong>تقرير تفصيلي للأسئلة:</strong> يحلل أداء الطلاب في كل سؤال على حدة مع تحديد الأهداف المرتبطة ونسب النجاح لكل سؤال.</li>
+                        <li><strong>التقارير الفردية:</strong> تتيح لك مراجعة أداء كل طالب بشكل منفصل مع رسم بياني يقارن أداءه بمتوسط الفصل.</li>
                     </ul>
-                    <p className="text-sm border-t pt-2 mt-4 text-primary">يمكنك طباعة أو تحميل أي تقرير بتنسيق PDF من الأزرار العلوية.</p>
+                    <p className="text-sm border-t pt-2 mt-4 text-primary font-bold">يمكنك طباعة أو تحميل أي تقرير بتنسيق PDF من الأزرار العلوية.</p>
                 </div>
             </HelpFab>
         </MainLayout>
     );
+}
+
+function XIcon(props: any) {
+    return (
+        <svg
+            {...props}
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+        </svg>
+    )
 }

@@ -15,6 +15,7 @@ export interface Exam {
   ownerId: string;
   barcodeAreaX?: number;
   barcodeAreaY?: number;
+  isBarcode: boolean;
 }
 
 // ==================== Request Types ====================

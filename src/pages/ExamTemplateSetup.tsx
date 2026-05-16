@@ -1,6 +1,7 @@
 // components/ExamTemplateSetup.tsx
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, PlusCircle as PlusCircleIcon, BarChart3, Camera, Image as ImageIcon, Save, Loader2, ChevronDown, ChevronUp, Sparkles, Wand2, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Upload, FileText, X, Trash2, Check, XCircle, AlertCircle, RotateCw, Settings, PlusCircle, PlusCircle as PlusCircleIcon, BarChart3, Camera, Image as ImageIcon, Save, Loader2, ChevronDown, ChevronUp, Sparkles, Wand2, ArrowRight, ListTodo, CheckCircle2, PenLine } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { HelpFab } from "@/components/ui/help-fab";
@@ -1070,7 +1071,7 @@ export default function ExamTemplateSetup() {
         {pdfConverting && (
           <div className="flex flex-col items-center justify-center p-8">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
-            <p className="text-foreground font-medium">جاري تحويل PDF إلى صورة طويلة...</p>
+            <p className="text-foreground font-medium">جارى معالجه الـ PDF</p>
           </div>
         )}
         {pdfError && (
@@ -1112,26 +1113,11 @@ export default function ExamTemplateSetup() {
                   <Button
                     type="button"
                     size="sm"
-                    variant={selectedQuestionType === "essay" ? "default" : "outline"}
+                    variant={(selectedQuestionType === "essay" || selectedQuestionType === "complete" || selectedQuestionType === "matching") ? "default" : "outline"}
                     onClick={() => startNewQuestion("essay")}
+                    className="px-4"
                   >
-                    مقالي
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={selectedQuestionType === "complete" ? "default" : "outline"}
-                    onClick={() => startNewQuestion("complete")}
-                  >
-                    أكمل
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={selectedQuestionType === "matching" ? "default" : "outline"}
-                    onClick={() => startNewQuestion("matching")}
-                  >
-                    توصيل
+                    سؤال كتابي (مقالي/أكمل/توصيل)
                   </Button>
                   <Button
                     type="button"
@@ -1329,12 +1315,8 @@ export default function ExamTemplateSetup() {
                     </>
                   ) : selectedQuestionType === "true_false" ? (
                     "ارسم مربعاً واحداً لمنطقة الإجابة صح/خطأ"
-                  ) : selectedQuestionType === "complete" ? (
-                    "ارسم مربعاً واحداً لمنطقة الإجابة (أكمل)"
-                  ) : selectedQuestionType === "matching" ? (
-                    "ارسم مربعاً واحداً لمنطقة الإجابة (توصيل)"
                   ) : (
-                    "ارسم مربعاً واحداً لمنطقة الإجابة المقالية"
+                    "ارسم مربعاً واحداً لمنطقة الإجابة الكتابية (مقالي/أكمل/توصيل)"
                   )}
                 </p>
               </div>
@@ -1357,8 +1339,7 @@ export default function ExamTemplateSetup() {
                     ✓ نوع السؤال الحالي: {
                       selectedQuestionType === 'mcq' ? 'سؤال متعدد الاختيارات' :
                         selectedQuestionType === 'true_false' ? 'صح/خطأ' :
-                          selectedQuestionType === 'essay' ? 'مقالي' :
-                            selectedQuestionType === 'complete' ? 'أكمل' : 'توصيل'
+                          selectedQuestionType === 'essay' || selectedQuestionType === 'complete' || selectedQuestionType === 'matching' ? 'سؤال كتابي' : 'غير معروف'
                     }
                   </Badge>
                 )}
@@ -1705,9 +1686,7 @@ export default function ExamTemplateSetup() {
                                   <SelectContent>
                                     <SelectItem value="mcq">متعدد الاختيارات</SelectItem>
                                     <SelectItem value="true_false">صح/خطأ</SelectItem>
-                                    <SelectItem value="essay">مقالي</SelectItem>
-                                    <SelectItem value="complete">أكمل</SelectItem>
-                                    <SelectItem value="matching">توصيل</SelectItem>
+                                    <SelectItem value="essay">سؤال كتابي (مقالي/أكمل/توصيل)</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>

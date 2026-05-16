@@ -236,9 +236,9 @@ export function GradingResultsTable() {
             عرض جميع نتائج التصحيح مع إمكانية التصفية والبحث
           </CardDescription>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => queryClient.invalidateQueries({ queryKey: ["grading-results"] })}
           className="h-9 px-3 gap-2 border-slate-200 hover:bg-slate-100 transition-all text-slate-600"
         >

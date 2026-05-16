@@ -142,14 +142,16 @@ export default function UserManagement() {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead className="text-right">الاسم</TableHead>
-                                                <TableHead className="text-right">البريد الإلكتروني</TableHead>
-                                                <TableHead className="text-right">رقم الهاتف</TableHead>
-                                                <TableHead className="text-center">الحالة</TableHead>
-                                                <TableHead className="text-center">الاشتراك</TableHead>
-                                                <TableHead className="text-center">الصفحات (مستخدم/مسموح)</TableHead>
-                                                <TableHead className="text-center">تاريخ الانتهاء</TableHead>
-                                                <TableHead className="text-center">الإجراءات</TableHead>
+                                                <TableHead className="text-right text-xs p-2">الاسم</TableHead>
+                                                <TableHead className="text-right text-xs p-2">البريد الإلكتروني</TableHead>
+                                                <TableHead className="text-right text-xs p-2">رقم الهاتف</TableHead>
+                                                <TableHead className="text-center text-xs p-2">الحالة</TableHead>
+                                                <TableHead className="text-center text-xs p-2">الاشتراك</TableHead>
+                                                <TableHead className="text-center text-xs p-2">الصفحات (مستخدم/مسموح)</TableHead>
+                                                <TableHead className="text-center text-xs p-2">الصفحات المجانية</TableHead>
+                                                <TableHead className="text-center text-xs p-2">تاريخ الانتهاء</TableHead>
+                                                <TableHead className="text-center text-xs p-2">إجمالي التصحيح</TableHead>
+                                                <TableHead className="text-center text-xs p-2">الإجراءات</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -162,69 +164,82 @@ export default function UserManagement() {
                                             ) : (
                                                 paginatedUsers.map((user) => (
                                                     <TableRow key={user.id}>
-                                                        <TableCell className="font-medium">
+                                                        <TableCell className="font-medium text-xs p-2">
                                                             {user.firstName} {user.lastName}
                                                         </TableCell>
-                                                        <TableCell>{user.email}</TableCell>
-                                                        <TableCell dir="ltr" className="text-right">{user.phoneNumber}</TableCell>
-                                                        <TableCell className="text-center">
+                                                        <TableCell className="text-xs p-2">{user.email}</TableCell>
+                                                        <TableCell dir="ltr" className="text-right text-xs p-2">{user.phoneNumber}</TableCell>
+                                                        <TableCell className="text-center p-2">
                                                             {user.isDisabled ? (
-                                                                <span className="text-red-500 bg-red-100 px-2 py-1 rounded-full text-xs">معطل</span>
+                                                                <span className="text-red-500 bg-red-100 px-2 py-0.5 rounded-full text-[10px]">معطل</span>
                                                             ) : (
-                                                                <span className="text-green-500 bg-green-100 px-2 py-1 rounded-full text-xs">نشط</span>
+                                                                <span className="text-green-500 bg-green-100 px-2 py-0.5 rounded-full text-[10px]">نشط</span>
                                                             )}
                                                         </TableCell>
-                                                        <TableCell className="text-center">
+                                                        <TableCell className="text-center p-2">
                                                             {user.isSubscribed ? (
-                                                                <span className="text-primary bg-primary/10 px-2 py-1 rounded-full text-xs border border-primary/20">مشترك</span>
+                                                                <span className="text-primary bg-primary/10 px-2 py-0.5 rounded-full text-[10px] border border-primary/20">مشترك</span>
                                                             ) : (
-                                                                <span className="text-muted-foreground bg-muted px-2 py-1 rounded-full text-xs">لا يوجد</span>
+                                                                <span className="text-muted-foreground bg-muted px-2 py-0.5 rounded-full text-[10px]">لا يوجد</span>
                                                             )}
                                                         </TableCell>
-                                                        <TableCell className="text-center">
+                                                        <TableCell className="text-center p-2">
                                                             <div className="flex flex-col gap-1 items-center">
                                                                 <span className={cn(
-                                                                    "font-bold px-3 py-1 rounded-lg text-sm",
+                                                                    "font-bold px-2 py-1 rounded-lg text-xs",
                                                                     user.usedPages >= user.maxAllowedPages && user.maxAllowedPages > 0 ? "text-red-600 bg-red-100" : "text-primary bg-primary/10"
                                                                 )}>
                                                                     {user.usedPages || 0} / {user.maxAllowedPages || 0}
                                                                 </span>
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell className="text-center text-sm">
+                                                        <TableCell className="text-center p-2">
+                                                            <span className="font-bold px-2 py-1 rounded-lg text-xs text-green-600 bg-green-50 border border-green-100">
+                                                                {user.freePagesCount || 0}
+                                                            </span>
+                                                        </TableCell>
+                                                        <TableCell className="text-center text-xs p-2">
                                                             {user.subscriptionExpiryUtc ? (
                                                                 <span className={cn(
                                                                     new Date(user.subscriptionExpiryUtc) < new Date() ? "text-red-500" : ""
-                                                                 )}>
+                                                                )}>
                                                                     {new Date(user.subscriptionExpiryUtc).toLocaleDateString('ar-EG')}
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-muted-foreground">-</span>
                                                             )}
                                                         </TableCell>
-                                                        <TableCell className="text-center">
-                                                            <div className="flex justify-center gap-2">
+                                                        <TableCell className="text-center p-2">
+                                                            <span className="font-bold text-base text-primary">
+                                                                {user.totalCorrectedCount || 0}
+                                                            </span>
+                                                        </TableCell>
+                                                        <TableCell className="text-center p-2">
+                                                            <div className="flex justify-center gap-1">
                                                                 <Button
                                                                     variant="outline"
-                                                                    size="sm"
+                                                                    size="icon"
+                                                                    className="h-7 w-7"
                                                                     title="تحميل الأوراق المصححة"
                                                                     onClick={() => handleDownloadClick(user)}
                                                                 >
-                                                                    <FileDown className="h-4 w-4 text-green-600" />
+                                                                    <FileDown className="h-3.5 w-3.5 text-green-600" />
                                                                 </Button>
                                                                 <Button
                                                                     variant="outline"
-                                                                    size="sm"
+                                                                    size="icon"
+                                                                    className="h-7 w-7"
                                                                     onClick={() => handleEditClick(user)}
                                                                 >
-                                                                    <Edit className="h-4 w-4 text-blue-500" />
+                                                                    <Edit className="h-3.5 w-3.5 text-blue-500" />
                                                                 </Button>
                                                                 <Button
                                                                     variant="outline"
-                                                                    size="sm"
+                                                                    size="icon"
+                                                                    className="h-7 w-7"
                                                                     onClick={() => handleDeleteUser(user)}
                                                                 >
-                                                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                                                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
                                                                 </Button>
                                                             </div>
                                                         </TableCell>

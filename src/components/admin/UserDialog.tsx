@@ -267,28 +267,28 @@ export function UserDialog({ open, onOpenChange, user, onSuccess }: UserDialogPr
                                 className="text-right"
                             />
                             <div className="flex flex-wrap gap-1 mt-1">
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    size="sm" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
                                     className="text-[10px] h-7 px-2"
                                     onClick={() => addDuration(1)}
                                 >
                                     + شهر
                                 </Button>
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    size="sm" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
                                     className="text-[10px] h-7 px-2"
                                     onClick={() => addDuration(4)}
                                 >
                                     + ترم
                                 </Button>
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    size="sm" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
                                     className="text-[10px] h-7 px-2"
                                     onClick={() => addDuration(12)}
                                 >

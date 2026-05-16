@@ -120,11 +120,13 @@ export function GeneratePapersDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {exams && exams.length > 0 ? (
-                    exams.map((exam) => (
-                      <SelectItem key={exam.id} value={String(exam.id)}>
-                        {exam.title} - {exam.subject}
-                      </SelectItem>
-                    ))
+                    exams
+                      .filter((exam) => exam.isBarcode)
+                      .map((exam) => (
+                        <SelectItem key={exam.id} value={String(exam.id)}>
+                          {exam.title} - {exam.subject}
+                        </SelectItem>
+                      ))
                   ) : (
                     <SelectItem value="no-exams" disabled>
                       لا توجد اختبارات متاحة

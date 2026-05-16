@@ -81,7 +81,7 @@ const menuItems = [
     href: "/analysis",
   },
   {
-    title: "فيديو توضيحي",
+    title: "فيديوهات توضيحيه",
     icon: Play,
     href: "/tutorial",
   },

@@ -30,6 +30,8 @@ export interface UserDto {
     subscriptionExpiryUtc?: string | null;
     isSubscribed: boolean;
     correctedPagesCount?: number;
+    freePagesCount?: number;
+    totalCorrectedCount?: number;
     plainPassword?: string;
 }
 

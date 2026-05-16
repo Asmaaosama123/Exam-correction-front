@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { 
-  AlertTriangle, 
-  CheckCircle2, 
-  Activity, 
-  Server, 
-  Clock, 
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Activity,
+  Server,
+  Clock,
   RefreshCcw,
   Bug
 } from "lucide-react";
@@ -56,9 +56,9 @@ export default function SystemLogs() {
             </h1>
             <p className="text-muted-foreground mt-1">تتبع الأخطاء التقنية، المشاكل البرمجية، وفشل العمليات وسجلات التطبيق</p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={() => refetch()} 
+          <Button
+            variant="outline"
+            onClick={() => refetch()}
             disabled={isFetching}
             className="gap-2 shrink-0 bg-white"
           >
@@ -140,8 +140,8 @@ export default function SystemLogs() {
             ) : (
               <div className="divide-y divide-border">
                 {summary.map((err) => (
-                  <ErrorGroupRow 
-                    key={err.errorMessage} 
+                  <ErrorGroupRow
+                    key={err.errorMessage}
                     errorGroup={err}
                     onClick={() => setSelectedError(err)}
                   />
@@ -166,9 +166,9 @@ export default function SystemLogs() {
                 </div>
               </DialogDescription>
             </DialogHeader>
-            
-            <div className="mt-6 flex-1 overflow-hidden flex flex-col">
-              <ScrollArea className="flex-1 pr-4">
+
+            <div className="mt-6 flex-1 min-h-0">
+              <ScrollArea className="h-[450px] w-full pr-4" dir="rtl">
                 <UserListContent errorMessage={selectedError?.errorMessage || ""} />
               </ScrollArea>
             </div>
@@ -203,8 +203,8 @@ function UserListContent({ errorMessage }: { errorMessage: string }) {
   return (
     <div className="space-y-3 pb-4">
       {uniqueUsers.map((userName, idx) => (
-        <div 
-          key={idx} 
+        <div
+          key={idx}
           className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-xl hover:bg-slate-50 transition-all shadow-sm group"
         >
           <div className="w-10 h-10 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500 rounded-full flex items-center justify-center group-hover:from-primary/10 group-hover:to-primary/20 group-hover:text-primary transition-colors">
@@ -238,7 +238,7 @@ function ErrorGroupRow({ errorGroup, onClick }: { errorGroup: ErrorSummary, onCl
   return (
     <div className="transition-colors hover:bg-slate-50 bg-white">
       {/* Group Header (Clickable) */}
-      <div 
+      <div
         className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 cursor-pointer gap-4 group"
         onClick={onClick}
       >
@@ -251,8 +251,8 @@ function ErrorGroupRow({ errorGroup, onClick }: { errorGroup: ErrorSummary, onCl
               {errorGroup.errorMessage}
             </h3>
             <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-slate-500 font-medium">
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className={`bg-white hover:bg-rose-50 transition-colors ${errorGroup.count > 5 ? 'border-rose-200 text-rose-600' : 'border-amber-200 text-amber-600'}`}
               >
                 تكرر {errorGroup.count} مرة
@@ -264,11 +264,11 @@ function ErrorGroupRow({ errorGroup, onClick }: { errorGroup: ErrorSummary, onCl
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2 sm:ms-auto w-full sm:w-auto mt-2 sm:mt-0 pt-3 border-t sm:border-0 sm:pt-0">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="h-9 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 flex-1 sm:flex-initial"
             onClick={handleResolve}
             disabled={resolveMutation.isPending}

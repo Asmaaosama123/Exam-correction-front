@@ -53,6 +53,7 @@ export function TeacherDownloadModal({
     const [isDownloading, setIsDownloading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [previewingExamId, setPreviewingExamId] = useState<number | null>(null);
+    const [isPreviewingTemplate, setIsPreviewingTemplate] = useState(false);
 
     useEffect(() => {
         if (open && teacherId) {
@@ -122,15 +123,36 @@ export function TeacherDownloadModal({
     const handlePreview = async (examId: number) => {
         try {
             setPreviewingExamId(examId);
+            const exam = exams.find(e => e.examId === examId);
+            setIsPreviewingTemplate(exam?.paperCount === 0);
+            
             const response = await api.get(`/api/Reports/export-corrected-papers-pdf?examId=${examId}&teacherId=${teacherId}`, {
                 responseType: "blob",
             });
             const blob = new Blob([response.data], { type: "application/pdf" });
             const url = window.URL.createObjectURL(blob);
             setPreviewUrl(url);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Preview error:", error);
-            toast.error("فشل في تحميل المعاينة");
+            
+            // محاولة استخراج رسالة الخطأ التفصيلية من الـ Blob
+            if (error.response?.data instanceof Blob) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    try {
+                        const errorData = JSON.parse(reader.result as string);
+                        const msg = errorData.message || errorData.Message || errorData.error || errorData.Error || "خطأ في البيانات";
+                        toast.error(`فشل المعاينة: ${msg}`);
+                    } catch (e) {
+                        toast.error(`فشل المعاينة (كود: ${error.response?.status})`);
+                    }
+                };
+                reader.readAsText(error.response.data);
+            } else {
+                const detail = error.response?.data?.message || error.message || "خطأ غير متوقع";
+                toast.error(`فشل في تحميل المعاينة: ${detail}`);
+            }
+            
             setPreviewingExamId(null);
         }
     };
@@ -290,7 +312,23 @@ export function TeacherDownloadModal({
                                                                     link.download = `${exam.title}_${teacherName}_Corrected.pdf`;
                                                                     link.click();
                                                                     window.URL.revokeObjectURL(url);
-                                                                } catch (err) { toast.error("فشل تحميل PDF"); }
+                                                                } catch (error: any) {
+                                                                    console.error("PDF download error:", error);
+                                                                    if (error.response?.data instanceof Blob) {
+                                                                        const reader = new FileReader();
+                                                                        reader.onload = () => {
+                                                                            try {
+                                                                                const errorData = JSON.parse(reader.result as string);
+                                                                                toast.error(`فشل التحميل: ${errorData.message || errorData.Error || "خطأ في السيرفر"}`);
+                                                                            } catch (e) {
+                                                                                toast.error(`فشل التحميل (كود: ${error.response?.status})`);
+                                                                            }
+                                                                        };
+                                                                        reader.readAsText(error.response.data);
+                                                                    } else {
+                                                                        toast.error("فشل تحميل ملف PDF");
+                                                                    }
+                                                                }
                                                             }}
                                                         >
                                                             <FileDown className="h-5 w-5" />
@@ -310,7 +348,7 @@ export function TeacherDownloadModal({
                 {previewUrl && (
                     <div className="absolute inset-0 z-50 bg-black/90 flex flex-col">
                         <div className="flex justify-between items-center p-4 bg-black/50 text-white">
-                            <span className="font-semibold">معاينة الأوراق المصححة</span>
+                            <span className="font-semibold">{isPreviewingTemplate ? "معاينة نموذج الامتحان (قبل التصحيح)" : "معاينة الأوراق المصححة"}</span>
                             <Button 
                                 variant="ghost" 
                                 size="icon" 

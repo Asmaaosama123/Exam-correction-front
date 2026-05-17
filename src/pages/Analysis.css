@@ -93,3 +93,302 @@ body {
         align-items: flex-start;
     }
 }
+
+/* 🖨️ Comprehensive Print Styles */
+@media print {
+
+    /* Hide all non-report elements */
+    header,
+    footer,
+    aside,
+    [data-sidebar],
+    .no-print,
+    .help-fab,
+    nav,
+    button,
+    [role="tablist"],
+    .sidebar-trigger,
+    .SelectTrigger,
+    .SelectContent,
+    .fixed,
+    [class*="toast"],
+    .sonner-toast,
+    div[dir="ltr"]>div[style*="position: fixed"] {
+        display: none !important;
+    }
+
+    /*  Ultimate Full-Width Landscape Print Fix */
+    @media print {
+
+        @page {
+            size: A4 landscape;
+            margin: 5mm;
+        }
+
+        html,
+        body {
+            width: 100% !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: white !important;
+        }
+
+        /* اخفاء أي sidebar */
+        aside,
+        nav,
+        header,
+        .sidebar,
+        .no-print {
+            display: none !important;
+        }
+
+        main,
+        #root {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        /* الكونتينر الأساسي */
+        #analysis-report-content {
+
+            width: 96% !important;
+
+            max-width: 96% !important;
+
+            margin-left: auto !important;
+            margin-right: auto !important;
+
+            padding: 0 !important;
+
+            box-sizing: border-box !important;
+
+            direction: rtl !important;
+
+            background: white !important;
+
+            zoom: 1;
+
+            transform-origin: top center !important;
+        }
+
+        /* الجريد */
+        .grid {
+
+            display: grid !important;
+
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+
+            gap: 10px !important;
+
+            width: 100% !important;
+        }
+
+        /* أي كارت أو شارت */
+        .card,
+        .chart-container,
+        .recharts-wrapper {
+
+            width: 100% !important;
+
+            max-width: 100% !important;
+
+            break-inside: avoid !important;
+
+            page-break-inside: avoid !important;
+
+            overflow: hidden !important;
+        }
+
+        /* charts */
+        canvas,
+        svg {
+
+            width: 100% !important;
+
+            max-width: 100% !important;
+
+            height: auto !important;
+        }
+
+        /* إلغاء أي heights ثابتة */
+        * {
+
+            min-height: auto !important;
+
+            height: auto !important;
+
+            overflow: visible !important;
+        }
+    }
+
+
+    /* Remove ALL restrictions from parents */
+    html,
+    body,
+    #root,
+    .sidebar-provider,
+    .sidebar-inset,
+    main,
+    [data-sidebar-inset] {
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
+        position: static !important;
+    }
+
+    /* Balanced and Centered Print Layout */
+    @page {
+        margin: 1cm !important;
+        size: landscape;
+        /* This report works best in landscape */
+    }
+
+    /* Reset layout containers */
+    html,
+    body,
+    #root,
+    .sidebar-provider,
+    .sidebar-inset,
+    main {
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
+        position: static !important;
+    }
+
+    /* Anchor to the paper - Adjust these values to move the report */
+    #analysis-report-content {
+        position: relative !important;
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        margin-right: 0.5cm !important;
+        /* 👈 عدلي هذا الرقم لتحريك التقرير لليسار أو اليمين من جهة اليمين */
+        margin-left: 0.5cm !important;
+        /* 👈 عدلي هذا الرقم لتحريك التقرير من جهة اليسار */
+        padding: 0 !important;
+        background: white !important;
+        direction: rtl !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Force Grids to be full width and balanced */
+    .grid {
+        display: grid !important;
+        width: 100% !important;
+        gap: 15px !important;
+    }
+
+    /* Fix Summary Bar (Class Summary Info Bar) in print */
+    #analysis-report-content div[dir="rtl"].flex-col.md\:flex-row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-around !important;
+        width: 100% !important;
+        background-color: #f9fafb !important;
+        border: 1px solid #e5e7eb !important;
+        padding: 15px !important;
+        margin-bottom: 20px !important;
+    }
+
+    /* Ensure text inside summary bar is visible */
+    #analysis-report-content div[dir="rtl"].flex-col.md\:flex-row span {
+        display: inline-block !important;
+        visibility: visible !important;
+        color: black !important;
+    }
+
+    .grid.md\:grid-cols-4 {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+
+    .grid.md\:grid-cols-3,
+    .grid.lg\:grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    /* Force visibility and size for charts (canvas) */
+    canvas {
+        display: block !important;
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Ensure chart containers have a minimum height in print */
+    .h-\[400px\] {
+        min-height: 400px !important;
+        height: 400px !important;
+    }
+
+    /* Preserve colors and RTL */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+    }
+
+    /* Card styling for print */
+    .card,
+    div[class*="bg-card"] {
+        border: 1px solid #eee !important;
+        box-shadow: none !important;
+        margin-bottom: 20px !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        background-color: white !important;
+    }
+
+    /* Ensure charts are visible and sized correctly */
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Table styling for print */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        page-break-inside: auto !important;
+    }
+
+    tr {
+        page-break-inside: avoid !important;
+        page-break-after: auto !important;
+    }
+
+    th,
+    td {
+        border: 1px solid #ddd !important;
+        padding: 8px !important;
+    }
+
+    /* Force background colors and colors to show */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Specific adjustments for Analysis page */
+    /* Force cards to stay side-by-side in print */
+    .grid.gap-6.md\:grid-cols-3 {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 15px !important;
+    }
+}

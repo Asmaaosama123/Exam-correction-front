@@ -398,6 +398,7 @@ export const examsApi = {
     }
   },
 
+ 
   /**
    * Get overall student progress across all exams
    */
@@ -405,5 +406,14 @@ export const examsApi = {
     const response = await api.get<any>(`/api/Analysis/student/${studentId}/progress`);
     return response.data;
   },
-};
 
+  /**
+   * Get summary of student progress across all students or a specific class
+   */
+  getStudentsProgressSummary: async (classId?: number): Promise<any[]> => {
+    const response = await api.get<any[]>("/api/Analysis/students-progress-summary", {
+      params: { classId }
+    });
+    return response.data;
+  },
+};

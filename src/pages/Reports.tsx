@@ -311,6 +311,30 @@ export default function Reports() {
                   </p>
                 </div>
               </div>
+
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <BarChart className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">تقرير الطالب التراكمي</h4>
+                  <p className="text-sm text-muted-foreground">
+                    تتبع مستوى الطالب وتطوره في جميع الاختبارات السابقة بشكل تراكمي.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4">
+                <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                  <CheckSquare className="h-6 w-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold">تقارير الأوراق المصححة</h4>
+                  <p className="text-sm text-muted-foreground">
+                    تحميل كافة أوراق الطلاب المصححة بعد عملية التصحيح في ملف PDF واحد.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <p className="text-sm text-muted-foreground border-t pt-4 mt-2">

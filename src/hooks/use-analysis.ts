@@ -43,3 +43,10 @@ export function useGetStudentProgress(studentId: string | null) {
         enabled: !!studentId,
     });
 }
+
+export function useGetStudentsProgressSummary(classId?: number) {
+    return useQuery({
+        queryKey: ["students-progress-summary", classId],
+        queryFn: () => examsApi.getStudentsProgressSummary(classId),
+    });
+}

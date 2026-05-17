@@ -12,6 +12,7 @@ export interface Student {
   email: string | null;
   mobileNumber: string | null;
   className?: string;
+  classId?: number | null;
   isDisabled?: boolean;
   createdAt?: string;
 }

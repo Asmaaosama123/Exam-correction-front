@@ -257,6 +257,7 @@ export const examsApi = {
   downloadDetailedAnalysisPdf: async (data: {
     examId: number,
     paperId?: number,
+    classId?: number,
     radarImageBase64?: string,
     barChartImageBase64?: string,
     strengthRadarImageBase64?: string,

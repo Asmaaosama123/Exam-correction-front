@@ -1019,7 +1019,7 @@ function AnalysisContent() {
 
                         {/* Detailed Report Tab */}
                         <TabsContent value="detailed">
-                            <div className="grid grid-cols-1 gap-6 mb-8 no-print">
+                            <div className="grid grid-cols-1 gap-6 mb-8">
                                 <div className="bg-card rounded-2xl shadow-sm border overflow-hidden flex flex-col border-b-4 border-b-primary">
                                     <div className="flex items-center gap-3 p-5 border-b bg-primary/10" dir="rtl">
                                         <div className="w-1 h-6 bg-primary rounded-full"></div>

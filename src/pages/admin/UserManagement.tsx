@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { authManager } from "@/lib/auth-manager";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { adminApi } from "@/lib/adminApi";
 import type { UserDto } from "@/lib/adminApi";
@@ -13,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Edit, Trash2, FileDown, ChevronLeft, ChevronRight, Search, Eye, EyeOff } from "lucide-react";
+import { PlusCircle, Edit, Trash2, FileDown, ChevronLeft, ChevronRight, Search, Eye, EyeOff, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { UserDialog } from "@/components/admin/UserDialog";
@@ -25,6 +28,9 @@ export default function UserManagement() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [downloadModalOpen, setDownloadModalOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<UserDto | null>(null);
+
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     // Search and Pagination state
     const [searchTerm, setSearchTerm] = useState("");
@@ -73,6 +79,20 @@ export default function UserManagement() {
         } catch (error) {
             console.error("Failed to delete user:", error);
             toast.error("فشل في حذف المستخدم");
+        }
+    };
+
+    const handleLoginAsUser = async (user: UserDto) => {
+        try {
+            const response = await adminApi.loginAsUser(user.id);
+            authManager.setTokens(response.token, response.refreshToken);
+            queryClient.invalidateQueries({ queryKey: ["auth"] });
+            queryClient.clear();
+            toast.success(`تم تسجيل الدخول كـ ${user.firstName} ${user.lastName}`);
+            navigate("/");
+        } catch (error) {
+            console.error("Failed to login as user:", error);
+            toast.error("فشل تسجيل الدخول كالمستخدم");
         }
     };
 
@@ -216,6 +236,15 @@ export default function UserManagement() {
                                                         </TableCell>
                                                         <TableCell className="text-center p-2">
                                                             <div className="flex justify-center gap-1">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="h-7 w-7"
+                                                                    title="الدخول كالمستخدم"
+                                                                    onClick={() => handleLoginAsUser(user)}
+                                                                >
+                                                                    <LogIn className="h-3.5 w-3.5 text-orange-500" />
+                                                                </Button>
                                                                 <Button
                                                                     variant="outline"
                                                                     size="icon"

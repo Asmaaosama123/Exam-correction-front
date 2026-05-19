@@ -1087,7 +1087,7 @@ function AnalysisContent() {
                                     </div>
                                 </div>
                             </div>
-                            <Card className="print-break-inside-auto">
+                            <Card className="print-break-inside-auto print-page-break-before">
                                 <CardHeader>
                                     <CardTitle>تحليل الأسئلة</CardTitle>
                                     <CardDescription>تفصيل أداء الطلاب في كل سؤال من أسئلة الاختبار</CardDescription>

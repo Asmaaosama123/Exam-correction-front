@@ -21,6 +21,38 @@ const getPdfJs = () => {
   return pdfjsLib;
 };
 
+// ✅ طابور لضمان عدم معالجة أكثر من 3 ملفات PDF في نفس اللحظة
+class RenderQueue {
+  private queue: (() => Promise<void>)[] = [];
+  private running = 0;
+  private concurrencyLimit = 3;
+
+  enqueue(task: () => Promise<void>) {
+    return new Promise<void>((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          await task();
+          resolve();
+        } catch (e) {
+          reject(e);
+        } finally {
+          this.running--;
+          this.processNext();
+        }
+      });
+      this.processNext();
+    });
+  }
+
+  private processNext() {
+    if (this.running >= this.concurrencyLimit || this.queue.length === 0) return;
+    this.running++;
+    const task = this.queue.shift();
+    if (task) task();
+  }
+}
+const pdfRenderQueue = new RenderQueue();
+
 function PdfThumbnail({ fileName }: { fileName: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,70 +79,69 @@ function PdfThumbnail({ fileName }: { fileName: string }) {
     let cancelled = false;
 
     const renderPdf = async () => {
-      try {
-        const pdfjs = getPdfJs();
-        if (!pdfjs) throw new Error("PDF.js not found");
-
-        const blobUrl = await aiTrainerApi.getFileBlob(fileName);
+      await pdfRenderQueue.enqueue(async () => {
         if (cancelled) return;
+        try {
+          const pdfjs = getPdfJs();
+          if (!pdfjs) throw new Error("PDF.js not found");
 
-        const pdf = await pdfjs.getDocument(blobUrl).promise;
-        if (cancelled) return;
+          const blobUrl = await aiTrainerApi.getFileBlob(fileName);
+          if (cancelled) return;
 
-        const page = await pdf.getPage(1);
-        if (cancelled) return;
+          const pdf = await pdfjs.getDocument(blobUrl).promise;
+          if (cancelled) return;
 
-        // ✅ انتظر شوية عشان الـ canvas يكون في الـ DOM
-        await new Promise(r => setTimeout(r, 50));
-        if (cancelled || !canvasRef.current) return;
+          const page = await pdf.getPage(1);
+          if (cancelled) return;
 
-        const canvas = canvasRef.current;
-        const viewport = page.getViewport({ scale: 1 });
-        const containerWidth = containerRef.current?.offsetWidth || 200;
-        const containerHeight = containerRef.current?.offsetHeight || 280;
-        const scale = Math.min(
-          containerWidth / viewport.width,
-          containerHeight / viewport.height
-        );
+          await new Promise(r => setTimeout(r, 50));
+          if (cancelled || !canvasRef.current) return;
 
-        const scaledViewport = page.getViewport({ scale });
-        canvas.width = scaledViewport.width;
-        canvas.height = scaledViewport.height;
+          const canvas = canvasRef.current;
+          const viewport = page.getViewport({ scale: 1 });
+          const containerWidth = containerRef.current?.offsetWidth || 200;
+          const containerHeight = containerRef.current?.offsetHeight || 280;
+          const scale = Math.min(
+            containerWidth / viewport.width,
+            containerHeight / viewport.height
+          );
 
-        await page.render({
-          canvasContext: canvas.getContext("2d")!,
-          viewport: scaledViewport,
-        }).promise;
+          const scaledViewport = page.getViewport({ scale });
+          canvas.width = scaledViewport.width;
+          canvas.height = scaledViewport.height;
 
-        window.URL.revokeObjectURL(blobUrl);
-        if (!cancelled) setRendered(true);
-      } catch (err) {
-        console.error("PDF thumbnail error:", err);
-        if (!cancelled) setError(true);
-      }
+          await page.render({
+            canvasContext: canvas.getContext("2d")!,
+            viewport: scaledViewport,
+          }).promise;
+
+          window.URL.revokeObjectURL(blobUrl);
+          if (!cancelled) setRendered(true);
+        } catch (err) {
+          console.error("PDF thumbnail error:", err);
+          if (!cancelled) setError(true);
+        }
+      });
     };
 
     renderPdf();
     return () => { cancelled = true; };
-  }, [isVisible, fileName]);
+  }, [isVisible, fileName, rendered]);
 
   return (
     <div ref={containerRef} className="w-full h-full flex items-center justify-center relative">
-      {/* ✅ canvas موجود دايماً في الـ DOM */}
       <canvas
         ref={canvasRef}
         className="w-full h-full object-contain"
         style={{ display: rendered ? "block" : "none" }}
       />
 
-      {/* Skeleton لو لسه بيحمل */}
       {!rendered && !error && (
         <div className="absolute inset-0 bg-muted flex items-center justify-center">
           <div className="text-muted-foreground/30 text-4xl font-bold">PDF</div>
         </div>
       )}
 
-      {/* Error state */}
       {error && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
           <div className="text-4xl font-bold mb-2">PDF</div>
@@ -130,20 +161,28 @@ export default function AITrainerDashboard() {
   const [previewFile, setPreviewFile] = useState<DatasetFile | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+
+  // ✅ تم إصلاح تسريب الذاكرة (Memory Leak) هنا بنجاح
   useEffect(() => {
-    let url: string | null = null;
+    let activeUrl: string | null = null;
+
     if (previewFile) {
-      aiTrainerApi.getFileBlob(previewFile.fileName).then(blobUrl => {
-        setPreviewUrl(blobUrl);
-      }).catch(err => {
-        console.error("Preview fetch failed", err);
-        toast.error("فشل تحميل المعاينة");
-      });
+      aiTrainerApi.getFileBlob(previewFile.fileName)
+        .then(blobUrl => {
+          activeUrl = blobUrl;
+          setPreviewUrl(blobUrl);
+        })
+        .catch(err => {
+          console.error("Preview fetch failed", err);
+          toast.error("فشل تحميل المعاينة");
+        });
     }
 
     return () => {
-      if (previewUrl) {
-        window.URL.revokeObjectURL(previewUrl);
+      if (activeUrl) {
+        window.URL.revokeObjectURL(activeUrl);
       }
       setPreviewUrl(null);
     };
@@ -165,6 +204,10 @@ export default function AITrainerDashboard() {
   useEffect(() => {
     fetchFiles();
   }, []);
+
+  const filteredFiles = files.filter(f =>
+    f.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleSelectAll = () => {
     if (selectedFiles.size === filteredFiles.length) {
@@ -190,7 +233,7 @@ export default function AITrainerDashboard() {
     try {
       await aiTrainerApi.downloadDatasetZip(Array.from(selectedFiles));
       toast.success("تم تحميل الملفات بنجاح");
-      setSelectedFiles(new Set()); // Reset selection after download
+      setSelectedFiles(new Set());
     } catch (error) {
       toast.error("فشل تحميل الملفات");
     } finally {
@@ -198,9 +241,15 @@ export default function AITrainerDashboard() {
     }
   };
 
-  const filteredFiles = files.filter(f =>
-    f.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+  const totalPages = Math.ceil(filteredFiles.length / ITEMS_PER_PAGE);
+  const paginatedFiles = filteredFiles.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   return (
     <MainLayout>
@@ -267,88 +316,112 @@ export default function AITrainerDashboard() {
             <p className="text-muted-foreground">لم يتم العثور على أوراق امتحانات مطابقة لبحثك.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {filteredFiles.map((file) => {
-              const isSelected = selectedFiles.has(file.fileName);
-              const isPdf = file.fileName.toLowerCase().endsWith('.pdf');
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {paginatedFiles.map((file) => {
+                const isSelected = selectedFiles.has(file.fileName);
+                const isPdf = file.fileName.toLowerCase().endsWith('.pdf');
 
-              return (
-                <Card
-                  key={file.fileName}
-                  className={`overflow-hidden transition-all duration-200 border-2 ${isSelected ? 'border-primary shadow-md' : 'border-transparent hover:border-muted-foreground/30'
-                    }`}
-                  onClick={() => toggleSelection(file.fileName)}
+                return (
+                  <Card
+                    key={file.fileName}
+                    className={`overflow-hidden transition-all duration-200 border-2 ${isSelected ? 'border-primary shadow-md' : 'border-transparent hover:border-muted-foreground/30'
+                      }`}
+                    onClick={() => toggleSelection(file.fileName)}
+                  >
+                    <div className="relative group cursor-pointer aspect-[3/4] bg-muted flex items-center justify-center overflow-hidden">
+                      {isPdf ? (
+                        <PdfThumbnail fileName={file.fileName} />
+                      ) : (
+                        <img
+                          src={file.fileUrl}
+                          alt={file.fileName}
+                          className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                      )}
+
+                      <div
+                        className="absolute top-2 right-2 z-10 bg-background/80 backdrop-blur-sm rounded-sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() => toggleSelection(file.fileName)}
+                          className={isSelected ? 'bg-primary border-primary' : ''}
+                        />
+                      </div>
+
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              className="rounded-full w-10 h-10 shadow-lg"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewFile(file);
+                              }}
+                            >
+                              <Eye className="h-5 w-5" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[90vh] p-1 bg-black/95">
+                            <div className="w-full h-[85vh] flex items-center justify-center relative">
+                              {!previewUrl ? (
+                                <div className="flex flex-col items-center gap-3 text-white">
+                                  <RefreshCw className="h-8 w-8 animate-spin opacity-50" />
+                                  <p className="text-sm">جاري تحميل المعاينة...</p>
+                                </div>
+                              ) : isPdf ? (
+                                <iframe src={previewUrl} className="w-full h-full rounded-md bg-white" title={file.fileName} />
+                              ) : (
+                                <img
+                                  src={previewUrl}
+                                  alt={file.fileName}
+                                  className="max-w-full max-h-full object-contain rounded-md"
+                                />
+                              )}
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </div>
+                    <CardFooter className="p-3 bg-card flex flex-col items-start gap-1">
+                      <p className="text-sm font-semibold truncate w-full" title={file.fileName}>
+                        {file.fileName}
+                      </p>
+                      <p className="text-xs text-muted-foreground w-full flex justify-between">
+                        <span>{format(new Date(file.creationTime), "dd MMM yyyy, HH:mm")}</span>
+                      </p>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 pt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
                 >
-                  <div className="relative group cursor-pointer aspect-[3/4] bg-muted flex items-center justify-center overflow-hidden">
-                    {isPdf ? (
-                      <PdfThumbnail fileName={file.fileName} />
-                    ) : (
-                      <img
-                        src={file.fileUrl}
-                        alt={file.fileName}
-                        className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    )}
-
-                    <div
-                      className="absolute top-2 right-2 z-10 bg-background/80 backdrop-blur-sm rounded-sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleSelection(file.fileName)}
-                        className={isSelected ? 'bg-primary border-primary' : ''}
-                      />
-                    </div>
-
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="secondary"
-                            className="rounded-full w-10 h-10 shadow-lg"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPreviewFile(file);
-                            }}
-                          >
-                            <Eye className="h-5 w-5" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[90vh] p-1 bg-black/95">
-                          <div className="w-full h-[85vh] flex items-center justify-center relative">
-                            {!previewUrl ? (
-                              <div className="flex flex-col items-center gap-3 text-white">
-                                <RefreshCw className="h-8 w-8 animate-spin opacity-50" />
-                                <p className="text-sm">جاري تحميل المعاينة...</p>
-                              </div>
-                            ) : isPdf ? (
-                              <iframe src={previewUrl} className="w-full h-full rounded-md bg-white" title={file.fileName} />
-                            ) : (
-                              <img
-                                src={previewUrl}
-                                alt={file.fileName}
-                                className="max-w-full max-h-full object-contain rounded-md"
-                              />
-                            )}
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </div>
-                  <CardFooter className="p-3 bg-card flex flex-col items-start gap-1">
-                    <p className="text-sm font-semibold truncate w-full" title={file.fileName}>
-                      {file.fileName}
-                    </p>
-                    <p className="text-xs text-muted-foreground w-full flex justify-between">
-                      <span>{format(new Date(file.creationTime), "dd MMM yyyy, HH:mm")}</span>
-                    </p>
-                  </CardFooter>
-                </Card>
-              );
-            })}
+                  السابق
+                </Button>
+                <div className="text-sm font-medium">
+                  صفحة {currentPage} من {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  التالي
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

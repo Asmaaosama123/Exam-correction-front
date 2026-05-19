@@ -201,6 +201,13 @@ body {
         page-break-inside: auto !important;
     }
 
+    .print-page-break-before,
+    .card.print-page-break-before,
+    div.print-page-break-before {
+        break-before: page !important;
+        page-break-before: always !important;
+    }
+
     /* 7. Charts & Canvas styling - CRITICAL FIX */
     /* Ensure that chart canvas elements retain their calculated heights */
     canvas {
@@ -214,8 +221,8 @@ body {
     .h-\[400px\],
     div.h-\[400px\],
     div[class*="h-[400px]"] {
-        min-height: 400px !important;
-        height: 400px !important;
+        min-height: 290px !important;
+        height: 290px !important;
         display: block !important;
         position: relative !important;
     }
@@ -223,8 +230,8 @@ body {
     .h-\[450px\],
     div.h-\[450px\],
     div[class*="h-[450px]"] {
-        min-height: 450px !important;
-        height: 450px !important;
+        min-height: 320px !important;
+        height: 320px !important;
         display: block !important;
         position: relative !important;
     }
@@ -232,8 +239,8 @@ body {
     .h-\[250px\],
     div.h-\[250px\],
     div[class*="h-[250px]"] {
-        min-height: 250px !important;
-        height: 250px !important;
+        min-height: 180px !important;
+        height: 180px !important;
         display: block !important;
         position: relative !important;
     }
@@ -319,5 +326,21 @@ body {
     .space-y-6>*+*,
     div[class*="space-y-6"]>*+* {
         margin-top: 12px !important;
+    }
+
+    /* Compact headers for print */
+    h1.text-3xl {
+        font-size: 1.5rem !important;
+        margin-bottom: 2px !important;
+    }
+    p.text-muted-foreground {
+        font-size: 0.85rem !important;
+        margin-top: 2px !important;
+    }
+    .pb-6 {
+        padding-bottom: 8px !important;
+    }
+    div[id="analysis-report-content"] {
+        padding: 0px 10px !important;
     }
 }

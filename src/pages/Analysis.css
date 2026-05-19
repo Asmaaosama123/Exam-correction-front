@@ -93,3 +93,254 @@ body {
         align-items: flex-start;
     }
 }
+
+/* 🖨️ Comprehensive Print Styles */
+@media print {
+
+    /* 1. Page settings - Landscape A4 */
+    @page {
+        size: A4 landscape;
+        margin: 0.8cm !important;
+    }
+
+    /* 2. Reset containers & remove layout constraints */
+    html,
+    body,
+    #root,
+    .sidebar-provider,
+    .sidebar-inset,
+    main,
+    [data-sidebar-inset] {
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        overflow: visible !important;
+        position: static !important;
+    }
+
+    /* 3. Hide all non-printable UI elements and force no-print to win */
+    header,
+    footer,
+    aside,
+    [data-sidebar],
+    .no-print,
+    .no-print *,
+    .help-fab,
+    nav,
+    button,
+    [role="tablist"],
+    .sidebar-trigger,
+    .SelectTrigger,
+    .SelectContent,
+    .fixed,
+    [class*="toast"],
+    .sonner-toast {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        opacity: 0 !important;
+    }
+
+    /* 4. Document layout structure for printing */
+    #analysis-report-content {
+        position: relative !important;
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        direction: rtl !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 5. Grids layout in print */
+    .grid {
+        display: grid !important;
+        width: 100% !important;
+        gap: 12px !important;
+    }
+
+    /* Specific column grids to prevent collapsing */
+    .grid.md\:grid-cols-4 {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+
+    .grid.md\:grid-cols-3,
+    .grid.lg\:grid-cols-3,
+    .grid.gap-6.md\:grid-cols-3 {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    .grid.grid-cols-1 {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* 6. Cards and visual containers */
+    .card,
+    div[class*="bg-card"],
+    .bg-card {
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+        margin-bottom: 12px !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        background-color: white !important;
+        border-radius: 0.75rem !important;
+    }
+
+    .print-break-inside-auto,
+    .card.print-break-inside-auto,
+    div.print-break-inside-auto {
+        break-inside: auto !important;
+        page-break-inside: auto !important;
+    }
+
+    .print-page-break-before,
+    .card.print-page-break-before,
+    div.print-page-break-before {
+        break-before: page !important;
+        page-break-before: always !important;
+    }
+
+    /* 7. Charts & Canvas styling - CRITICAL FIX */
+    /* Ensure that chart canvas elements retain their calculated heights */
+    canvas {
+        display: block !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    /* Explicit heights for the containers to prevent collapsing or squishing */
+    .h-\[400px\],
+    div.h-\[400px\],
+    div[class*="h-[400px]"] {
+        min-height: 290px !important;
+        height: 290px !important;
+        display: block !important;
+        position: relative !important;
+    }
+
+    .h-\[450px\],
+    div.h-\[450px\],
+    div[class*="h-[450px]"] {
+        min-height: 320px !important;
+        height: 320px !important;
+        display: block !important;
+        position: relative !important;
+    }
+
+    .h-\[250px\],
+    div.h-\[250px\],
+    div[class*="h-[250px]"] {
+        min-height: 180px !important;
+        height: 180px !important;
+        display: block !important;
+        position: relative !important;
+    }
+
+    /* 8. Class summary info bar layout */
+    #analysis-report-content div[dir="rtl"].flex-col.md\:flex-row {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-around !important;
+        width: 100% !important;
+        background-color: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        padding: 10px !important;
+        margin-bottom: 12px !important;
+        border-radius: 1rem !important;
+    }
+
+    #analysis-report-content div[dir="rtl"].flex-col.md\:flex-row span {
+        display: inline-block !important;
+        visibility: visible !important;
+        color: #1e293b !important;
+    }
+
+    /* 9. Table styling for printing */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        page-break-inside: auto !important;
+    }
+
+    tr {
+        page-break-inside: avoid !important;
+        page-break-after: auto !important;
+    }
+
+    th,
+    td {
+        border: 1px solid #cbd5e1 !important;
+        padding: 8px 6px !important;
+        color: #0f172a !important;
+    }
+
+    thead {
+        background-color: #f1f5f9 !important;
+    }
+
+    /* 10. General print adjustments - Force colors and styles */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        box-sizing: border-box !important;
+    }
+
+    body {
+        background: white !important;
+        color: black !important;
+    }
+
+    /* 11. Spacing and padding adjustments for a compact, unified page layout */
+    .p-6,
+    .p-5,
+    .p-4,
+    div[class*="p-6"],
+    div[class*="p-5"],
+    div[class*="p-4"] {
+        padding: 12px !important;
+    }
+
+    .pt-6,
+    div[class*="pt-6"] {
+        padding-top: 10px !important;
+    }
+
+    .mb-8,
+    .mb-6,
+    div[class*="mb-8"],
+    div[class*="mb-6"] {
+        margin-bottom: 12px !important;
+    }
+
+    .space-y-6>*+*,
+    div[class*="space-y-6"]>*+* {
+        margin-top: 12px !important;
+    }
+
+    /* Compact headers for print */
+    h1.text-3xl {
+        font-size: 1.5rem !important;
+        margin-bottom: 2px !important;
+    }
+    p.text-muted-foreground {
+        font-size: 0.85rem !important;
+        margin-top: 2px !important;
+    }
+    .pb-6 {
+        padding-bottom: 8px !important;
+    }
+    div[id="analysis-report-content"] {
+        padding: 0px 10px !important;
+    }
+}

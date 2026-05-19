@@ -18,6 +18,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { useGetStudents } from "@/hooks/use-students";
+import { useGetClasses } from "@/hooks/use-classes";
 import { examsApi } from "@/lib/exams-api";
 import { toast } from "sonner";
 
@@ -30,17 +31,23 @@ export function ExportStudentProgressDialog({
     open,
     onOpenChange,
 }: ExportStudentProgressDialogProps) {
+    const [selectedClassId, setSelectedClassId] = useState<string>("all");
     const [selectedStudentId, setSelectedStudentId] = useState<string>("all");
     const [isExporting, setIsExporting] = useState(false);
     
-    // Fetch students list (first 1000 to cover most cases)
+    // Fetch classes
+    const { data: classesData, isLoading: isLoadingClasses } = useGetClasses();
+
+    // Fetch students list (filtered by class)
     const { data: studentsData, isLoading: isLoadingStudents } = useGetStudents({
         pageNumber: 1,
         pageSize: 1000,
+        classId: selectedClassId === "all" ? undefined : selectedClassId
     });
 
     useEffect(() => {
         if (!open) {
+            setSelectedClassId("all");
             setSelectedStudentId("all");
             setIsExporting(false);
         }
@@ -52,7 +59,8 @@ export function ExportStudentProgressDialog({
 
         try {
             const { blob, filename } = await examsApi.downloadStudentProgressPdf({
-                studentId: selectedStudentId === "all" ? undefined : parseInt(selectedStudentId)
+                studentId: selectedStudentId === "all" ? undefined : parseInt(selectedStudentId),
+                classId: selectedClassId === "all" ? undefined : parseInt(selectedClassId)
             });
 
             const url = window.URL.createObjectURL(blob);
@@ -100,6 +108,30 @@ export function ExportStudentProgressDialog({
 
                 <div className="space-y-6 py-4">
                     <div className="space-y-3">
+                        <Label>الفصل</Label>
+                        <Select
+                            value={selectedClassId}
+                            onValueChange={(val) => {
+                                setSelectedClassId(val);
+                                setSelectedStudentId("all");
+                            }}
+                            disabled={isLoadingClasses || isExporting}
+                        >
+                            <SelectTrigger className="w-full h-11">
+                                <SelectValue placeholder="اختر الفصل" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all" className="font-bold text-primary">جميع الفصول</SelectItem>
+                                {classesData?.map((cls: any) => (
+                                    <SelectItem key={cls.id} value={cls.id.toString()}>
+                                        {cls.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-3">
                         <Label>اختر الطالب</Label>
                         <Select
                             value={selectedStudentId}
@@ -119,7 +151,7 @@ export function ExportStudentProgressDialog({
                                         <SelectItem value="all" className="font-bold text-primary">
                                             <div className="flex items-center gap-2">
                                                 <Users className="h-4 w-4" />
-                                                جميع الطلاب
+                                                جميع طلاب {selectedClassId === "all" ? "الفصول" : "الفصل"}
                                             </div>
                                         </SelectItem>
                                         {studentsData?.items?.map((student: any) => (

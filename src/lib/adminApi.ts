@@ -90,7 +90,7 @@ export const adminApi = {
     },
 
     loginAsUser: async (userId: string): Promise<{ token: string, refreshToken: string }> => {
-        const response = await api.post<{ token: string, refreshToken: string }>(`/Admin/users/${userId}/login-as`);
+        const response = await api.post<{ token: string, refreshToken: string }>(`/api/Admin/users/${userId}/login-as`);
         return response.data;
     },
 

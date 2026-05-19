@@ -28,9 +28,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { HelpFab } from "@/components/ui/help-fab";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useGetStudents } from "@/hooks/use-students";
-import { useGetStudentProgress } from "@/hooks/use-analysis";
+import {
+    useGetStudentProgress,
+    useGetStudentsProgressSummary
+} from "@/hooks/use-analysis";
+import { useGetClasses } from "@/hooks/use-classes";
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -68,7 +73,9 @@ ChartJS.register(
 
 export default function StudentReport() {
     const navigate = useNavigate();
-    const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+    const [selectedStudentId, setSelectedStudentId] = useState<string>("all");
+    const [selectedClassId, setSelectedClassId] = useState<string>("all");
+    const reportScope = selectedStudentId !== "all" ? "student" : (selectedClassId !== "all" ? "class" : "all");
     const [isDownloading, setIsDownloading] = useState(false);
     const chartContainerRef = useRef<HTMLDivElement>(null);
 
@@ -76,38 +83,53 @@ export default function StudentReport() {
     const { data: studentsData, isLoading: studentsLoading } = useGetStudents({
         pageNumber: 1,
         pageSize: 1000,
+        classId: selectedClassId === "all" ? undefined : selectedClassId
     });
 
+    // Fetch all global classes
+    const { data: globalClasses, isLoading: classesLoading } = useGetClasses();
+
     // Fetch selected student progress
-    const { data: progress, isLoading: progressLoading, error: progressError } = useGetStudentProgress(selectedStudentId);
+    const { data: rawProgress, isLoading: progressLoading, error: progressError } = useGetStudentProgress(
+        selectedStudentId === "all" ? null : selectedStudentId
+    );
 
-    const handleDownloadPDF = async (isAllStudents: boolean = false) => {
+    const progress = React.useMemo(() => {
+        if (!rawProgress) return null;
+        return {
+            ...rawProgress,
+            examSummaries: rawProgress.examSummaries?.filter((e: any) => e.totalScore > 0) || []
+        };
+    }, [rawProgress]);
+
+    
+    // Fetch students progress summary for "Class" or "All" scopes
+    const { data: summaryData, isLoading: summaryLoading } = useGetStudentsProgressSummary(
+        reportScope !== "student" ? (selectedClassId === "all" ? undefined : parseInt(selectedClassId)) : undefined
+    );
+
+    // Use global classes for the dropdown
+    const classes = React.useMemo(() => {
+        if (!globalClasses) return [];
+        return globalClasses.map((cls: any) => ({ id: cls.id, name: cls.name }));
+    }, [globalClasses]);
+
+    // Filter students based on selected class
+    const filteredStudents = React.useMemo(() => {
+        return studentsData?.items || [];
+    }, [studentsData]);
+
+    const handleDownloadPDF = async (isSummary: boolean = false, forceAllClasses: boolean = false) => {
         setIsDownloading(true);
-        const toastId = toast.loading(isAllStudents ? "جاري تحضير ملخص أداء الطلاب..." : "جاري تحضير تقرير الطالب...");
-
+        const toastId = toast.loading(isSummary ? (forceAllClasses ? "جاري تحضير ملخص جميع الطلاب..." : "جاري تحضير ملخص طلاب الفصل...") : "جاري تحضير تقرير الطالب...");
         try {
-            let chartBase64 = "";
-            if (!isAllStudents && chartContainerRef.current) {
-                const canvas = await html2canvas(chartContainerRef.current, {
-                    scale: 2,
-                    useCORS: true,
-                    backgroundColor: "#ffffff",
-                    onclone: (clonedDoc) => {
-                        const elements = clonedDoc.getElementsByTagName('*');
-                        for (let i = 0; i < elements.length; i++) {
-                            const el = elements[i] as HTMLElement;
-                            const style = window.getComputedStyle(el);
-                            if (style.color?.includes('oklch')) el.style.color = '#1f2937';
-                            if (style.backgroundColor?.includes('oklch')) el.style.backgroundColor = '#ffffff';
-                            if (style.borderColor?.includes('oklch')) el.style.borderColor = '#e5e7eb';
-                        }
-                    }
-                });
-                chartBase64 = canvas.toDataURL("image/png");
-            }
+            // Get chart image if it exists
+            const chartCanvas = document.querySelector('canvas');
+            const chartBase64 = chartCanvas ? chartCanvas.toDataURL('image/png') : undefined;
 
             const { blob, filename } = await examsApi.downloadStudentProgressPdf({
-                studentId: isAllStudents ? undefined : (selectedStudentId ? parseInt(selectedStudentId) : undefined),
+                studentId: !isSummary ? (selectedStudentId !== "all" ? parseInt(selectedStudentId) : undefined) : undefined,
+                classId: forceAllClasses ? undefined : (selectedClassId !== "all" ? parseInt(selectedClassId) : undefined),
                 progressChartBase64: chartBase64
             });
 
@@ -215,7 +237,7 @@ export default function StudentReport() {
     const recurringGoalsChartData = React.useMemo(() => {
         if (!recurringGoals || recurringGoals.length === 0) return null;
         const topGoals = recurringGoals.slice(0, 6); // Top 6 for clarity
-        
+
         return {
             labels: topGoals.map(g => g.goalText.length > 25 ? g.goalText.substring(0, 25) + '...' : g.goalText),
             datasets: [
@@ -255,7 +277,7 @@ export default function StudentReport() {
             },
             x: {
                 grid: { display: false },
-                ticks: { 
+                ticks: {
                     font: { family: 'Cairo', size: 9, weight: 'bold' as const },
                     maxRotation: 45,
                     minRotation: 45
@@ -315,7 +337,7 @@ export default function StudentReport() {
     };
 
     return (
-        <MainLayout>
+        <MainLayout title="تقارير الطلاب" currentPath="/reports/student-report">
             <div className="student-report-container" dir="rtl">
                 {/* Header */}
                 <div className="report-header-section">
@@ -336,13 +358,13 @@ export default function StudentReport() {
                         <Button
                             variant="outline"
                             className="rounded-xl border-primary/20 hover:bg-primary/5 text-primary gap-2 font-black"
-                            onClick={() => handleDownloadPDF(true)}
+                            onClick={() => handleDownloadPDF(true, true)}
                             disabled={isDownloading}
                         >
                             {isDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                            تحميل ملخص الطلاب (PDF)
+                            تحميل ملخص جميع الطلاب (PDF)
                         </Button>
-                        {selectedStudentId && (
+                        {selectedStudentId !== "all" && (
                             <Button
                                 className="rounded-xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 gap-2 font-black"
                                 onClick={() => handleDownloadPDF(false)}
@@ -355,60 +377,118 @@ export default function StudentReport() {
                     </div>
                 </div>
 
-                {/* Student Selection Section */}
+
+                {/* Selection Section */}
                 <Card className="selection-card-premium">
                     <CardHeader className="pb-3 px-8 pt-8">
-                        <CardTitle className="text-lg flex items-center gap-3 font-black">
-                            <div className="p-2 rounded-xl bg-primary/10 border border-primary/5 shadow-inner">
-                                <Users className="h-5 w-5 text-primary" />
+                        <CardTitle className="text-lg flex items-center gap-3 font-black text-slate-800">
+                            <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/5 shadow-inner">
+                                <ChartIcon className="h-5 w-5 text-primary" />
                             </div>
-                            اختيار الطالب للمتابعة
+                            تخصيص نطاق التقرير للمتابعة
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="px-8 pb-8 relative">
-                        <div className="flex flex-col sm:flex-row items-center gap-4">
-                            <div className="relative w-full sm:w-[450px]">
-                                <Select
-                                    value={selectedStudentId || ""}
-                                    onValueChange={(value) => {
-                                        setSelectedStudentId(value);
-                                    }}
-                                >
-                                    <SelectTrigger dir="ltr" className="w-full bg-white border-primary/10 rounded-xl h-12 shadow-sm text-sm font-bold hover:border-primary/30 transition-all text-left flex-row-reverse">
-                                        <SelectValue placeholder="اختر الطالب من القائمة..." />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-80 rounded-2xl border-primary/10 shadow-2xl p-0" dir="ltr">
-                                        <div className="p-2">
-                                            {studentsLoading ? (
-                                                <div className="p-10 text-center">
-                                                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary opacity-30" />
-                                                    <p className="text-sm text-slate-400 mt-3 font-black">جاري جلب القائمة...</p>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    {studentsData?.items?.map((student) => (
-                                                        <SelectItem key={student.id.toString()} value={student.id.toString()} className="cursor-pointer py-4 focus:bg-primary/5 rounded-xl mx-1 my-1" dir="ltr">
-                                                            <div className="flex flex-col items-end text-right w-full">
-                                                                <span className="font-black text-slate-800 text-md">{student.fullName}</span>
-                                                                <span className="text-xs font-bold text-primary/70">{student.className || "بدون فصل"}</span>
-                                                            </div>
+                        <div className="flex flex-col md:flex-row items-center gap-6">
+                            {/* Class Selector */}
+                            <div className="w-full md:w-[300px] space-y-2">
+                                <label className="text-xs font-black text-slate-400 mr-1 flex items-center gap-2">
+                                    <BarChart className="h-3 w-3" />
+                                    الفصل
+                                </label>
+                                <div className="flex items-center gap-2 px-4 py-1 bg-white rounded-2xl border border-primary/10 shadow-sm hover:border-primary/30 transition-all group h-14">
+                                    <BarChart className="h-4 w-4 text-primary opacity-60 group-hover:opacity-100 transition-opacity" />
+                                    <div className="flex-1">
+                                        <Select
+                                            value={selectedClassId}
+                                            onValueChange={(val) => {
+                                                setSelectedClassId(val);
+                                                setSelectedStudentId("all"); // Reset student when class changes
+                                            }}
+                                        >
+                                            <SelectTrigger dir="rtl" className="w-full border-none shadow-none bg-transparent focus:ring-0 px-0 h-10 text-md font-bold">
+                                                <SelectValue placeholder="جميع الفصول" />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-2xl border-primary/10 shadow-2xl" dir="rtl">
+                                                <SelectItem value="all" className="font-black text-primary">جميع الفصول</SelectItem>
+                                                {classesLoading ? (
+                                                    <div className="p-4 text-center"><Loader2 className="h-4 w-4 animate-spin mx-auto" /></div>
+                                                ) : (
+                                                    classes.map((cls: any) => (
+                                                        <SelectItem key={cls.id} value={cls.id.toString()}>
+                                                            {cls.name}
                                                         </SelectItem>
-                                                    ))}
-                                                    {(!studentsData?.items || studentsData.items.length === 0) && (
+                                                    ))
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    {selectedClassId !== "all" && (
+                                        <Button
+                                            variant="outline"
+                                            className="h-10 px-4 rounded-xl text-primary border-primary/20 hover:bg-primary/5 transition-all font-black gap-2"
+                                            onClick={() => handleDownloadPDF(true)}
+                                            disabled={isDownloading}
+                                        >
+                                            {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                            تحميل ملخص الفصل
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Student Selector */}
+                            <div className="w-full md:w-[450px] space-y-2">
+                                <label className="text-xs font-black text-slate-400 mr-1 flex items-center gap-2">
+                                    <Users className="h-3 w-3" />
+                                    الطالب
+                                </label>
+                                <div className="flex items-center gap-2 px-4 py-1 bg-white rounded-2xl border border-primary/10 shadow-sm hover:border-primary/30 transition-all group h-14">
+                                    <Users className="h-4 w-4 text-primary opacity-60 group-hover:opacity-100 transition-opacity" />
+                                    <div className="flex-1">
+                                        <Select
+                                            value={selectedStudentId}
+                                            onValueChange={setSelectedStudentId}
+                                        >
+                                            <SelectTrigger dir="rtl" className="w-full border-none shadow-none bg-transparent focus:ring-0 px-0 h-10 text-md font-bold">
+                                                <SelectValue placeholder="جميع الطلاب" />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-h-80 rounded-2xl border-primary/10 shadow-2xl p-0" dir="rtl">
+                                                <div className="p-2">
+                                                    <SelectItem value="all" className="font-black text-primary py-4 px-4 rounded-xl mb-1">جميع الطلاب</SelectItem>
+                                                    <div className="h-px bg-slate-100 my-1 mx-2" />
+                                                    {studentsLoading ? (
                                                         <div className="p-10 text-center">
-                                                            <Users className="h-10 w-10 text-slate-100 mx-auto mb-3" />
-                                                            <p className="text-sm text-slate-400 font-black">لم يتم العثور على نتائج</p>
+                                                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary opacity-30" />
+                                                            <p className="text-sm text-slate-400 mt-3 font-black">جاري جلب القائمة...</p>
                                                         </div>
+                                                    ) : (
+                                                        <>
+                                                            {filteredStudents.map((student) => (
+                                                                <SelectItem key={student.id.toString()} value={student.id.toString()} className="cursor-pointer py-4 focus:bg-primary/5 rounded-xl mx-1 my-1">
+                                                                    <div className="flex flex-col items-start text-right w-full">
+                                                                        <span className="font-black text-slate-800 text-md">{student.fullName}</span>
+                                                                        <span className="text-xs font-bold text-primary/70">{student.className || "بدون فصل"}</span>
+                                                                    </div>
+                                                                </SelectItem>
+                                                            ))}
+                                                            {filteredStudents.length === 0 && (
+                                                                <div className="p-10 text-center">
+                                                                    <Users className="h-10 w-10 text-slate-100 mx-auto mb-3" />
+                                                                    <p className="text-sm text-slate-400 font-black">لا يوجد طلاب في هذا الفصل</p>
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
-                                                </>
-                                            )}
-                                        </div>
-                                    </SelectContent>
-                                </Select>
+                                                </div>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {selectedStudentId !== null && progress && !progressLoading && (
+                        {reportScope === "student" && selectedStudentId !== null && progress && !progressLoading && (
                             <div className="student-summary-banner animate-in zoom-in-95 duration-500">
                                 <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-700">
                                     <Users className="h-20 w-20 text-emerald-600" />
@@ -428,7 +508,7 @@ export default function StudentReport() {
                                         variant="ghost"
                                         size="sm"
                                         className="rounded-xl text-rose-500 hover:bg-rose-50 hover:text-rose-600 font-black px-4"
-                                        onClick={() => setSelectedStudentId(null)}
+                                        onClick={() => setSelectedStudentId("all")}
                                     >
                                         تغيير الطالب
                                     </Button>
@@ -440,7 +520,7 @@ export default function StudentReport() {
 
                 {/* Main Content Area */}
                 <div className="flex-1 min-h-[400px]">
-                    {progressLoading ? (
+                    {progressLoading || summaryLoading ? (
                         <div className="flex flex-col items-center justify-center py-32 gap-8">
                             <div className="relative">
                                 <div className="h-14 w-14 rounded-full border-4 border-slate-100 border-t-primary animate-spin" />
@@ -452,6 +532,91 @@ export default function StudentReport() {
                                 <p className="text-slate-700 text-xl font-black mb-2 animate-pulse">جاري تحليل مسار الطالب...</p>
                                 <p className="text-slate-400 font-bold">نقوم بمعالجة نتائج الاختبارات والتقييمات...</p>
                             </div>
+                        </div>
+                    ) : reportScope !== "student" ? (
+                        <div className="grid gap-8 animate-in fade-in duration-700 slide-in-from-bottom-8 mt-8">
+                            <Card className="report-main-card">
+                                <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 mx-8 px-0 pb-6 pt-10">
+                                    <div className="space-y-1">
+                                        <CardTitle className="text-2xl font-black tracking-tight text-slate-800">ملخص أداء الطلاب</CardTitle>
+                                        <CardDescription className="font-bold text-slate-400 text-lg">
+                                            {reportScope === "class" ? `إحصائيات الأداء لطلاب فصل ${classes.find(c => c.id.toString() === selectedClassId)?.name || ""}` : "إحصائيات الأداء لجميع الطلاب"}
+                                        </CardDescription>
+                                    </div>
+                                    <div className="h-16 w-16 rounded-[2rem] bg-slate-50 flex items-center justify-center border border-slate-100 shadow-sm shadow-slate-100/50">
+                                        <Users className="h-8 w-8 text-slate-400" />
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <div className="exam-table-container">
+                                        <table className="exam-table-premium">
+                                            <thead>
+                                                <tr>
+                                                    <th>الطالب</th>
+                                                    <th className="text-center">الفصل</th>
+                                                    <th className="text-center">المستوى</th>
+                                                    <th className="text-center">المتوسط</th>
+                                                    <th className="text-center">عدد الاختبارات</th>
+                                                    <th>الإجراءات</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {summaryData?.map((student: any) => (
+                                                    <tr key={student.studentId} className="hover:bg-emerald-50/30 transition-all group">
+                                                        <td className="px-10 py-6 font-black text-slate-800 text-base">
+                                                            {student.studentName}
+                                                        </td>
+                                                        <td className="px-6 py-6 text-center font-bold text-slate-500">
+                                                            {student.className}
+                                                        </td>
+                                                        <td className="px-6 py-6 text-center">
+                                                            <span className={cn(
+                                                                "px-3 py-1 rounded-full text-xs font-black",
+                                                                student.overallAverage >= 85 ? "bg-emerald-100 text-emerald-700" :
+                                                                    student.overallAverage >= 70 ? "bg-blue-100 text-blue-700" :
+                                                                        student.overallAverage >= 50 ? "bg-amber-100 text-amber-700" :
+                                                                            "bg-rose-100 text-rose-700"
+                                                            )}>
+                                                                {student.performanceLevel}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-6 text-center font-black text-emerald-600">
+                                                            %{student.overallAverage.toFixed(1)}
+                                                        </td>
+                                                        <td className="px-6 py-6 text-center font-bold text-slate-400">
+                                                            {student.examCount ?? student.ExamCount ?? 0}
+                                                        </td>
+                                                        <td className="px-10 py-6">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="text-primary font-bold hover:bg-primary/10 rounded-lg"
+                                                                onClick={() => {
+                                                                    setSelectedStudentId(student.studentId.toString());
+                                                                }}
+                                                            >
+                                                                عرض التفاصيل
+                                                            </Button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {(!summaryData || summaryData.length === 0) && (
+                                                    <tr>
+                                                        <td colSpan={6} className="px-12 py-32 text-center bg-slate-50/40 rounded-b-[3rem]">
+                                                            <div className="flex flex-col items-center justify-center gap-6">
+                                                                <div className="h-20 w-20 rounded-2xl bg-white shadow-xl flex items-center justify-center opacity-40">
+                                                                    <Users className="h-10 w-10 text-slate-200" />
+                                                                </div>
+                                                                <h4 className="text-xl font-black text-slate-400 tracking-tight">لا توجد بيانات متاحة حالياً</h4>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
                     ) : !selectedStudentId ? (
                         <div className="flex flex-col items-center justify-center py-32 text-center rounded-[3rem] bg-slate-50/50 border-2 border-dashed border-slate-200/60 mt-8 relative overflow-hidden group">
@@ -490,13 +655,13 @@ export default function StudentReport() {
                                     <CardHeader className="pb-0 pt-3 px-4">
                                         <CardDescription className="font-black text-slate-400 text-[9px] uppercase tracking-widest">المتوسط التراكمي</CardDescription>
                                         <div className="flex items-baseline gap-1 mt-0.5">
-                                            <CardTitle className="text-2xl font-black text-emerald-600 tracking-tighter">%{progress.overallAverage.toFixed(0)}</CardTitle>
+                                            <CardTitle className="text-2xl font-black text-emerald-600 tracking-tighter">{progress.overallAverage.toFixed(0)}%</CardTitle>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="px-4 pb-3 mt-1">
-                                        <div className="w-full h-1.5 bg-slate-50 rounded-full mt-1 overflow-hidden p-0.5 border border-slate-100 shadow-inner">
+                                        <div className="w-full h-2 bg-slate-100 rounded-full mt-1 overflow-hidden shadow-inner border border-slate-200">
                                             <div
-                                                className="h-full bg-gradient-to-l from-emerald-500 to-emerald-300 rounded-full transition-all duration-1000"
+                                                className="h-full bg-emerald-500 rounded-full transition-all duration-1000 shadow-sm"
                                                 style={{ width: `${progress.overallAverage}%` }}
                                             />
                                         </div>
@@ -580,7 +745,7 @@ export default function StudentReport() {
                                                             <div className="space-y-4 relative z-10">
                                                                 <div className="flex justify-between text-xs font-black text-slate-400">
                                                                     <span>إتقان المهارة حالياً</span>
-                                                                    <span className="text-slate-800 text-lg">%{goal.currentRate.toFixed(0)}</span>
+                                                                    <span className="text-slate-800 text-lg">{goal.currentRate.toFixed(0)}%</span>
                                                                 </div>
                                                                 <div className="w-full h-3 bg-slate-200/40 rounded-full overflow-hidden p-1 shadow-inner">
                                                                     <div
@@ -600,7 +765,7 @@ export default function StudentReport() {
                                                                             className="px-3 py-2 rounded-2xl bg-white border border-slate-100 text-[10px] font-black text-slate-500 flex flex-col items-center gap-1 hover:border-emerald-300 hover:text-emerald-600 transition-all cursor-default shadow-sm group/item"
                                                                             title={h.examTitle}
                                                                         >
-                                                                            <span className="text-md text-emerald-600 group-hover/item:scale-110 transition-transform">%{h.successRate.toFixed(0)}</span>
+                                                                            <span className="text-md text-emerald-600 group-hover/item:scale-110 transition-transform">{h.successRate.toFixed(0)}%</span>
                                                                             <span className="opacity-40 line-clamp-1 w-14 text-center text-[9px] font-bold uppercase tracking-tighter">{h.examTitle}</span>
                                                                         </div>
                                                                     ))}
@@ -656,14 +821,14 @@ export default function StudentReport() {
                                                                         exam.percentage >= 80 ? "text-emerald-500" :
                                                                             exam.percentage >= 50 ? "text-primary" : "text-rose-500"
                                                                     )}>
-                                                                        %{exam.percentage.toFixed(0)}
+                                                                        {exam.percentage.toFixed(0)}%
                                                                     </span>
-                                                                    <div className="w-full h-2.5 bg-slate-50 rounded-full overflow-hidden p-1 border border-slate-100 shadow-inner">
+                                                                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200">
                                                                         <div
                                                                             className={cn(
                                                                                 "h-full rounded-full transition-all duration-1000 shadow-sm",
-                                                                                exam.percentage >= 80 ? "bg-gradient-to-l from-emerald-500 to-emerald-300" :
-                                                                                    exam.percentage >= 50 ? "bg-gradient-to-l from-primary to-emerald-300" : "bg-gradient-to-l from-rose-500 to-rose-300"
+                                                                                exam.percentage >= 80 ? "bg-emerald-500" :
+                                                                                    exam.percentage >= 50 ? "bg-primary" : "bg-rose-500"
                                                                             )}
                                                                             style={{ width: `${exam.percentage}%` }}
                                                                         />
@@ -787,6 +952,23 @@ export default function StudentReport() {
                         </div>
                     ) : null}
                 </div>
+
+                <HelpFab
+                    title="دليل تقارير الطلاب التراكمية"
+                    description="توفر هذه الصفحة عرضاً شاملاً لمستوى الطالب عبر جميع الاختبارات السابقة."
+                    tooltip="دليل تقارير الطلاب"
+                >
+                    <div className="space-y-4">
+                        <p className="text-muted-foreground font-bold">المميزات الرئيسية:</p>
+                        <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground mt-2">
+                            <li><strong>تصفية النتائج:</strong> يمكنك عرض إحصائيات فصل كامل أو اختيار طالب محدد لمتابعة تفاصيله.</li>
+                            <li><strong>المتوسط التراكمي:</strong> يمثل الدرجة المتوسطة للطالب في كافة الاختبارات التي خاضها.</li>
+                            <li><strong>منحنى تطور الأداء:</strong> رسم بياني يوضح اتجاه مستوى الطالب (صعوداً أو هبوطاً) عبر الزمن.</li>
+                            <li><strong>إتقان المهارات:</strong> تحليل دقيق لمدى تمكن الطالب من الأهداف التعليمية المختلفة.</li>
+                        </ul>
+                        <p className="text-sm border-t pt-2 mt-4 text-primary font-bold">يمكنك تحميل التقرير التراكمي الشامل للفصل أو للطالب بصيغة PDF من الأعلى.</p>
+                    </div>
+                </HelpFab>
             </div>
         </MainLayout>
     );

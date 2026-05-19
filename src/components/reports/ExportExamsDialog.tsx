@@ -35,7 +35,7 @@ export function ExportExamsDialog({
     const [selectedClassId, setSelectedClassId] = useState<string>("all");
     const [format, setFormat] = useState<"excel" | "pdf">("excel");
     const [isExporting, setIsExporting] = useState(false);
-    
+
     const { data: examsData, isLoading: isLoadingExams } = useGetExams();
     const { data: classesData, isLoading: isLoadingClasses } = useGetClasses();
 
@@ -55,7 +55,7 @@ export function ExportExamsDialog({
         try {
             const endpoint = format === "excel" ? "report-exam-results-excel" : "report-exam-results-pdf";
             let urlPath = `/api/Reports/${endpoint}?examId=${selectedExamId}`;
-            
+
             if (selectedClassId && selectedClassId !== "all") {
                 urlPath += `&classId=${selectedClassId}`;
             }
@@ -69,7 +69,7 @@ export function ExportExamsDialog({
             // Default filename fallback using exam title if possible
             const selectedExam = examsData?.find(e => e.id.toString() === selectedExamId);
             const cleanTitle = selectedExam?.title?.replace(/[\\/:*?"<>|]/g, "_") || "درجات_الاختبار";
-            
+
             // Add class name to filename if selected
             let classNameSuffix = "";
             if (selectedClassId && selectedClassId !== "all") {
@@ -192,10 +192,10 @@ export function ExportExamsDialog({
                             disabled={isLoadingClasses || isExporting}
                         >
                             <SelectTrigger className="w-full">
-                                <SelectValue placeholder="كل الفصول" />
+                                <SelectValue placeholder="جميع الفصول" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">كل الفصول</SelectItem>
+                                <SelectItem value="all">جميع الفصول</SelectItem>
                                 {isLoadingClasses ? (
                                     <SelectItem value="loading" disabled>
                                         جاري التحميل...

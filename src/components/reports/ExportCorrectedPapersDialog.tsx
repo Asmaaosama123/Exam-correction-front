@@ -34,7 +34,7 @@ export function ExportCorrectedPapersDialog({
     const [selectedExamId, setSelectedExamId] = useState<string>("");
     const [selectedClassId, setSelectedClassId] = useState<string>("all");
     const [isExporting, setIsExporting] = useState(false);
-    
+
     const { data: examsData, isLoading: isLoadingExams } = useGetExams();
     const { data: classesData, isLoading: isLoadingClasses } = useGetClasses();
 
@@ -52,7 +52,7 @@ export function ExportCorrectedPapersDialog({
         setIsExporting(true);
         try {
             let urlPath = `/api/Reports/export-corrected-papers-pdf?examId=${selectedExamId}`;
-            
+
             if (selectedClassId && selectedClassId !== "all") {
                 urlPath += `&classId=${selectedClassId}`;
             }
@@ -66,7 +66,7 @@ export function ExportCorrectedPapersDialog({
             // Default filename fallback
             const selectedExam = examsData?.find(e => e.id.toString() === selectedExamId);
             const cleanTitle = selectedExam?.title?.replace(/[\\/:*?"<>|]/g, "_") || "الأوراق_المصححة";
-            
+
             let classNameSuffix = "";
             if (selectedClassId && selectedClassId !== "all") {
                 const selectedClass = classesData?.find(c => c.id.toString() === selectedClassId);
@@ -113,7 +113,7 @@ export function ExportCorrectedPapersDialog({
                     } else if (jsonError.description) {
                         errorMessage = jsonError.description;
                     }
-                } catch (e) {}
+                } catch (e) { }
             } else if (error.response?.data?.errors?.[0]?.Description) {
                 errorMessage = error.response.data.errors[0].Description;
             }
@@ -174,10 +174,10 @@ export function ExportCorrectedPapersDialog({
                             disabled={isLoadingClasses || isExporting}
                         >
                             <SelectTrigger className="w-full">
-                                <SelectValue placeholder="كل الفصول" />
+                                <SelectValue placeholder="جميع الفصول" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">كل الفصول</SelectItem>
+                                <SelectItem value="all">جميع الفصول</SelectItem>
                                 {isLoadingClasses ? (
                                     <SelectItem value="loading" disabled>
                                         جاري التحميل...

@@ -1018,7 +1018,34 @@ function AnalysisContent() {
                         </TabsContent>
 
                         {/* Detailed Report Tab */}
-                        <TabsContent value="detailed">
+                        <TabsContent value="detailed" className="space-y-6 print:m-0">
+                            {/* Class Summary Info Bar */}
+                            <div className="flex flex-col md:flex-row flex-wrap items-center justify-between gap-4 p-4 md:p-6 md:px-10 bg-card rounded-2xl md:rounded-[2rem] shadow-sm border overflow-visible" dir="rtl">
+                                <div className="flex flex-wrap items-center gap-4 md:gap-8 w-full md:w-auto">
+                                    <div className="flex items-center gap-2 md:gap-3">
+                                        <span className="text-sm md:text-lg font-bold text-muted-foreground whitespace-nowrap">فصل:</span>
+                                        <span className="text-base md:text-xl font-black text-foreground">{displayClassName}</span>
+                                    </div>
+                                    <div className="hidden md:block h-8 w-[1px] bg-border"></div>
+                                    <div className="flex items-center gap-2 md:gap-3">
+                                        <span className="text-sm md:text-lg font-bold text-muted-foreground whitespace-nowrap">المادة:</span>
+                                        <span className="text-base md:text-xl font-black text-foreground">{exams?.find((e: any) => e.id.toString() === selectedExamId)?.subject}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 md:gap-3">
+                                        <span className="text-sm md:text-lg font-bold text-muted-foreground whitespace-nowrap">تاريخ الاختبار:</span>
+                                        <span className="text-base md:text-xl font-black text-foreground">
+                                            {selectedExam?.createdAt
+                                                ? (() => {
+                                                    const d = new Date(selectedExam.createdAt);
+                                                    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+                                                })()
+                                                : "-"
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 gap-6 mb-8">
                                 <div className="bg-card rounded-2xl shadow-sm border overflow-hidden flex flex-col border-b-4 border-b-primary">
                                     <div className="flex items-center gap-3 p-5 border-b bg-primary/10" dir="rtl">
@@ -1060,7 +1087,7 @@ function AnalysisContent() {
                                     </div>
                                 </div>
                             </div>
-                            <Card>
+                            <Card className="print-break-inside-auto">
                                 <CardHeader>
                                     <CardTitle>تحليل الأسئلة</CardTitle>
                                     <CardDescription>تفصيل أداء الطلاب في كل سؤال من أسئلة الاختبار</CardDescription>
@@ -1671,7 +1698,7 @@ function AnalysisContent() {
                 </Dialog>
             </div>
 
-        <HelpFab
+            <HelpFab
                 title="كيفية استخدام تحليل النتائج"
                 description="توفر لك هذه الصفحة إحصائيات متقدمة ورسوم بيانية لأداء الفصول والطلاب."
                 tooltip="دليل استخدام التحليل"

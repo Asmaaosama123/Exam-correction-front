@@ -98,7 +98,18 @@ export default function UserManagement() {
                 url: error?.config?.url,
                 fullError: error
             });
-            toast.error("فشل تسجيل الدخول كالمستخدم");
+            
+            // استخراج رسالة الخطأ التفصيلية من الباك إند اللي متبرمجة في ResultExtensions.cs
+            const backendErrors = error?.response?.data?.errors;
+            const detailedError = (backendErrors && backendErrors.length > 0) 
+                ? backendErrors[0].description 
+                : error?.response?.data?.title 
+                || error?.message 
+                || "خطأ غير معروف";
+                
+            const statusCode = error?.response?.status || "N/A";
+
+            toast.error(`فشل تسجيل الدخول: ${detailedError} (Code: ${statusCode})`);
         }
     };
 

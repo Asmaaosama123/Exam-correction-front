@@ -90,8 +90,14 @@ export default function UserManagement() {
             queryClient.clear();
             toast.success(`تم تسجيل الدخول كـ ${user.firstName} ${user.lastName}`);
             navigate("/");
-        } catch (error) {
-            console.error("Failed to login as user:", error);
+        } catch (error: any) {
+            console.error("Failed to login as user. Full Error Details:", {
+                message: error?.message,
+                status: error?.response?.status,
+                data: error?.response?.data,
+                url: error?.config?.url,
+                fullError: error
+            });
             toast.error("فشل تسجيل الدخول كالمستخدم");
         }
     };

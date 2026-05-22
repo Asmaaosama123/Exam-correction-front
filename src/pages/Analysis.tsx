@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SummaryPrintTemplate } from "./analysis/components/SummaryPrintTemplate";
 import { StudentPrintTemplate } from "./analysis/components/StudentPrintTemplate";
+import { HelpFab } from "@/components/ui/help-fab";
 
 export default function Analysis() {
     const [selectedExamId, setSelectedExamId] = useState<string>("");
@@ -337,6 +338,60 @@ export default function Analysis() {
                     />
                 </div>
             )}
+
+            <HelpFab
+                title="كيفية استخدام صفحة التحاليل"
+                description="دليل سريع لقراءة واستخراج التحليلات البيانية"
+                tooltip="دليل استخدام التحاليل"
+            >
+                <div className="space-y-6">
+                    <p className="text-muted-foreground leading-relaxed">
+                        من خلال هذه الصفحة، يمكنك مراقبة الأداء العام للمدرسة أو الفصول، والتعمق في تحليل إجابات الطلاب للوقوف على نقاط الضعف والقوة.
+                    </p>
+
+                    <div className="space-y-4">
+                        <div className="flex items-start gap-4">
+                            <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                                <Users className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-semibold">تقرير الفصل العام</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    يعرض لك نظرة شاملة على أداء المادة، نسبة إتقان الأهداف، ونسبة الطلاب الذين بحاجة لتدخل وتوجيه.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-start gap-4">
+                            <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                                <BarChart3 className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-semibold">التحليل التفصيلي</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    يستعرض نسب الإجابات الصحيحة لكل سؤال، لتكتشف الأسئلة الأكثر صعوبة وتراجع استراتيجية الشرح.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-start gap-4">
+                            <div className="rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+                                <FileText className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-semibold">تقرير الطالب الفردي</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    يتيح لك الاطلاع بشكل مكثف على أداء طالب محدد مقارنة بمتوسط الفصل، بالإضافة إلى توصيات متخصصة للطالب.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p className="text-sm text-muted-foreground border-t pt-4 mt-2">
+                        💡 يمكنك دائماً طباعة أي تقرير كـ PDF بشكل احترافي عبر الضغط على التقارير وزر <strong>حفظ PDF</strong> أعلى الصفحة.
+                    </p>
+                </div>
+            </HelpFab>
         </MainLayout>
     );
 }

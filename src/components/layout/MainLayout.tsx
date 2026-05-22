@@ -19,11 +19,13 @@ export function MainLayout({ children, className }: MainLayoutProps) {
     // Simple layout without sidebar for unauthenticated users
     return (
       <div className="flex min-h-screen w-full flex-col">
-        <Header showSidebarTrigger={false} />
+        <Header showSidebarTrigger={false} className="print:hidden" />
         <main className={cn("flex flex-1 flex-col", className)}>
           {children}
         </main>
-        <Footer />
+        <div className="print:hidden">
+          <Footer />
+        </div>
       </div>
     );
   }
@@ -34,14 +36,16 @@ export function MainLayout({ children, className }: MainLayoutProps) {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full flex-col">
-        <Header />
+        <Header className="print:hidden" />
         <div className="flex flex-1">
-          <AppSidebar />
-          <SidebarInset className="flex flex-col relative">
+          <AppSidebar className="print:hidden" />
+          <SidebarInset className="flex flex-col relative w-full print:w-full print:!m-0">
             <main className={cn("flex flex-1 flex-col", className)}>
               {children}
             </main>
-            <Footer />
+            <div className="print:hidden">
+              <Footer />
+            </div>
           </SidebarInset>
         </div>
       </div>

@@ -152,3 +152,24 @@
 }
 
 /* Since mask-composite is tricky with Tailwind/CSS modules, let's just rely on the box-shadow trick I used in the component code: shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] */
+
+@media print {
+  .goal-chart-card {
+     height: 260px !important;
+     min-height: 260px !important;
+     overflow: visible !important;
+     padding-bottom: 20px !important;
+  }
+  .goal-chart-card .recharts-responsive-container,
+  .goal-chart-card canvas {
+     height: 220px !important;
+     width: 100% !important;
+  }
+  .goal-chart-card svg {
+     overflow: visible !important;
+  }
+  .goal-chart-card .recharts-wrapper {
+     overflow: visible !important;
+  }
+}
+
